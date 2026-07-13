@@ -33,6 +33,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     transactions, 
     activeBusiness, 
     createSaleInvoice,
+    updateSaleInvoice,
     deleteTransaction,
     products,
     customers
@@ -41,6 +42,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'new-sale'>('list');
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
 
   // Local list states for sub-sections
   const [estimates, setEstimates] = useState<any[]>([]);
@@ -248,107 +250,126 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       paymentStatus: receivedAmount >= (roundOff ? Math.round(invoiceAmount) : invoiceAmount) ? 'Paid' as const : (receivedAmount > 0 ? 'Pending' as const : 'Unpaid' as const)
     };
 
-    if (activeSection === 'estimate-quotation') {
-      const record = {
-        id: String(estimates.length + 1),
-        invoiceNo: invoiceNumber,
-        date: invoiceDate,
-        contactName: customerName,
-        contactPhone: selectedParty?.phone || '',
-        contactAddress: selectedParty?.address || '',
-        totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
-        paymentStatus: 'Unpaid',
-        paymentType: 'Cash',
-        products: productsPayload,
-        gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
-        type: 'Estimate/Quotation'
-      };
-      setEstimates([record, ...estimates]);
-    } else if (activeSection === 'proforma-invoice') {
-      const record = {
-        id: String(proformaInvoices.length + 1),
-        invoiceNo: invoiceNumber,
-        date: invoiceDate,
-        contactName: customerName,
-        contactPhone: selectedParty?.phone || '',
-        contactAddress: selectedParty?.address || '',
-        totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
-        paymentStatus: 'Unpaid',
-        paymentType: 'Cash',
-        products: productsPayload,
-        gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
-        type: 'Proforma Invoice'
-      };
-      setProformaInvoices([record, ...proformaInvoices]);
-    } else if (activeSection === 'payment-in') {
-      const record = {
-        id: String(paymentsIn.length + 1),
-        invoiceNo: invoiceNumber,
-        date: invoiceDate,
-        contactName: customerName,
-        contactPhone: selectedParty?.phone || '',
-        contactAddress: selectedParty?.address || '',
-        totalAmount: receivedAmount,
-        paymentStatus: 'Paid',
-        paymentType: 'Cash',
-        products: [],
-        gstAmount: 0,
-        type: 'Payment-In'
-      };
-      setPaymentsIn([record, ...paymentsIn]);
-    } else if (activeSection === 'sale-order') {
-      const record = {
-        id: String(saleOrders.length + 1),
-        invoiceNo: invoiceNumber,
-        date: invoiceDate,
-        contactName: customerName,
-        contactPhone: selectedParty?.phone || '',
-        contactAddress: selectedParty?.address || '',
-        totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
-        paymentStatus: 'Pending',
-        paymentType: 'Cash',
-        products: productsPayload,
-        gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
-        type: 'Sale Order'
-      };
-      setSaleOrders([record, ...saleOrders]);
-    } else if (activeSection === 'delivery-challan') {
-      const record = {
-        id: String(deliveryChallans.length + 1),
-        invoiceNo: invoiceNumber,
-        date: invoiceDate,
-        contactName: customerName,
-        contactPhone: selectedParty?.phone || '',
-        contactAddress: selectedParty?.address || '',
-        totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
-        paymentStatus: 'Paid',
-        paymentType: 'Cash',
-        products: productsPayload,
-        gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
-        type: 'Delivery Challan'
-      };
-      setDeliveryChallans([record, ...deliveryChallans]);
-    } else if (activeSection === 'sale-return') {
-      const record = {
-        id: String(saleReturns.length + 1),
-        invoiceNo: invoiceNumber,
-        date: invoiceDate,
-        contactName: customerName,
-        contactPhone: selectedParty?.phone || '',
-        contactAddress: selectedParty?.address || '',
-        totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
-        paymentStatus: 'Paid',
-        paymentType: 'Cash',
-        products: productsPayload,
-        gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
-        type: 'Sale Return/ Credit Note'
-      };
-      setSaleReturns([record, ...saleReturns]);
+    if (editingTransactionId) {
+      if (activeSection === 'estimate-quotation') {
+        setEstimates((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
+      } else if (activeSection === 'proforma-invoice') {
+        setProformaInvoices((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
+      } else if (activeSection === 'payment-in') {
+        setPaymentsIn((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
+      } else if (activeSection === 'sale-order') {
+        setSaleOrders((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
+      } else if (activeSection === 'delivery-challan') {
+        setDeliveryChallans((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
+      } else if (activeSection === 'sale-return') {
+        setSaleReturns((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
+      } else {
+        updateSaleInvoice(editingTransactionId, payload);
+      }
+      setEditingTransactionId(null);
+      alert(`${getSectionTitle()} updated successfully!`);
     } else {
-      createSaleInvoice(payload);
+      if (activeSection === 'estimate-quotation') {
+        const record = {
+          id: String(estimates.length + 1),
+          invoiceNo: invoiceNumber,
+          date: invoiceDate,
+          contactName: customerName,
+          contactPhone: selectedParty?.phone || '',
+          contactAddress: selectedParty?.address || '',
+          totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
+          paymentStatus: 'Unpaid',
+          paymentType: 'Cash',
+          products: productsPayload,
+          gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
+          type: 'Estimate/Quotation'
+        };
+        setEstimates([record, ...estimates]);
+      } else if (activeSection === 'proforma-invoice') {
+        const record = {
+          id: String(proformaInvoices.length + 1),
+          invoiceNo: invoiceNumber,
+          date: invoiceDate,
+          contactName: customerName,
+          contactPhone: selectedParty?.phone || '',
+          contactAddress: selectedParty?.address || '',
+          totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
+          paymentStatus: 'Unpaid',
+          paymentType: 'Cash',
+          products: productsPayload,
+          gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
+          type: 'Proforma Invoice'
+        };
+        setProformaInvoices([record, ...proformaInvoices]);
+      } else if (activeSection === 'payment-in') {
+        const record = {
+          id: String(paymentsIn.length + 1),
+          invoiceNo: invoiceNumber,
+          date: invoiceDate,
+          contactName: customerName,
+          contactPhone: selectedParty?.phone || '',
+          contactAddress: selectedParty?.address || '',
+          totalAmount: receivedAmount,
+          paymentStatus: 'Paid',
+          paymentType: 'Cash',
+          products: [],
+          gstAmount: 0,
+          type: 'Payment-In'
+        };
+        setPaymentsIn([record, ...paymentsIn]);
+      } else if (activeSection === 'sale-order') {
+        const record = {
+          id: String(saleOrders.length + 1),
+          invoiceNo: invoiceNumber,
+          date: invoiceDate,
+          contactName: customerName,
+          contactPhone: selectedParty?.phone || '',
+          contactAddress: selectedParty?.address || '',
+          totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
+          paymentStatus: 'Pending',
+          paymentType: 'Cash',
+          products: productsPayload,
+          gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
+          type: 'Sale Order'
+        };
+        setSaleOrders([record, ...saleOrders]);
+      } else if (activeSection === 'delivery-challan') {
+        const record = {
+          id: String(deliveryChallans.length + 1),
+          invoiceNo: invoiceNumber,
+          date: invoiceDate,
+          contactName: customerName,
+          contactPhone: selectedParty?.phone || '',
+          contactAddress: selectedParty?.address || '',
+          totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
+          paymentStatus: 'Paid',
+          paymentType: 'Cash',
+          products: productsPayload,
+          gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
+          type: 'Delivery Challan'
+        };
+        setDeliveryChallans([record, ...deliveryChallans]);
+      } else if (activeSection === 'sale-return') {
+        const record = {
+          id: String(saleReturns.length + 1),
+          invoiceNo: invoiceNumber,
+          date: invoiceDate,
+          contactName: customerName,
+          contactPhone: selectedParty?.phone || '',
+          contactAddress: selectedParty?.address || '',
+          totalAmount: roundOff ? Math.round(invoiceAmount) : invoiceAmount,
+          paymentStatus: 'Paid',
+          paymentType: 'Cash',
+          products: productsPayload,
+          gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
+          type: 'Sale Return/ Credit Note'
+        };
+        setSaleReturns([record, ...saleReturns]);
+      } else {
+        createSaleInvoice(payload);
+      }
+      alert(`${getSectionTitle()} generated successfully!`);
     }
-    
-    alert(`${getSectionTitle()} generated successfully!`);
     
     // Clear and return
     setCustomerName('');
@@ -372,6 +393,73 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
   // Switch to sale view
   const triggerNewSale = () => {
+    setEditingTransactionId(null);
+    setCustomerName('');
+    setSelectedPartyId('');
+    setReceivedAmount(0);
+    setBilledItems([
+      {
+        id: '1',
+        name: 'Sample Item',
+        quantity: 10,
+        priceUnit: 100,
+        taxRateType: 'None',
+        taxPercentage: 0,
+        taxAmount: 0,
+        amount: 1000,
+        priceTaxMode: 'Without Tax'
+      }
+    ]);
+    setActiveSubTab('new-sale');
+  };
+
+  const triggerEditInvoice = (invoice: any) => {
+    setEditingTransactionId(invoice.id);
+    setInvoiceNumber(invoice.invoiceNo);
+    setInvoiceDate(formatDateDDMMYYYY(invoice.date));
+    
+    const cust = customers.find(c => c.name === invoice.contactName);
+    if (cust) {
+      setSelectedPartyId(cust.id);
+      setCustomerName(cust.name);
+    } else {
+      setSelectedPartyId('');
+      setCustomerName(invoice.contactName);
+    }
+    
+    setReceivedAmount(invoice.paymentStatus === 'Paid' ? invoice.totalAmount : (invoice.paymentStatus === 'Pending' ? invoice.totalAmount / 2 : 0));
+    
+    const mappedItems = (invoice.products || []).map((p: any, idx: number) => {
+      const gstPct = p.gst || 0;
+      const taxRateStr = gstPct > 0 ? `GST@${gstPct}%` : 'None';
+      return {
+        id: String(idx + 1),
+        name: p.productName,
+        quantity: p.quantity,
+        priceUnit: p.price,
+        taxRateType: taxRateStr,
+        taxPercentage: gstPct,
+        taxAmount: (p.price * p.quantity) * (gstPct / 100),
+        amount: p.total,
+        priceTaxMode: 'Without Tax' as const,
+        discountPercentage: p.discountPercentage || 0
+      };
+    });
+    
+    setBilledItems(mappedItems.length > 0 ? mappedItems : [
+      {
+        id: '1',
+        name: '',
+        quantity: 1,
+        priceUnit: 0,
+        taxRateType: 'None',
+        taxPercentage: 0,
+        taxAmount: 0,
+        amount: 0,
+        priceTaxMode: 'Without Tax'
+      }
+    ]);
+    
     setActiveSubTab('new-sale');
   };
 
@@ -496,6 +584,13 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                         title="View Invoice"
                       >
                         <Eye size={14} color="var(--color-primary)" />
+                      </button>
+                      <button
+                        type="button"
+                        style={{ backgroundColor: '#F59E0B', color: '#FFFFFF', border: 'none', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                        onClick={() => triggerEditInvoice(t)}
+                      >
+                        Edit
                       </button>
                       <button
                         type="button"
@@ -1132,7 +1227,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
               
               {/* Header Badging */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-                <span style={{ backgroundColor: '#0B2545', color: '#FFFFFF', padding: '6px 24px', borderRadius: '4px', fontSize: '12px', fontWeight: '800', letterSpacing: '1px' }}>
+                <span style={{ backgroundColor: '#0B2545', color: '#FFFFFF', padding: '8px 36px', borderRadius: '4px', fontSize: '16px', fontWeight: '800', letterSpacing: '2px' }}>
                   TAX INVOICE
                 </span>
               </div>
@@ -1150,7 +1245,6 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                       <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0B2545', textTransform: 'uppercase' }}>
                         {activeBusiness?.name || 'Mahavir Book Depot'}
                       </h2>
-                      <span style={{ fontSize: '10px', color: '#6B7280', fontStyle: 'italic' }}>Your One Stop Solution</span>
                     </div>
                   </div>
                   <div style={{ fontSize: '11px', color: '#4B5563', lineHeight: '1.6' }}>
@@ -1183,9 +1277,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
               {/* Bill To Section */}
               <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '14px', marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#8F5B1E', textTransform: 'uppercase' }}>Bill To</h4>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#000000', fontWeight: '800', textTransform: 'uppercase' }}>BILL TO</h4>
                 <div style={{ fontSize: '12px', color: '#1F2937' }}>
-                  <strong style={{ fontSize: '14px' }}>{selectedInvoice.contactName}</strong>
+                  <div style={{ fontSize: '15px', fontWeight: '500', color: '#1F2937', marginTop: '2px', marginBottom: '4px' }}>{selectedInvoice.contactName}</div>
                   {selectedInvoice.contactPhone && <div style={{ color: '#4B5563', marginTop: '2px' }}>📞 {selectedInvoice.contactPhone}</div>}
                   {selectedInvoice.contactAddress && <div style={{ color: '#4B5563' }}>📍 {selectedInvoice.contactAddress}</div>}
                   {selectedInvoice.contactGst && <div style={{ color: '#4B5563', marginTop: '2px' }}><strong>GSTIN:</strong> {selectedInvoice.contactGst}</div>}
@@ -1246,7 +1340,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     <span style={{ color: '#6B7280' }}>SGST (₹)</span>
                     <span>₹{(selectedInvoice.gstAmount / 2).toFixed(2)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#0B2545', color: '#FFFFFF', borderRadius: '4px', fontSize: '13px', fontWeight: '800', marginTop: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 4px', borderTop: '1.5px solid #000000', borderBottom: '3px double #000000', color: '#000000', fontSize: '16px', fontWeight: '900', marginTop: '10px' }}>
                     <span>GRAND TOTAL (₹)</span>
                     <span>₹{selectedInvoice.totalAmount.toFixed(2)}</span>
                   </div>

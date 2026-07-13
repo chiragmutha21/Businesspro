@@ -109,6 +109,7 @@ interface AppContextProps {
   updateProduct: (product: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   createSaleInvoice: (invoice: Omit<Transaction, 'id' | 'businessId' | 'type'>) => Promise<void>;
+  updateSaleInvoice: (id: string, invoice: Omit<Transaction, 'id' | 'businessId' | 'type'>) => Promise<void>;
   createPurchaseEntry: (purchase: Omit<Transaction, 'id' | 'businessId' | 'type'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   globalSearch: (query: string) => {
@@ -659,6 +660,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const updateSaleInvoice = async (id: string, invoice: Omit<Transaction, 'id' | 'businessId' | 'type'>) => {
+    if (user) {
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          invoice_no: invoice.invoiceNo,
+          date: invoice.date,
+          contact_name: invoice.contactName,
+          contact_phone: invoice.contactPhone,
+          contact_gst: invoice.contactGst,
+          contact_address: invoice.contactAddress,
+          products: invoice.products,
+          discount: invoice.discount,
+          gst_amount: invoice.gstAmount,
+          total_amount: invoice.totalAmount,
+          payment_status: invoice.paymentStatus
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    }
+    setTransactions((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? { ...t, ...invoice }
+          : t
+      )
+    );
+  };
+
   const createPurchaseEntry = async (purchase: Omit<Transaction, 'id' | 'businessId' | 'type'>) => {
     if (user) {
       // Insert Transaction
@@ -852,6 +883,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateProduct,
         deleteProduct,
         createSaleInvoice,
+        updateSaleInvoice,
         createPurchaseEntry,
         deleteTransaction,
         globalSearch
