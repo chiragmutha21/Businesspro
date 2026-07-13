@@ -1,12 +1,24 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Download, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Download, Printer, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 
 export const Backup: React.FC = () => {
   const { customers, products, transactions } = useApp();
 
-  const handleDownloadPDF = () => {
+  const handleDownloadJSON = () => {
+    const dataStr = JSON.stringify({ customers, products, transactions }, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `businesspro_backup_${new Date().toISOString().slice(0,10)}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const handlePrintPDF = () => {
     window.print();
   };
 
@@ -56,14 +68,25 @@ export const Backup: React.FC = () => {
             </div>
           </div>
 
-          <button 
-            className="btn btn-primary" 
-            style={styles.downloadBtn}
-            onClick={handleDownloadPDF}
-          >
-            <Download size={18} />
-            <span>Download Your Complete Data (PDF)</span>
-          </button>
+          <div style={styles.btnGroup}>
+            <button 
+              className="btn btn-primary" 
+              style={styles.downloadBtn}
+              onClick={handleDownloadJSON}
+            >
+              <Download size={18} />
+              <span>Download JSON Backup</span>
+            </button>
+
+            <button 
+              className="btn" 
+              style={styles.printBtn}
+              onClick={handlePrintPDF}
+            >
+              <Printer size={18} />
+              <span>Print PDF Report</span>
+            </button>
+          </div>
           
           <div style={styles.noteBox}>
             <CheckCircle2 size={14} color="#10B981" />
@@ -285,8 +308,15 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '50%',
     backgroundColor: '#10B981',
   },
+  btnGroup: {
+    display: 'flex',
+    gap: '16px',
+    justifyContent: 'center',
+    width: '100%',
+    flexWrap: 'wrap' as const,
+  },
   downloadBtn: {
-    padding: '12px 32px',
+    padding: '12px 24px',
     borderRadius: '8px',
     display: 'inline-flex',
     alignItems: 'center',
@@ -295,6 +325,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     cursor: 'pointer',
     backgroundColor: '#3B82F6',
+    color: '#FFFFFF',
+    border: 'none',
+  },
+  printBtn: {
+    padding: '12px 24px',
+    borderRadius: '8px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontWeight: '700',
+    fontSize: '14px',
+    cursor: 'pointer',
+    backgroundColor: '#10B981',
     color: '#FFFFFF',
     border: 'none',
   },
