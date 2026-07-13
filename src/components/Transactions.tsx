@@ -137,12 +137,17 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
   // Auto increment invoice sequence
   useEffect(() => {
-    if (activeBusiness) {
-      const bizTrans = transactions.filter((t) => t.businessId === activeBusiness.id);
-      const saleCount = bizTrans.filter((t) => t.type === 'sale').length + 1;
-      setInvoiceNumber(String(saleCount).padStart(2, '0'));
+    if (activeBusiness && !editingTransactionId) {
+      const dateParts = invoiceDate.split('-');
+      const year = dateParts.length === 3 ? dateParts[2] : String(new Date().getFullYear());
+      
+      const bizTrans = transactions.filter((t) => t.businessId === activeBusiness.id && t.type === 'sale');
+      const currentYearSales = bizTrans.filter((t) => t.date && t.date.includes(year));
+      const saleCount = currentYearSales.length + 1;
+      
+      setInvoiceNumber(`${String(saleCount).padStart(2, '0')}/${year}`);
     }
-  }, [activeSubTab, activeBusiness, transactions]);
+  }, [activeSubTab, activeBusiness, transactions, invoiceDate, editingTransactionId]);
 
   // Sync totals whenever billedItems changes
   useEffect(() => {
@@ -1293,10 +1298,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     <th style={{ padding: '8px 8px', textAlign: 'left', borderRadius: '4px 0 0 4px' }}>SI No.</th>
                     <th style={{ padding: '8px 8px', textAlign: 'left' }}>Description of Goods</th>
                     <th style={{ padding: '8px 8px', textAlign: 'left' }}>HSN/SAC</th>
-                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>GST Rate</th>
                     <th style={{ padding: '8px 8px', textAlign: 'center' }}>Quantity</th>
                     <th style={{ padding: '8px 8px', textAlign: 'right' }}>Rate</th>
                     <th style={{ padding: '8px 8px', textAlign: 'center' }}>per</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>GST Rate</th>
                     <th style={{ padding: '8px 8px', textAlign: 'right' }}>Disc. %</th>
                     <th style={{ padding: '8px 8px', textAlign: 'right', borderRadius: '0 4px 4px 0' }}>Amount</th>
                   </tr>
@@ -1307,10 +1312,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                       <td style={{ padding: '10px 8px' }}>{idx + 1}</td>
                       <td style={{ padding: '10px 8px', fontWeight: '600' }}>{p.productName}</td>
                       <td style={{ padding: '10px 8px' }}>{p.hsn || '96081019'}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{p.gst}%</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center' }}>{p.quantity} {p.unit || 'PCS'}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{p.price.toFixed(2)}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center' }}>{p.unit || 'PCS'}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'right' }}>{p.gst}%</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right' }}>{p.discountPercentage || 0}%</td>
                       <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '700' }}>{p.total.toFixed(2)}</td>
                     </tr>
@@ -1329,8 +1334,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
                 <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '4px' }}>
-                    <span style={{ color: '#6B7280' }}>Taxable Value</span>
-                    <span>₹{(selectedInvoice.products || []).reduce((acc: number, p: any) => acc + (p.price * p.quantity), 0).toFixed(2)}</span>
+                    <span style={{ color: '#6B7280' }}>Total Amount</span>
+                    <span>₹{(selectedInvoice.products || []).reduce((acc: number, p: any) => acc + p.total, 0).toFixed(2)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '4px' }}>
                     <span style={{ color: '#6B7280' }}>CGST (₹)</span>
