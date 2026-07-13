@@ -24,6 +24,34 @@ interface BilledItem {
   discountPercentage?: number;
 }
 
+function numberToWords(num: number): string {
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  if (num === 0) return 'Zero';
+
+  const makeWords = (n: number): string => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + makeWords(n % 100) : '');
+    if (n < 100000) return makeWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + makeWords(n % 1000) : '');
+    if (n < 10000000) return makeWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + makeWords(n % 100000) : '');
+    return makeWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + makeWords(n % 10000000) : '');
+  };
+
+  const integerPart = Math.floor(num);
+  const decimalPart = Math.round((num - integerPart) * 100);
+
+  let words = makeWords(integerPart) + ' Rupees';
+  if (decimalPart > 0) {
+    words += ' and ' + makeWords(decimalPart) + ' Paise';
+  }
+  return words + ' Only';
+}
+
 interface TransactionsProps {
   activeSection?: string;
 }
@@ -1325,9 +1353,14 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
               {/* Summary Rows (Subtotal & Taxes) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '10px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  {/* Amount in words placeholder */}
-                  <div style={{ fontSize: '10px', color: '#9CA3AF', fontStyle: 'italic', padding: '10px', backgroundColor: '#F9FAFB', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#1F2937', textAlign: 'left', width: '100%' }}>
+                    <strong>Amount in Words:</strong>
+                    <div style={{ color: '#4B5563', fontStyle: 'italic', marginTop: '4px', textTransform: 'capitalize', lineHeight: '1.4' }}>
+                      {numberToWords(selectedInvoice.totalAmount)}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#9CA3AF', fontStyle: 'italic', marginTop: '10px' }}>
                     "Thank you for doing business with us. Please pay within due terms."
                   </div>
                 </div>
