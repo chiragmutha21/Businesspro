@@ -2,20 +2,26 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Download, Printer, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 export const Backup: React.FC = () => {
   const { customers, products, transactions } = useApp();
 
-  const handleDownloadJSON = () => {
-    const dataStr = JSON.stringify({ customers, products, transactions }, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `businesspro_backup_${new Date().toISOString().slice(0,10)}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+  const handleDownloadPDF = () => {
+    const element = document.getElementById('backup-report-pdf');
+    if (!element) return;
+
+    const opt = {
+      margin:       [0.5, 0.5],
+      filename:     `businesspro_report_${new Date().toISOString().slice(0, 10)}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    // @ts-ignore
+    html2pdf().set(opt).from(element).save();
   };
 
   const handlePrintPDF = () => {
@@ -72,10 +78,10 @@ export const Backup: React.FC = () => {
             <button 
               className="btn btn-primary" 
               style={styles.downloadBtn}
-              onClick={handleDownloadJSON}
+              onClick={handleDownloadPDF}
             >
               <Download size={18} />
-              <span>Download JSON Backup</span>
+              <span>Download PDF Report</span>
             </button>
 
             <button 
@@ -96,7 +102,7 @@ export const Backup: React.FC = () => {
       </div>
 
       {/* HIDDEN PRINT-ONLY LEDGER PREVIEW SECTION */}
-      <div style={styles.printOnlyContainer} className="print-only">
+      <div id="backup-report-pdf" style={styles.printOnlyContainer} className="print-section print-only">
         <div style={{ borderBottom: '2px solid #000000', paddingBottom: '12px', marginBottom: '24px' }}>
           <h1 style={{ fontSize: '24px', margin: 0 }}>AURALEDGER SYSTEM BACKUP REPORT</h1>
           <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: '#4B5563' }}>Generated on: {formatDateDDMMYYYY('2026-07-12')}</p>
@@ -351,7 +357,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   // Print Only Ledger Styles
   printOnlyContainer: {
-    display: 'none',
+    position: 'absolute',
+    left: '-9999px',
+    top: '-9999px',
+    width: '800px',
+    backgroundColor: '#FFFFFF',
+    padding: '24px',
+    display: 'block',
   },
   printSection: {
     marginBottom: '32px',
