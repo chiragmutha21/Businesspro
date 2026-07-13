@@ -1537,7 +1537,8 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '8px',
     width: '940px',
     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-    overflow: 'hidden',
+    overflowY: 'auto' as const,
+    maxHeight: '90vh',
   },
   modalHeader: {
     padding: '14px 20px',
