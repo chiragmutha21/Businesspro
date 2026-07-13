@@ -166,6 +166,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const { data: bizData } = await supabase
           .from('businesses')
           .select('*')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: true });
 
         const mappedBiz: Business[] = (bizData || []).map((b) => ({
@@ -201,7 +202,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         // Fetch customers
-        const { data: custData } = await supabase.from('customers').select('*');
+        const { data: custData } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('user_id', user.id);
+          
         setCustomers((custData || []).map((c) => ({
           id: c.id,
           businessId: c.business_id,
@@ -213,7 +218,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })));
 
         // Fetch products
-        const { data: prodData } = await supabase.from('products').select('*');
+        const { data: prodData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('user_id', user.id);
+          
         setProducts((prodData || []).map((p) => ({
           id: p.id,
           businessId: p.business_id,
@@ -231,7 +240,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })));
 
         // Fetch transactions
-        const { data: txData } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
+        const { data: txData } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
         setTransactions((txData || []).map((t) => ({
           id: t.id,
           businessId: t.business_id,
@@ -250,7 +264,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })));
 
         // Fetch stock history
-        const { data: shData } = await supabase.from('stock_history').select('*').order('created_at', { ascending: false });
+        const { data: shData } = await supabase
+          .from('stock_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
         setStockHistory((shData || []).map((sh) => ({
           id: sh.id,
           businessId: sh.business_id,
