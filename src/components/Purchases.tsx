@@ -81,10 +81,12 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  const generateUniqueId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+
   // Item List rows
   const [items, setItems] = useState<PurchaseItem[]>([
     {
-      id: '1',
+      id: generateUniqueId(),
       name: '',
       qty: 0,
       unit: 'NONE',
@@ -97,11 +99,10 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   ]);
 
   const handleAddRow = () => {
-    const nextId = String(items.length + 1);
     setItems([
       ...items,
       {
-        id: nextId,
+        id: generateUniqueId(),
         name: '',
         qty: 0,
         unit: 'NONE',
@@ -173,7 +174,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     setOrigBillNo('');
     setItems([
       {
-        id: '1',
+        id: generateUniqueId(),
         name: '',
         qty: 0,
         unit: 'NONE',

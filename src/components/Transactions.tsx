@@ -7,7 +7,8 @@ import {
   Receipt,
   FileSpreadsheet,
   X,
-  Coins
+  Coins,
+  Trash2
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 
@@ -147,9 +148,11 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
   // Item List Modal states
   const [showItemModal, setShowItemModal] = useState(false);
+  const generateUniqueId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+
   const [billedItems, setBilledItems] = useState<BilledItem[]>([
     {
-      id: '1',
+      id: generateUniqueId(),
       name: 'Sample Item',
       quantity: 10,
       priceUnit: 100,
@@ -187,11 +190,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   }, [billedItems]);
 
   const handleAddModalRow = () => {
-    const nextId = String(billedItems.length + 1);
     setBilledItems([
       ...billedItems,
       {
-        id: nextId,
+        id: generateUniqueId(),
         name: '',
         quantity: 1,
         priceUnit: 0,
@@ -202,6 +204,27 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         priceTaxMode: 'Without Tax'
       }
     ]);
+  };
+
+  const handleRemoveModalRow = (id: string) => {
+    if (billedItems.length > 1) {
+      setBilledItems(billedItems.filter((item) => item.id !== id));
+    } else {
+      // If only 1 row remains, just clear it instead of deleting
+      setBilledItems([
+        {
+          id: generateUniqueId(),
+          name: '',
+          quantity: 1,
+          priceUnit: 0,
+          taxRateType: 'None',
+          taxPercentage: 0,
+          taxAmount: 0,
+          amount: 0,
+          priceTaxMode: 'Without Tax'
+        }
+      ]);
+    }
   };
 
   const handleUpdateModalRow = (id: string, field: keyof BilledItem, value: any) => {
@@ -410,7 +433,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     setReceivedAmount(0);
     setBilledItems([
       {
-        id: '1',
+        id: generateUniqueId(),
         name: 'Sample Item',
         quantity: 10,
         priceUnit: 100,
@@ -432,7 +455,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     setReceivedAmount(0);
     setBilledItems([
       {
-        id: '1',
+        id: generateUniqueId(),
         name: 'Sample Item',
         quantity: 10,
         priceUnit: 100,
@@ -462,11 +485,11 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     
     setReceivedAmount(invoice.paymentStatus === 'Paid' ? invoice.totalAmount : (invoice.paymentStatus === 'Pending' ? invoice.totalAmount / 2 : 0));
     
-    const mappedItems = (invoice.products || []).map((p: any, idx: number) => {
+    const mappedItems = (invoice.products || []).map((p: any) => {
       const gstPct = p.gst || 0;
       const taxRateStr = gstPct > 0 ? `GST@${gstPct}%` : 'None';
       return {
-        id: String(idx + 1),
+        id: generateUniqueId(),
         name: p.productName,
         quantity: p.quantity,
         priceUnit: p.price,
@@ -481,7 +504,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     
     setBilledItems(mappedItems.length > 0 ? mappedItems : [
       {
-        id: '1',
+        id: generateUniqueId(),
         name: '',
         quantity: 1,
         priceUnit: 0,
@@ -1059,11 +1082,13 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     <th style={styles.gridTh}>DISCOUNT (%)</th>
                     <th style={styles.gridTh} colSpan={2}>TAX</th>
                     <th style={styles.gridTh}>AMOUNT (₹)</th>
+                    <th style={styles.gridTh}>ACTIONS</th>
                   </tr>
                   <tr>
                     <th style={styles.gridThSub} colSpan={5}></th>
                     <th style={styles.gridThSub}>in (%)</th>
                     <th style={styles.gridThSub}>in (₹)</th>
+                    <th style={styles.gridThSub}></th>
                     <th style={styles.gridThSub}></th>
                   </tr>
                 </thead>
@@ -1112,7 +1137,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                                     const discPct = item.discountPercentage || 0;
                                     const discountedBase = baseVal * (1 - discPct / 100);
                                     const taxAmt = gstPct > 0 ? (discountedBase * gstPct / 100) : 0;
-
+ 
                                     const updatedRows = billedItems.map(row => {
                                       if (row.id === item.id) {
                                         return {
@@ -1206,6 +1231,15 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                       </td>
                       <td style={styles.gridTdCalc}>
                         {item.amount.toFixed(2)}
+                      </td>
+                      <td style={{ border: '1px solid #E5E7EB', padding: '4px', textAlign: 'center' }}>
+                        <button 
+                          type="button" 
+                          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                          onClick={() => handleRemoveModalRow(item.id)}
+                        >
+                          <Trash2 size={14} color="#EF4444" />
+                        </button>
                       </td>
                     </tr>
                   ))}
