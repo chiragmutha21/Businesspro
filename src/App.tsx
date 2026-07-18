@@ -16,13 +16,13 @@ import { Backup } from './components/Backup';
 import { Login } from './components/Login';
 
 function AppContent() {
-  const { businesses, user, authLoading } = useApp();
+  const { businesses, user, authLoading, dataLoading } = useApp();
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [showWizard, setShowWizard] = useState(false);
   const [editingBusinessId, setEditingBusinessId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  if (authLoading) {
+  if (authLoading || (user && dataLoading)) {
     return (
       <div style={{
         display: 'flex',

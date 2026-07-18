@@ -98,6 +98,7 @@ interface AppContextProps {
   activeBusiness: Business | null;
   user: any;
   authLoading: boolean;
+  dataLoading: boolean;
   signOut: () => Promise<void>;
   addBusiness: (business: Omit<Business, 'id'>) => Promise<Business>;
   updateBusiness: (business: Business) => Promise<void>;
@@ -124,6 +125,7 @@ const AppContext = createContext<AppContextProps | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [currentBusinessId, setCurrentBusinessId] = useState<string>('');
@@ -161,6 +163,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const loadData = async () => {
+      setDataLoading(true);
       try {
         // Fetch businesses
         const { data: bizData } = await supabase
@@ -283,6 +286,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       } catch (err) {
         console.error('Error loading Supabase data:', err);
+      } finally {
+        setDataLoading(false);
       }
     };
 
@@ -891,6 +896,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeBusiness,
         user,
         authLoading,
+        dataLoading,
         signOut,
         addBusiness,
         updateBusiness,
