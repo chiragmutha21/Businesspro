@@ -100,6 +100,17 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
       alert('Business Name is required');
       return;
     }
+
+    if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
+      alert('Phone Number must be exactly 10 digits');
+      return;
+    }
+
+    if (formData.gst && !/^[a-zA-Z0-9]{15}$/.test(formData.gst)) {
+      alert('GSTIN must be exactly 15 alphanumeric characters');
+      return;
+    }
+
     try {
       if (editMode && targetBusiness) {
         await updateBusiness({

@@ -126,6 +126,16 @@ export const Customers: React.FC = () => {
       return;
     }
 
+    if (phoneNumber && phoneNumber !== 'N/A' && !/^\d{10}$/.test(phoneNumber)) {
+      alert('Phone Number must be exactly 10 digits');
+      return;
+    }
+
+    if (gstin && !/^[a-zA-Z0-9]{15}$/.test(gstin)) {
+      alert('GSTIN must be exactly 15 alphanumeric characters');
+      return;
+    }
+
     const payload = {
       name: partyName,
       phone: phoneNumber || 'N/A',

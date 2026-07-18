@@ -6,7 +6,7 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [showInstallBtn, setShowInstallBtn] = useState(true);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -27,12 +27,20 @@ export const Login: React.FC = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to prompt: ${outcome}`);
-    setDeferredPrompt(null);
-    setShowInstallBtn(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to prompt: ${outcome}`);
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+    } else {
+      alert(
+        "How to Install BusinessPro App:\n\n" +
+        "• Chrome / Edge: Click the 'Install' icon in the URL bar (top right) or open the browser menu (three dots) and click 'Install BusinessPro'.\n\n" +
+        "• Safari (iPhone/iPad): Tap the 'Share' icon (square with an up arrow) and select 'Add to Home Screen'.\n\n" +
+        "• Mobile Chrome: Tap the menu (three dots) and select 'Add to Home Screen' or 'Install App'."
+      );
+    }
   };
 
   const handleGoogleLogin = async () => {
