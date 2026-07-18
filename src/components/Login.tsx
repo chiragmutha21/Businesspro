@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Lock, Shield } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -33,9 +33,7 @@ export const Login: React.FC = () => {
 
       <div style={styles.card}>
         <div style={styles.brandIconWrapper}>
-          <div style={styles.brandIcon}>
-            <Shield size={32} color="#3B82F6" />
-          </div>
+          <img src="/logo.jpg" alt="Logo" style={{ width: '64px', height: '64px', borderRadius: '16px', objectFit: 'cover' }} />
         </div>
 
         <h1 style={styles.title}>BusinessPro</h1>

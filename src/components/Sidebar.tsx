@@ -94,6 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
     <aside style={styles.sidebar}>
       {/* Brand Header */}
       <div style={styles.brandHeader}>
+        <img src="/logo.jpg" alt="Logo" style={{ width: '32px', height: '32px', marginRight: '10px', borderRadius: '6px', objectFit: 'cover' }} />
         <span style={styles.brandName}>BusinessPro</span>
       </div>
 
