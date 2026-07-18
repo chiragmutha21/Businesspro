@@ -582,13 +582,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Update product stocks locally & remotely
       for (const item of invoice.products) {
-        const product = products.find((p) => p.id === item.productId);
-        if (product) {
-          const newStock = Math.max(0, product.stock - item.quantity);
-          await supabase
+        if (item.productId && item.productId !== 'custom') {
+          const { data: pData } = await supabase
             .from('products')
-            .update({ stock: newStock })
-            .eq('id', product.id);
+            .select('stock')
+            .eq('id', item.productId)
+            .single();
+          if (pData) {
+            const newStock = Math.max(0, pData.stock - item.quantity);
+            await supabase
+              .from('products')
+              .update({ stock: newStock })
+              .eq('id', item.productId);
+          }
         }
       }
 
@@ -685,7 +691,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateSaleInvoice = async (id: string, invoice: Omit<Transaction, 'id' | 'businessId' | 'type'>) => {
+    const oldTx = transactions.find(t => t.id === id);
+
     if (user) {
+      if (oldTx) {
+        // Revert old stock
+        for (const oldItem of oldTx.products || []) {
+          if (oldItem.productId && oldItem.productId !== 'custom') {
+            const { data: pData } = await supabase.from('products').select('stock').eq('id', oldItem.productId).single();
+            if (pData) {
+              await supabase.from('products').update({ stock: pData.stock + oldItem.quantity }).eq('id', oldItem.productId);
+            }
+          }
+        }
+        // Apply new stock
+        for (const newItem of invoice.products || []) {
+          if (newItem.productId && newItem.productId !== 'custom') {
+            const { data: pData } = await supabase.from('products').select('stock').eq('id', newItem.productId).single();
+            if (pData) {
+              await supabase.from('products').update({ stock: Math.max(0, pData.stock - newItem.quantity) }).eq('id', newItem.productId);
+            }
+          }
+        }
+      }
+
       const { error } = await supabase
         .from('transactions')
         .update({
@@ -705,6 +734,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (error) throw error;
     }
+
+    if (oldTx) {
+      setProducts((prev) => {
+        let updated = [...prev];
+        for (const oldItem of oldTx.products || []) {
+          const idx = updated.findIndex((p) => p.id === oldItem.productId);
+          if (idx !== -1) updated[idx] = { ...updated[idx], stock: updated[idx].stock + oldItem.quantity };
+        }
+        for (const newItem of invoice.products || []) {
+          const idx = updated.findIndex((p) => p.id === newItem.productId);
+          if (idx !== -1) updated[idx] = { ...updated[idx], stock: Math.max(0, updated[idx].stock - newItem.quantity) };
+        }
+        return updated;
+      });
+    }
+
     setTransactions((prev) =>
       prev.map((t) =>
         t.id === id
@@ -845,10 +890,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteTransaction = async (id: string) => {
+    const tx = transactions.find((t) => t.id === id);
     if (user) {
+      if (tx) {
+        for (const item of tx.products || []) {
+          if (item.productId && item.productId !== 'custom') {
+            const { data: pData } = await supabase.from('products').select('stock').eq('id', item.productId).single();
+            if (pData) {
+              const modifier = tx.type === 'sale' ? item.quantity : -item.quantity;
+              const newStock = Math.max(0, pData.stock + modifier);
+              await supabase.from('products').update({ stock: newStock }).eq('id', item.productId);
+            }
+          }
+        }
+      }
+
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;
     }
+
+    if (tx) {
+      setProducts((prev) =>
+        prev.map((p) => {
+          const item = (tx.products || []).find((ip) => ip.productId === p.id);
+          if (item) {
+            const modifier = tx.type === 'sale' ? item.quantity : -item.quantity;
+            return { ...p, stock: Math.max(0, p.stock + modifier) };
+          }
+          return p;
+        })
+      );
+    }
+
     setTransactions((prev) => prev.filter((t) => t.id !== id));
   };
 
