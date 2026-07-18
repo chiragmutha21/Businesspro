@@ -25,19 +25,19 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
         logo: targetBusiness.logo || '',
         gst: targetBusiness.gst || '',
         pan: targetBusiness.pan || '',
-        type: targetBusiness.type || 'Distributor',
-        category: targetBusiness.category || 'Book / Stationary store',
-        state: targetBusiness.state || 'Maharashtra',
+        type: targetBusiness.type || '',
+        category: targetBusiness.category || '',
+        state: targetBusiness.state || '',
         pincode: targetBusiness.pincode || '',
         address: targetBusiness.address || '',
         phone: targetBusiness.phone || '',
         email: targetBusiness.email || '',
-        booksBeginningDate: targetBusiness.booksBeginningDate || '2026-04-01',
+        booksBeginningDate: targetBusiness.booksBeginningDate || '',
         signature: targetBusiness.signature || '',
         invoicePrefix: targetBusiness.invoicePrefix || '',
-        financialYear: targetBusiness.financialYear || '2026-27',
-        currency: targetBusiness.currency || 'INR (₹)',
-        taxPreference: targetBusiness.taxPreference || 'GST Enabled'
+        financialYear: targetBusiness.financialYear || '',
+        currency: targetBusiness.currency || '',
+        taxPreference: targetBusiness.taxPreference || ''
       };
     }
     return {
@@ -45,19 +45,19 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
       logo: '',
       gst: '',
       pan: '',
-      type: 'Distributor',
-      category: 'Book / Stationary store',
-      state: 'Maharashtra',
+      type: '',
+      category: '',
+      state: '',
       pincode: '',
       address: '',
       phone: '',
       email: '',
-      booksBeginningDate: '01/04/2026',
+      booksBeginningDate: '',
       signature: '',
       invoicePrefix: '',
-      financialYear: '2026-27',
-      currency: 'INR (₹)',
-      taxPreference: 'GST Enabled'
+      financialYear: '',
+      currency: '',
+      taxPreference: ''
     };
   });
 
@@ -182,7 +182,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   name="name"
                   className="form-control"
                   style={styles.inputStyle}
-                  placeholder="NEW MAHAVIR ENTERPRISES"
+                  placeholder="Enter Business Name"
                   value={formData.name}
                   onChange={handleChange}
                   required
@@ -196,7 +196,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   name="phone"
                   className="form-control"
                   style={styles.inputStyle}
-                  placeholder="9834146120"
+                  placeholder="Enter Phone Number"
                   value={formData.phone}
                   onChange={handleChange}
                 />
@@ -224,7 +224,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   name="email"
                   className="form-control"
                   style={styles.inputStyle}
-                  placeholder="vinitmutha30@gmail.com"
+                  placeholder="Enter Email ID"
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -259,6 +259,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   value={formData.type}
                   onChange={handleChange}
                 >
+                  <option value="">Select Business Type</option>
                   <option value="Distributor">Distributor</option>
                   <option value="Retailer">Retailer</option>
                   <option value="Wholesaler">Wholesaler</option>
@@ -276,6 +277,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   value={formData.category}
                   onChange={handleChange}
                 >
+                  <option value="">Select Business Category</option>
                   <option value="Book / Stationary store">Book / Stationary store</option>
                   <option value="Grocery / Supermarket">Grocery / Supermarket</option>
                   <option value="Apparel & Clothing">Apparel & Clothing</option>
@@ -294,6 +296,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   value={formData.state}
                   onChange={handleChange}
                 >
+                  <option value="">Select State</option>
                   <option value="Maharashtra">Maharashtra</option>
                   <option value="Gujarat">Gujarat</option>
                   <option value="Delhi">Delhi</option>
@@ -310,7 +313,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   name="pincode"
                   className="form-control"
                   style={styles.inputStyle}
-                  placeholder="422009"
+                  placeholder="Enter Pincode"
                   value={formData.pincode}
                   onChange={handleChange}
                 />
@@ -325,7 +328,7 @@ export const Wizard: React.FC<WizardProps> = ({ onComplete, onCancel, isFirstBus
                   name="address"
                   className="form-control"
                   style={styles.textareaStyle}
-                  placeholder="N-32 R-1 8/5 MAHARANAPRATAP CHOWK CIDCO NASHIK"
+                  placeholder="Enter Business Address"
                   value={formData.address}
                   onChange={handleChange}
                 />
