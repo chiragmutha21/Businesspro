@@ -1,10 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Lock } from 'lucide-react';
+import { Lock, Download } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallBtn(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to prompt: ${outcome}`);
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -30,6 +59,13 @@ export const Login: React.FC = () => {
       {/* Background blobs for premium depth */}
       <div style={styles.blurBlob1}></div>
       <div style={styles.blurBlob2}></div>
+
+      {showInstallBtn && (
+        <button onClick={handleInstallClick} style={styles.installBtn}>
+          <Download size={16} style={{ marginRight: '6px' }} />
+          Install App
+        </button>
+      )}
 
       <div style={styles.card}>
         <div style={styles.brandIconWrapper}>
@@ -201,5 +237,23 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '32px',
     fontSize: '12px',
     color: '#4B5563',
+  },
+  installBtn: {
+    position: 'absolute',
+    top: '24px',
+    right: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '12px',
+    padding: '12px 20px',
+    fontSize: '14.5px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    zIndex: 100,
+    boxShadow: '0 8px 16px rgba(59, 130, 246, 0.25)',
+    transition: 'all 0.2s ease',
   }
 };
