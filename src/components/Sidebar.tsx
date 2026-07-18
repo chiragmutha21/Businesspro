@@ -14,7 +14,8 @@ import {
   Building,
   Check,
   Edit2,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,9 +23,11 @@ interface SidebarProps {
   setCurrentTab: (tab: string) => void;
   onAddBusiness: () => void;
   onEditBusiness: (id: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onAddBusiness, onEditBusiness }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onAddBusiness, onEditBusiness, isOpen = false, onClose }) => {
   const { activeBusiness, businesses, switchBusiness, signOut } = useApp();
   const [searchSidebar, setSearchSidebar] = useState('');
   const [showBusinessSelect, setShowBusinessSelect] = useState(false);
@@ -77,6 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
       setShowSaleSubmenu(!showSaleSubmenu);
     } else {
       setCurrentTab(id);
+      if (onClose) onClose();
     }
   };
 
@@ -91,11 +95,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
   };
 
   return (
-    <aside style={styles.sidebar}>
+    <aside className={isOpen ? 'open' : ''} style={styles.sidebar}>
       {/* Brand Header */}
-      <div style={styles.brandHeader}>
-        <img src="/logo.jpg" alt="Logo" style={{ width: '32px', height: '32px', marginRight: '10px', borderRadius: '6px', objectFit: 'cover' }} />
-        <span style={styles.brandName}>BusinessPro</span>
+      <div style={{ ...styles.brandHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <img src="/logo.jpg" alt="Logo" style={{ width: '32px', height: '32px', marginRight: '10px', borderRadius: '6px', objectFit: 'cover' }} />
+          <span style={styles.brandName}>BusinessPro</span>
+        </div>
+        {onClose && (
+          <button className="mobile-menu-close" onClick={onClose}>
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* Search bar inside Sidebar */}
@@ -155,7 +166,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
                     return (
                       <button
                         key={sub.id}
-                        onClick={() => setCurrentTab(sub.id)}
+                        onClick={() => {
+                          setCurrentTab(sub.id);
+                          if (onClose) onClose();
+                        }}
                         style={{
                           ...styles.submenuItem,
                           backgroundColor: isSubActive ? '#2B3454' : 'transparent',
@@ -186,7 +200,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
                     return (
                       <button
                         key={sub.id}
-                        onClick={() => setCurrentTab(sub.id)}
+                        onClick={() => {
+                          setCurrentTab(sub.id);
+                          if (onClose) onClose();
+                        }}
                         style={{
                           ...styles.submenuItem,
                           backgroundColor: isSubActive ? '#2B3454' : 'transparent',
@@ -208,7 +225,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
                     return (
                       <button
                         key={sub.id}
-                        onClick={() => setCurrentTab(sub.id)}
+                        onClick={() => {
+                          setCurrentTab(sub.id);
+                          if (onClose) onClose();
+                        }}
                         style={{
                           ...styles.submenuItem,
                           backgroundColor: isSubActive ? '#2B3454' : 'transparent',

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/Sidebar';
+import { Menu } from 'lucide-react';
 import { Header } from './components/Header';
 import { Wizard } from './components/Wizard';
 import { Dashboard } from './components/Dashboard';
@@ -19,6 +20,7 @@ function AppContent() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [showWizard, setShowWizard] = useState(false);
   const [editingBusinessId, setEditingBusinessId] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (authLoading) {
     return (
@@ -77,12 +79,31 @@ function AppContent() {
 
   return (
     <div className="app-container">
+      {/* Mobile Top Header (Only visible on Mobile view) */}
+      <div className="mobile-header">
+        <button className="menu-toggle-btn" onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu size={24} />
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/logo.jpg" alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover' }} />
+          <span style={{ fontSize: '18px', fontWeight: '800', color: '#3B82F6', letterSpacing: '0.5px' }}>BusinessPro</span>
+        </div>
+        <div style={{ width: '40px' }}></div> {/* Spacer to balance alignment */}
+      </div>
+
+      {/* Backdrop overlay when mobile menu is active */}
+      {isMobileMenuOpen && (
+        <div className="menu-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
+
       {/* Sidebar Navigation */}
       <Sidebar 
         currentTab={currentTab} 
         setCurrentTab={setCurrentTab} 
         onAddBusiness={() => setShowWizard(true)}
         onEditBusiness={(id) => setEditingBusinessId(id)}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Container */}
