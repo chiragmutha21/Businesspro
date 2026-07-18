@@ -41,6 +41,42 @@ export const Products: React.FC = () => {
 
   const businessStockHistory = stockHistory.filter((sh) => sh.businessId === activeBusiness?.id);
 
+  // Precompute remaining stock for each history log working backwards from current product stocks
+  const stockHistoryWithRemaining = React.useMemo(() => {
+    // 1. Group logs by productId
+    const logsByProduct: Record<string, typeof businessStockHistory> = {};
+    businessStockHistory.forEach((sh) => {
+      if (!logsByProduct[sh.productId]) {
+        logsByProduct[sh.productId] = [];
+      }
+      logsByProduct[sh.productId].push(sh);
+    });
+
+    // 2. Map of productId -> current stock
+    const currentStocks: Record<string, number> = {};
+    products.forEach((p) => {
+      currentStocks[p.id] = p.stock;
+    });
+
+    // 3. For each product, calculate remaining stock going backwards (newest to oldest)
+    const shWithRemainingMap = new Map<string, number>();
+    
+    Object.keys(logsByProduct).forEach((productId) => {
+      // businessStockHistory is already sorted from newest to oldest
+      let runningStock = currentStocks[productId] !== undefined ? currentStocks[productId] : 0;
+      
+      logsByProduct[productId].forEach((sh) => {
+        shWithRemainingMap.set(sh.id, runningStock);
+        runningStock = runningStock - sh.quantityChange;
+      });
+    });
+
+    return businessStockHistory.map((sh) => ({
+      ...sh,
+      remainingStock: shWithRemainingMap.get(sh.id) ?? 0
+    }));
+  }, [businessStockHistory, products]);
+
   const handleOpenAdd = () => {
     setEditingProduct(null);
     setItemType('Product');
@@ -271,11 +307,12 @@ export const Products: React.FC = () => {
                 <th>Product</th>
                 <th>Action Type</th>
                 <th>Stock Adjusted</th>
+                <th>Remaining Stock</th>
                 <th>Doc Reference</th>
               </tr>
             </thead>
             <tbody>
-              {businessStockHistory.map((sh) => (
+              {stockHistoryWithRemaining.map((sh) => (
                 <tr key={sh.id}>
                   <td>{formatDateDDMMYYYY(sh.date)}</td>
                   <td style={{ fontWeight: '600' }}>{sh.productName}</td>
@@ -292,12 +329,15 @@ export const Products: React.FC = () => {
                   }}>
                     {sh.quantityChange > 0 ? `+${sh.quantityChange}` : sh.quantityChange} Units
                   </td>
+                  <td style={{ fontWeight: '600', color: 'var(--color-text)' }}>
+                    {sh.remainingStock} Units
+                  </td>
                   <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{sh.referenceNo}</td>
                 </tr>
               ))}
-              {businessStockHistory.length === 0 && (
+              {stockHistoryWithRemaining.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
                     No stock movements recorded yet. Generate invoices or log purchases to record logs.
                   </td>
                 </tr>
