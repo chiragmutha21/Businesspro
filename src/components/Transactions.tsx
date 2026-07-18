@@ -1300,7 +1300,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
               </div>
 
               {/* Main Company & Invoice Details Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+              <div className="invoice-grid" style={{ marginBottom: '24px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                     {activeBusiness?.logo ? (
@@ -1386,7 +1386,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
               </table>
 
               {/* Summary Rows (Subtotal & Taxes) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '10px' }}>
+              <div className="invoice-grid" style={{ marginTop: '10px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
                   <div style={{ fontSize: '11px', color: '#1F2937', textAlign: 'left', width: '100%' }}>
                     <strong>Amount in Words:</strong>
@@ -1420,7 +1420,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
               </div>
 
               {/* Premium Footer section */}
-              <div style={{ borderTop: '1px solid #E5E7EB', marginTop: '30px', paddingTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '10px', color: '#4B5563' }}>
+              <div className="invoice-grid" style={{ borderTop: '1px solid #E5E7EB', marginTop: '30px', paddingTop: '16px', fontSize: '10px', color: '#4B5563' }}>
                 <div>
                   <h4 style={{ margin: '0 0 6px 0', color: '#8F5B1E', textTransform: 'uppercase' }}>Terms & Conditions</h4>
                   <ul style={{ paddingLeft: '14px', margin: 0, lineHeight: '1.5' }}>

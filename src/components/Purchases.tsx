@@ -1525,7 +1525,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               {/* Main Company & Details */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+              <div className="invoice-grid" style={{ marginBottom: '24px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                     {activeBusiness?.logo ? (
@@ -1578,7 +1578,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               {/* Total Block */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '10px', borderTop: '1px solid #E5E7EB', paddingTop: '14px' }}>
+              <div className="invoice-grid" style={{ marginTop: '10px', borderTop: '1px solid #E5E7EB', paddingTop: '14px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div style={{ fontSize: '10px', color: '#9CA3AF', fontStyle: 'italic', padding: '10px', backgroundColor: '#F9FAFB', borderRadius: '6px' }}>
                     "Thank you for doing business with us. Computer generated slip."
@@ -1600,7 +1600,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               {/* Signatory */}
-              <div style={{ borderTop: '1px solid #E5E7EB', marginTop: '30px', paddingTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '10px', color: '#4B5563' }}>
+              <div className="invoice-grid" style={{ borderTop: '1px solid #E5E7EB', marginTop: '30px', paddingTop: '16px', fontSize: '10px', color: '#4B5563' }}>
                 <div>
                   <h4 style={{ margin: '0 0 6px 0', color: '#8F5B1E', textTransform: 'uppercase' }}>Terms & Conditions</h4>
                   <ul style={{ paddingLeft: '14px', margin: 0, lineHeight: '1.5' }}>
