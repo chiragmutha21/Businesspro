@@ -113,6 +113,7 @@ interface AppContextProps {
   updateSaleInvoice: (id: string, invoice: Omit<Transaction, 'id' | 'businessId' | 'type'>) => Promise<void>;
   createPurchaseEntry: (purchase: Omit<Transaction, 'id' | 'businessId' | 'type'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  deleteStockHistory: (id: string) => Promise<void>;
   globalSearch: (query: string) => {
     products: Product[];
     customers: Customer[];
@@ -925,6 +926,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTransactions((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const deleteStockHistory = async (id: string) => {
+    const sh = stockHistory.find((s) => s.id === id);
+    if (!sh) return;
+
+    if (user) {
+      if (sh.productId && sh.productId !== 'custom') {
+        const { data: pData } = await supabase.from('products').select('stock').eq('id', sh.productId).single();
+        if (pData) {
+          const newStock = Math.max(0, pData.stock - sh.quantityChange);
+          await supabase.from('products').update({ stock: newStock }).eq('id', sh.productId);
+        }
+      }
+
+      const { error } = await supabase.from('stock_history').delete().eq('id', id);
+      if (error) throw error;
+    }
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id === sh.productId) {
+          return { ...p, stock: Math.max(0, p.stock - sh.quantityChange) };
+        }
+        return p;
+      })
+    );
+
+    setStockHistory((prev) => prev.filter((s) => s.id !== id));
+  };
+
   // Global Search
   const globalSearch = (query: string) => {
     const cleanQuery = query.toLowerCase().trim();
@@ -984,6 +1014,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateSaleInvoice,
         createPurchaseEntry,
         deleteTransaction,
+        deleteStockHistory,
         globalSearch
       }}
     >

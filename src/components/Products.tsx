@@ -5,7 +5,7 @@ import { Plus, Edit2, Trash2, AlertTriangle, Settings, X } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 
 export const Products: React.FC = () => {
-  const { products, activeBusiness, addProduct, updateProduct, deleteProduct, stockHistory } = useApp();
+  const { products, activeBusiness, addProduct, updateProduct, deleteProduct, stockHistory, deleteStockHistory } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'history'>('list');
@@ -309,6 +309,7 @@ export const Products: React.FC = () => {
                 <th>Stock Adjusted</th>
                 <th>Remaining Stock</th>
                 <th>Doc Reference</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -333,11 +334,24 @@ export const Products: React.FC = () => {
                     {sh.remainingStock} Units
                   </td>
                   <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{sh.referenceNo}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button 
+                      style={{ ...styles.actionBtn, backgroundColor: 'var(--color-danger-bg)' }} 
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this stock history log? The stock will be adjusted accordingly.')) {
+                          deleteStockHistory(sh.id);
+                        }
+                      }}
+                      title="Delete Log"
+                    >
+                      <Trash2 size={14} color="var(--color-danger)" />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {stockHistoryWithRemaining.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
                     No stock movements recorded yet. Generate invoices or log purchases to record logs.
                   </td>
                 </tr>
