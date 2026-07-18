@@ -908,6 +908,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;
+
+      if (tx) {
+        await supabase.from('stock_history').delete().eq('reference_no', tx.invoiceNo);
+      }
     }
 
     if (tx) {
@@ -921,6 +925,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return p;
         })
       );
+      setStockHistory((prev) => prev.filter((sh) => sh.referenceNo !== tx.invoiceNo));
     }
 
     setTransactions((prev) => prev.filter((t) => t.id !== id));
