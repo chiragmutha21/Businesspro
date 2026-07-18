@@ -171,7 +171,7 @@ export const Products: React.FC = () => {
   return (
     <div style={styles.container}>
       {/* Top action block */}
-      <div style={styles.topRow}>
+      <div className="responsive-top-row">
         <div>
           <h1 style={styles.title}>Inventory Management</h1>
           <p style={styles.subtitle}>Supervise product catalog, pricing, and stock history.</p>

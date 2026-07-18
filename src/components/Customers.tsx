@@ -234,7 +234,7 @@ export const Customers: React.FC = () => {
   return (
     <div style={styles.container}>
       {/* List Header */}
-      <div style={styles.topRow}>
+      <div className="responsive-top-row">
         <div>
           <h1 style={styles.title}>Parties & Accounts</h1>
           <p style={styles.subtitle}>Supervise customer balances, invoices, and billing accounts.</p>

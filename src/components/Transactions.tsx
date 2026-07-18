@@ -587,7 +587,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       {activeSubTab === 'list' ? (
         <>
           {/* Top action block */}
-          <div style={styles.topRow}>
+          <div className="responsive-top-row">
             <div>
               <h1 style={styles.title}>{getSectionTitle()}</h1>
               <p style={styles.subtitle}>Manage your {getSectionTitle().toLowerCase()} records and balances.</p>

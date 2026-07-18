@@ -108,7 +108,7 @@ export const Dashboard: React.FC = () => {
   return (
     <div style={styles.container}>
       {/* Upper Panel */}
-      <div style={styles.topRow}>
+      <div className="responsive-top-row">
         <div>
           <h1 style={styles.title}>Aura Dashboard</h1>
           <p style={styles.subtitle}>Real-time commercial intelligence & control board.</p>
