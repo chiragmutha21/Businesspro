@@ -52,11 +52,11 @@ export const Dashboard: React.FC = () => {
   });
 
   const pendingPayments = bizTransactions
-    .filter((t) => t.paymentStatus === 'Pending')
-    .reduce((sum, t) => sum + t.totalAmount, 0);
+    .filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
+    .reduce((sum, t) => sum + (t.totalAmount || 0), 0);
 
-  const stockValue = bizProducts.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0);
-  const lowStockCount = bizProducts.filter((p) => p.stock <= p.minStock).length;
+  const stockValue = bizProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.purchasePrice || 0)), 0);
+  const lowStockCount = bizProducts.filter((p) => (p.stock || 0) <= (p.minStock || 0)).length;
 
   // Chart Data preparation
   // 1. Daily sales trend (past 7 days)
@@ -149,10 +149,6 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <span style={styles.metricValue}>₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-          <div style={styles.cardFooter}>
-            <span style={{ color: 'var(--color-success)', fontWeight: '600' }}>+12.4%</span>
-            <span style={{ color: 'var(--color-text-muted)', marginLeft: '6px' }}>vs last week</span>
-          </div>
         </div>
 
         <div className="card" style={styles.metricCard}>
@@ -163,10 +159,6 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <span style={styles.metricValue}>₹{totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-          <div style={styles.cardFooter}>
-            <span style={{ color: 'var(--color-accent)', fontWeight: '600' }}>32.8%</span>
-            <span style={{ color: 'var(--color-text-muted)', marginLeft: '6px' }}>avg gross margin</span>
-          </div>
         </div>
 
         <div className="card" style={styles.metricCard}>

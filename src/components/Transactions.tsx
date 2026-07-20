@@ -1166,9 +1166,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                 <div className="form-group">
                   <label style={styles.fieldLabel}>Date Cash Received *</label>
                   <input
-                    type="date"
+                    type="text"
                     className="form-control"
                     style={styles.modalInput}
+                    placeholder="DD/MM/YYYY"
                     value={statusForm.paymentDate}
                     onChange={(e) => setStatusForm({ ...statusForm, paymentDate: e.target.value })}
                     required
@@ -1181,9 +1182,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                   <div className="form-group">
                     <label style={styles.fieldLabel}>Date on Cheque *</label>
                     <input
-                      type="date"
+                      type="text"
                       className="form-control"
                       style={styles.modalInput}
+                      placeholder="DD/MM/YYYY"
                       value={statusForm.paymentDate}
                       onChange={(e) => setStatusForm({ ...statusForm, paymentDate: e.target.value })}
                       required
