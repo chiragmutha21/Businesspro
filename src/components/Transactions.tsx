@@ -750,50 +750,52 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                         )}
                       </div>
                     </td>
-                    <td style={{ textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                      <button 
-                        style={styles.actionBtn}
-                        onClick={() => {
-                          setSelectedInvoice(t);
-                          setShowPreviewModal(true);
-                        }}
-                        title="View Invoice"
-                      >
-                        <Eye size={14} color="var(--color-primary)" />
-                      </button>
-                      <button
-                        type="button"
-                        style={{ backgroundColor: '#F59E0B', color: '#FFFFFF', border: 'none', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
-                        onClick={() => triggerEditInvoice(t)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        style={{ backgroundColor: '#10B981', color: '#FFFFFF', border: 'none', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
-                        onClick={() => downloadInvoiceAsPDF(t)}
-                      >
-                        Download
-                      </button>
-                      <button
-                        type="button"
-                        style={{ backgroundColor: '#0B1A30', color: '#FFFFFF', border: 'none', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
-                        onClick={() => printInvoice(t)}
-                      >
-                        Print
-                      </button>
-                      <button
-                        type="button"
-                        style={{ backgroundColor: '#F04444', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '6px 12px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this record?')) {
-                            deleteTransaction(t.id);
-                            alert('Record deleted successfully!');
-                          }
-                        }}
-                      >
-                        Delete
-                      </button>
+                    <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <button 
+                          style={styles.actionBtn}
+                          onClick={() => {
+                            setSelectedInvoice(t);
+                            setShowPreviewModal(true);
+                          }}
+                          title="View Invoice"
+                        >
+                          <Eye size={14} color="var(--color-primary)" />
+                        </button>
+                        <button
+                          type="button"
+                          style={{ backgroundColor: '#F59E0B', color: '#FFFFFF', border: 'none', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                          onClick={() => triggerEditInvoice(t)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          style={{ backgroundColor: '#10B981', color: '#FFFFFF', border: 'none', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                          onClick={() => downloadInvoiceAsPDF(t)}
+                        >
+                          Download
+                        </button>
+                        <button
+                          type="button"
+                          style={{ backgroundColor: '#0B1A30', color: '#FFFFFF', border: 'none', borderRadius: '20px', padding: '6px 16px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                          onClick={() => printInvoice(t)}
+                        >
+                          Print
+                        </button>
+                        <button
+                          type="button"
+                          style={{ backgroundColor: '#F04444', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '6px 12px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this record?')) {
+                              deleteTransaction(t.id);
+                              alert('Record deleted successfully!');
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
