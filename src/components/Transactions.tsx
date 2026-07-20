@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import type { TransactionProduct } from '../context/AppContext';
-import { 
-  Plus, 
-  Eye, 
+import {
+  Plus,
+  Eye,
   Receipt,
   FileSpreadsheet,
   X,
@@ -58,9 +58,9 @@ interface TransactionsProps {
 }
 
 export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'transactions' }) => {
-  const { 
-    transactions, 
-    activeBusiness, 
+  const {
+    transactions,
+    activeBusiness,
     createSaleInvoice,
     updateSaleInvoice,
     deleteTransaction,
@@ -180,11 +180,11 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     if (activeBusiness && !editingTransactionId) {
       const dateParts = invoiceDate.split('-');
       const year = dateParts.length === 3 ? dateParts[2] : String(new Date().getFullYear());
-      
+
       const bizTrans = transactions.filter((t) => t.businessId === activeBusiness.id && t.type === 'sale');
       const currentYearSales = bizTrans.filter((t) => t.date && t.date.includes(year));
       const saleCount = currentYearSales.length + 1;
-      
+
       setInvoiceNumber(`${String(saleCount).padStart(2, '0')}/${year}`);
     }
   }, [activeSubTab, activeBusiness, transactions, invoiceDate, editingTransactionId]);
@@ -240,7 +240,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     const updated = billedItems.map((item) => {
       if (item.id === id) {
         const tempItem = { ...item, [field]: value };
-        
+
         // Parse tax percentage from select type
         if (field === 'taxRateType') {
           const typeStr = value as string;
@@ -261,7 +261,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         if (tempItem.taxPercentage > 0) {
           taxAmt = discountedBase * (tempItem.taxPercentage / 100);
         }
-        
+
         tempItem.taxAmount = Math.round(taxAmt * 100) / 100;
         tempItem.amount = Math.round(discountedBase * 100) / 100;
 
@@ -435,7 +435,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       }
       alert(`${getSectionTitle()} generated successfully!`);
     }
-    
+
     // Clear and return
     setCustomerName('');
     setSelectedPartyId('');
@@ -482,7 +482,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     setEditingTransactionId(invoice.id);
     setInvoiceNumber(invoice.invoiceNo);
     setInvoiceDate(formatDateDDMMYYYY(invoice.date));
-    
+
     const cust = customers.find(c => c.name === invoice.contactName);
     if (cust) {
       setSelectedPartyId(cust.id);
@@ -491,9 +491,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       setSelectedPartyId('');
       setCustomerName(invoice.contactName);
     }
-    
+
     setReceivedAmount(invoice.paymentStatus === 'Paid' ? invoice.totalAmount : (invoice.paymentStatus === 'Pending' ? invoice.totalAmount / 2 : 0));
-    
+
     const mappedItems = (invoice.products || []).map((p: any) => {
       const gstPct = p.gst || 0;
       const taxRateStr = gstPct > 0 ? `GST@${gstPct}%` : 'None';
@@ -510,7 +510,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         discountPercentage: p.discountPercentage || 0
       };
     });
-    
+
     setBilledItems(mappedItems.length > 0 ? mappedItems : [
       {
         id: generateUniqueId(),
@@ -524,12 +524,12 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         priceTaxMode: 'Without Tax'
       }
     ]);
-    
+
     setActiveSubTab('new-sale');
   };
 
   const handleStatusChange = (t: any, newStatus: string) => {
-    if (newStatus === 'Paid by Cash' || newStatus === 'Paid by Cheque') {
+    if (newStatus === 'Paid by Cash' || newStatus === 'Paid by Cheque' || newStatus === 'Paid by Online') {
       setStatusToEdit(t);
       setStatusForm({
         paymentStatus: newStatus,
@@ -540,14 +540,14 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       });
       setShowStatusModal(true);
     } else {
-      const updated = { 
-        ...t, 
-        paymentStatus: newStatus, 
+      const updated = {
+        ...t,
+        paymentStatus: newStatus,
         paymentType: '',
         paymentDate: '',
         chequeNo: '',
         bankName: '',
-        ifscCode: '' 
+        ifscCode: ''
       };
       if (activeSection === 'estimate-quotation') {
         setEstimates(prev => prev.map(item => item.id === t.id ? updated : item));
@@ -574,7 +574,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     const updatedData = {
       ...statusToEdit,
       paymentStatus: 'Paid',
-      paymentType: statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : 'Cheque',
+      paymentType: statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : statusForm.paymentStatus === 'Paid by Online' ? 'Online' : 'Cheque',
       paymentDate: statusForm.paymentDate,
       chequeNo: statusForm.chequeNo,
       bankName: statusForm.bankName,
@@ -609,22 +609,22 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   const downloadInvoiceAsPDF = (invoice: any) => {
     setSelectedInvoice(invoice);
     setShowPreviewModal(true);
-    
+
     setTimeout(() => {
       const element = document.getElementById('print-area');
       if (!element) {
         return;
       }
-      
+
       const runDownload = () => {
         const opt = {
-          margin:       10,
-          filename:     `Invoice-${invoice.invoiceNo}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          margin: 10,
+          filename: `Invoice-${invoice.invoiceNo}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
-        
+
         // @ts-ignore
         window.html2pdf().set(opt).from(element).save().then(() => {
           setShowPreviewModal(false);
@@ -713,34 +713,35 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
                         <select
-                          className={`badge ${
-                            t.paymentStatus === 'Paid' || (t.paymentStatus || '').startsWith('Paid') ? 'badge-success' : 
-                            t.paymentStatus === 'Pending' ? 'badge-warning' : 'badge-danger'
-                          }`}
+                          className={`badge ${t.paymentStatus === 'Paid' || (t.paymentStatus || '').startsWith('Paid') ? 'badge-success' :
+                              t.paymentStatus === 'Pending' ? 'badge-warning' : 'badge-danger'
+                            }`}
                           style={{ border: 'none', outline: 'none', cursor: 'pointer', appearance: 'none', background: 'transparent', padding: '4px 8px' }}
                           value={
                             t.paymentStatus === 'Paid' && t.paymentType === 'Cash' ? 'Paid by Cash' :
                             t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' ? 'Paid by Cheque' :
+                            t.paymentStatus === 'Paid' && t.paymentType === 'Online' ? 'Paid by Online' :
                             t.paymentStatus || 'Unpaid'
                           }
                           onChange={(e) => handleStatusChange(t, e.target.value)}
                         >
                           <option value="Paid">Paid</option>
                           <option value="Paid by Cash">Paid by Cash</option>
+                          <option value="Paid by Online">Paid by Online</option>
                           <option value="Paid by Cheque">Paid by Cheque</option>
                           <option value="Pending">Pending</option>
                           <option value="Unpaid">Unpaid</option>
                         </select>
-                        
-                        {t.paymentStatus === 'Paid' && t.paymentType === 'Cash' && t.paymentDate && (
+
+                        {t.paymentStatus === 'Paid' && (t.paymentType === 'Cash' || t.paymentType === 'Online') && t.paymentDate && (
                           <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '600', paddingLeft: '4px' }}>
                             📅 {t.paymentDate}
                           </span>
                         )}
 
                         {t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' && (
-                          <div 
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-primary)', fontWeight: '600', cursor: 'pointer', paddingLeft: '4px' }} 
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-primary)', fontWeight: '600', cursor: 'pointer', paddingLeft: '4px' }}
                             onClick={() => handleStatusChange(t, 'Paid by Cheque')}
                             title="View / Edit Cheque Details"
                           >
@@ -752,7 +753,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     </td>
                     <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                        <button 
+                        <button
                           style={styles.actionBtn}
                           onClick={() => {
                             setSelectedInvoice(t);
@@ -822,7 +823,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
             {activeSection === 'payment-in' ? (
               <div style={{ backgroundColor: '#FFFFFF', borderRadius: '8px', padding: '24px', border: '1px solid #E5E7EB' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
-                  
+
                   {/* Left Column */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: '1 1 300px', maxWidth: '350px' }}>
                     <div className="form-group">
@@ -860,8 +861,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
                       <span style={{ color: '#3B82F6', fontSize: '13px', cursor: 'pointer', fontWeight: '600', textAlign: 'left' }}>+ Add Payment type</span>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: '#FFFFFF', color: '#6B7280', fontSize: '12px', fontWeight: '700', width: 'fit-content' }}
                         onClick={() => setShowDescription(!showDescription)}
                       >
@@ -932,15 +933,15 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
                 {/* Footer Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '14px', marginTop: '40px', borderTop: '1px solid #F3F4F6', paddingTop: '20px' }}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={() => setActiveSubTab('list')}
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     style={{ minWidth: '100px' }}
                   >
@@ -952,7 +953,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
               <>
                 {/* Top Layout: Invoice Details & Bill To */}
                 <div style={styles.saleGrid}>
-                  
+
                   {/* Left Column: Invoice Details */}
                   <div style={styles.saleCard}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
@@ -1019,8 +1020,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
                 {/* Middle: Items Action Card */}
                 {billedItems.length === 0 || (billedItems.length === 1 && !billedItems[0].name) ? (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     style={styles.dashedAddBox}
                     onClick={() => setShowItemModal(true)}
                   >
@@ -1031,15 +1032,15 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                   <div style={styles.itemsSummaryCard}>
                     <div style={styles.itemsSummaryHeader}>
                       <span style={{ fontSize: '13px', fontWeight: '700', color: '#1F2937' }}>Sample Item</span>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         style={styles.editItemsLink}
                         onClick={() => setShowItemModal(true)}
                       >
                         Edit Item/s ✎
                       </button>
                     </div>
-                    
+
                     <div style={styles.summaryGrid}>
                       <div style={styles.summaryCol}>
                         <span style={styles.summaryLabel}>Quantity</span>
@@ -1161,15 +1162,15 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
                 {/* Form Footer */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', marginTop: '24px' }}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={() => setActiveSubTab('list')}
                   >
                     Back to List
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     style={styles.createInvoiceBtn}
                   >
                     Create Your First Invoice
@@ -1201,9 +1202,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                 />
               </div>
 
-              {statusForm.paymentStatus === 'Paid by Cash' && (
+              {(statusForm.paymentStatus === 'Paid by Cash' || statusForm.paymentStatus === 'Paid by Online') && (
                 <div className="form-group">
-                  <label style={styles.fieldLabel}>Date Cash Received *</label>
+                  <label style={styles.fieldLabel}>Date Payment Received *</label>
                   <input
                     type="text"
                     className="form-control"
@@ -1281,7 +1282,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       {showItemModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>
-            
+
             {/* Modal Header */}
             <div style={styles.modalHeader}>
               <span style={styles.modalTitle}>Billed Item/s List</span>
@@ -1338,8 +1339,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                         {activeSearchRowId === item.id && searchItemQuery && (
                           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 99, maxHeight: '150px', overflowY: 'auto', textAlign: 'left' }}>
                             {products
-                              .filter(p => 
-                                p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) || 
+                              .filter(p =>
+                                p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
                                 (p.barcode && p.barcode.includes(searchItemQuery))
                               )
                               .map(p => (
@@ -1350,12 +1351,12 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                                     const gstPct = p.gst || 0;
                                     const taxRateStr = gstPct > 0 ? `GST@${gstPct}%` : 'None';
                                     const priceVal = p.sellingPrice || 0;
-                                    
+
                                     const baseVal = item.quantity * priceVal;
                                     const discPct = item.discountPercentage || 0;
                                     const discountedBase = baseVal * (1 - discPct / 100);
                                     const taxAmt = gstPct > 0 ? (discountedBase * gstPct / 100) : 0;
- 
+
                                     const updatedRows = billedItems.map(row => {
                                       if (row.id === item.id) {
                                         return {
@@ -1384,12 +1385,12 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                                   <strong>{p.name}</strong> <span style={{ color: '#6B7280' }}>({p.barcode || 'No HSN'})</span> - ₹{p.sellingPrice || 0}
                                 </div>
                               ))}
-                            {products.filter(p => 
-                              p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) || 
+                            {products.filter(p =>
+                              p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
                               (p.barcode && p.barcode.includes(searchItemQuery))
                             ).length === 0 && (
-                              <div style={{ padding: '8px 12px', fontSize: '11px', color: '#9CA3AF' }}>No products match</div>
-                            )}
+                                <div style={{ padding: '8px 12px', fontSize: '11px', color: '#9CA3AF' }}>No products match</div>
+                              )}
                           </div>
                         )}
                       </td>
@@ -1451,8 +1452,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                         {item.amount.toFixed(2)}
                       </td>
                       <td style={{ border: '1px solid #E5E7EB', padding: '4px', textAlign: 'center' }}>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                           onClick={() => handleRemoveModalRow(item.id)}
                         >
@@ -1466,14 +1467,14 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
               {/* Action row */}
               <div style={styles.gridActionRow}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   style={styles.addGridRowBtn}
                   onClick={handleAddModalRow}
                 >
                   + Add Item
                 </button>
-                
+
                 <div style={{ display: 'flex', gap: '20px', fontSize: '13px', fontWeight: '700', alignItems: 'center' }}>
                   <span style={{ color: '#6B7280' }}>Subtotal: ₹{billedItems.reduce((acc, curr) => acc + ((curr.quantity || 0) * (curr.priceUnit || 0) - (curr.priceTaxMode === 'With Tax' ? (curr.taxAmount || 0) : 0)), 0).toFixed(2)}</span>
                   <span style={{ color: '#6B7280' }}>GST: ₹{billedItems.reduce((acc, curr) => acc + (curr.taxAmount || 0), 0).toFixed(2)}</span>
@@ -1483,8 +1484,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
               {/* Modal Footer */}
               <div style={styles.modalFooter}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   style={styles.saveBtn}
                   onClick={() => setShowItemModal(false)}
                 >
@@ -1500,7 +1501,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       {showPreviewModal && selectedInvoice && (
         <div style={styles.modalOverlay}>
           <div style={{ ...styles.modalContent, maxWidth: '800px', width: '95%' }}>
-            
+
             {/* Action Bar (Top of modal) */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F9FAFB', padding: '12px 20px', borderBottom: '1px solid #E5E7EB' }}>
               <span style={{ fontSize: '14px', fontWeight: '700', color: '#1F2937' }}>Invoice Preview</span>
@@ -1509,7 +1510,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
             {/* Premium Invoice Layout */}
             <div id="print-area" className="print-section" style={{ padding: '30px', backgroundColor: '#FFFFFF', color: '#1F2937', fontFamily: "'Inter', sans-serif" }}>
-              
+
               {/* Header Badging */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
                 <span style={{ backgroundColor: '#0B2545', color: '#FFFFFF', padding: '8px 36px', borderRadius: '4px', fontSize: '16px', fontWeight: '800', letterSpacing: '2px' }}>
