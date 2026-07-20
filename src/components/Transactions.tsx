@@ -711,25 +711,44 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     {activeSection !== 'payment-in' && <td>₹{(t.gstAmount || 0).toFixed(2)}</td>}
                     <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{t.totalAmount.toFixed(2)}</td>
                     <td>
-                      <select
-                        className={`badge ${
-                          t.paymentStatus === 'Paid' || (t.paymentStatus || '').startsWith('Paid') ? 'badge-success' : 
-                          t.paymentStatus === 'Pending' ? 'badge-warning' : 'badge-danger'
-                        }`}
-                        style={{ border: 'none', outline: 'none', cursor: 'pointer', appearance: 'none', background: 'transparent' }}
-                        value={
-                          t.paymentStatus === 'Paid' && t.paymentType === 'Cash' ? 'Paid by Cash' :
-                          t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' ? 'Paid by Cheque' :
-                          t.paymentStatus || 'Unpaid'
-                        }
-                        onChange={(e) => handleStatusChange(t, e.target.value)}
-                      >
-                        <option value="Paid">Paid</option>
-                        <option value="Paid by Cash">Paid by Cash</option>
-                        <option value="Paid by Cheque">Paid by Cheque</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Unpaid">Unpaid</option>
-                      </select>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                        <select
+                          className={`badge ${
+                            t.paymentStatus === 'Paid' || (t.paymentStatus || '').startsWith('Paid') ? 'badge-success' : 
+                            t.paymentStatus === 'Pending' ? 'badge-warning' : 'badge-danger'
+                          }`}
+                          style={{ border: 'none', outline: 'none', cursor: 'pointer', appearance: 'none', background: 'transparent', padding: '4px 8px' }}
+                          value={
+                            t.paymentStatus === 'Paid' && t.paymentType === 'Cash' ? 'Paid by Cash' :
+                            t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' ? 'Paid by Cheque' :
+                            t.paymentStatus || 'Unpaid'
+                          }
+                          onChange={(e) => handleStatusChange(t, e.target.value)}
+                        >
+                          <option value="Paid">Paid</option>
+                          <option value="Paid by Cash">Paid by Cash</option>
+                          <option value="Paid by Cheque">Paid by Cheque</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Unpaid">Unpaid</option>
+                        </select>
+                        
+                        {t.paymentStatus === 'Paid' && t.paymentType === 'Cash' && t.paymentDate && (
+                          <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '600', paddingLeft: '4px' }}>
+                            📅 {t.paymentDate}
+                          </span>
+                        )}
+
+                        {t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' && (
+                          <div 
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-primary)', fontWeight: '600', cursor: 'pointer', paddingLeft: '4px' }} 
+                            onClick={() => handleStatusChange(t, 'Paid by Cheque')}
+                            title="View / Edit Cheque Details"
+                          >
+                            <Eye size={12} />
+                            <span style={{ textDecoration: 'underline' }}>View Details</span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td style={{ textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                       <button 
