@@ -15,7 +15,8 @@ import {
   Check,
   Edit2,
   LogOut,
-  X
+  X,
+  LayoutDashboard
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -62,6 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
 
   // Define sidebar menu options
   const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'customers', label: 'Parties', icon: Users, hasDropdown: true, action: 'dropdown' },
     { id: 'products', label: 'Items', icon: ShoppingBag, hasPlus: true, action: 'plus' },
     { id: 'transactions', label: 'Sale', icon: Receipt, hasDropdown: true, action: 'dropdown' },
