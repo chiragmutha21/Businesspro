@@ -585,11 +585,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           gst_amount: invoice.gstAmount,
           total_amount: invoice.totalAmount,
           payment_status: invoice.paymentStatus,
-          payment_type: invoice.paymentType,
-          payment_date: invoice.paymentDate,
-          cheque_no: invoice.chequeNo,
-          bank_name: invoice.bankName,
-          ifsc_code: invoice.ifscCode
+          ...(invoice.paymentType ? { payment_type: invoice.paymentType } : {}),
+          ...(invoice.paymentDate ? { payment_date: invoice.paymentDate } : {}),
+          ...(invoice.chequeNo ? { cheque_no: invoice.chequeNo } : {}),
+          ...(invoice.bankName ? { bank_name: invoice.bankName } : {}),
+          ...(invoice.ifscCode ? { ifsc_code: invoice.ifscCode } : {})
         }])
         .select()
         .single();
@@ -750,11 +750,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           gst_amount: invoice.gstAmount,
           total_amount: invoice.totalAmount,
           payment_status: invoice.paymentStatus,
-          payment_type: invoice.paymentType,
-          payment_date: invoice.paymentDate,
-          cheque_no: invoice.chequeNo,
-          bank_name: invoice.bankName,
-          ifsc_code: invoice.ifscCode
+          ...(invoice.paymentType ? { payment_type: invoice.paymentType } : {}),
+          ...(invoice.paymentDate ? { payment_date: invoice.paymentDate } : {}),
+          ...(invoice.chequeNo ? { cheque_no: invoice.chequeNo } : {}),
+          ...(invoice.bankName ? { bank_name: invoice.bankName } : {}),
+          ...(invoice.ifscCode ? { ifsc_code: invoice.ifscCode } : {})
         })
         .eq('id', id);
 

@@ -559,37 +559,43 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     }
   };
 
-  const handleSaveStatusDetails = (e: React.FormEvent) => {
+  const handleSaveStatusDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!statusToEdit) return;
 
     const updatedData = {
       ...statusToEdit,
       paymentStatus: statusForm.paymentStatus,
+      paymentType: statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : (statusForm.paymentStatus === 'Paid by Cheque' ? 'Cheque' : ''),
       paymentDate: statusForm.paymentDate,
       chequeNo: statusForm.chequeNo,
       bankName: statusForm.bankName,
       ifscCode: statusForm.ifscCode
     };
 
-    if (activeSection === 'estimate-quotation') {
-      setEstimates(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
-    } else if (activeSection === 'proforma-invoice') {
-      setProformaInvoices(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
-    } else if (activeSection === 'payment-in') {
-      setPaymentsIn(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
-    } else if (activeSection === 'sale-order') {
-      setSaleOrders(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
-    } else if (activeSection === 'delivery-challan') {
-      setDeliveryChallans(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
-    } else if (activeSection === 'sale-return') {
-      setSaleReturns(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
-    } else {
-      updateSaleInvoice(statusToEdit.id, updatedData);
-    }
+    try {
+      if (activeSection === 'estimate-quotation') {
+        setEstimates(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+      } else if (activeSection === 'proforma-invoice') {
+        setProformaInvoices(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+      } else if (activeSection === 'payment-in') {
+        setPaymentsIn(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+      } else if (activeSection === 'sale-order') {
+        setSaleOrders(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+      } else if (activeSection === 'delivery-challan') {
+        setDeliveryChallans(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+      } else if (activeSection === 'sale-return') {
+        setSaleReturns(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+      } else {
+        await updateSaleInvoice(statusToEdit.id, updatedData);
+      }
 
-    setShowStatusModal(false);
-    setStatusToEdit(null);
+      setShowStatusModal(false);
+      setStatusToEdit(null);
+    } catch (err: any) {
+      console.error(err);
+      alert('Error updating status: ' + (err.message || 'Unknown error occurred. Please make sure the new columns are created in your Supabase database.'));
+    }
   };
 
   const downloadInvoiceAsPDF = (invoice: any) => {
