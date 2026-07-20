@@ -72,6 +72,15 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusToEdit, setStatusToEdit] = useState<any | null>(null);
+  const [statusForm, setStatusForm] = useState({
+    paymentStatus: '',
+    paymentDate: '',
+    chequeNo: '',
+    bankName: '',
+    ifscCode: ''
+  });
 
   // Local list states for sub-sections
   const [estimates, setEstimates] = useState<any[]>([]);
@@ -519,6 +528,70 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     setActiveSubTab('new-sale');
   };
 
+  const handleStatusChange = (t: any, newStatus: string) => {
+    if (newStatus === 'Paid by Cash' || newStatus === 'Paid by Cheque') {
+      setStatusToEdit(t);
+      setStatusForm({
+        paymentStatus: newStatus,
+        paymentDate: t.paymentDate || '',
+        chequeNo: t.chequeNo || '',
+        bankName: t.bankName || '',
+        ifscCode: t.ifscCode || ''
+      });
+      setShowStatusModal(true);
+    } else {
+      const updated = { ...t, paymentStatus: newStatus };
+      if (activeSection === 'estimate-quotation') {
+        setEstimates(prev => prev.map(item => item.id === t.id ? updated : item));
+      } else if (activeSection === 'proforma-invoice') {
+        setProformaInvoices(prev => prev.map(item => item.id === t.id ? updated : item));
+      } else if (activeSection === 'payment-in') {
+        setPaymentsIn(prev => prev.map(item => item.id === t.id ? updated : item));
+      } else if (activeSection === 'sale-order') {
+        setSaleOrders(prev => prev.map(item => item.id === t.id ? updated : item));
+      } else if (activeSection === 'delivery-challan') {
+        setDeliveryChallans(prev => prev.map(item => item.id === t.id ? updated : item));
+      } else if (activeSection === 'sale-return') {
+        setSaleReturns(prev => prev.map(item => item.id === t.id ? updated : item));
+      } else {
+        updateSaleInvoice(t.id, updated);
+      }
+    }
+  };
+
+  const handleSaveStatusDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!statusToEdit) return;
+
+    const updatedData = {
+      ...statusToEdit,
+      paymentStatus: statusForm.paymentStatus,
+      paymentDate: statusForm.paymentDate,
+      chequeNo: statusForm.chequeNo,
+      bankName: statusForm.bankName,
+      ifscCode: statusForm.ifscCode
+    };
+
+    if (activeSection === 'estimate-quotation') {
+      setEstimates(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+    } else if (activeSection === 'proforma-invoice') {
+      setProformaInvoices(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+    } else if (activeSection === 'payment-in') {
+      setPaymentsIn(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+    } else if (activeSection === 'sale-order') {
+      setSaleOrders(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+    } else if (activeSection === 'delivery-challan') {
+      setDeliveryChallans(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+    } else if (activeSection === 'sale-return') {
+      setSaleReturns(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+    } else {
+      updateSaleInvoice(statusToEdit.id, updatedData);
+    }
+
+    setShowStatusModal(false);
+    setStatusToEdit(null);
+  };
+
   const downloadInvoiceAsPDF = (invoice: any) => {
     setSelectedInvoice(invoice);
     setShowPreviewModal(true);
@@ -624,11 +697,21 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     {activeSection !== 'payment-in' && <td>₹{(t.gstAmount || 0).toFixed(2)}</td>}
                     <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{t.totalAmount.toFixed(2)}</td>
                     <td>
-                      <span className={`badge ${
-                        t.paymentStatus === 'Paid' ? 'badge-success' : 'badge-warning'
-                      }`}>
-                        {t.paymentStatus}
-                      </span>
+                      <select
+                        className={`badge ${
+                          t.paymentStatus === 'Paid' || (t.paymentStatus || '').startsWith('Paid') ? 'badge-success' : 
+                          t.paymentStatus === 'Pending' ? 'badge-warning' : 'badge-danger'
+                        }`}
+                        style={{ border: 'none', outline: 'none', cursor: 'pointer', appearance: 'none', background: 'transparent' }}
+                        value={t.paymentStatus || 'Unpaid'}
+                        onChange={(e) => handleStatusChange(t, e.target.value)}
+                      >
+                        <option value="Paid">Paid</option>
+                        <option value="Paid by Cash">Paid by Cash</option>
+                        <option value="Paid by Cheque">Paid by Cheque</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Unpaid">Unpaid</option>
+                      </select>
                     </td>
                     <td style={{ textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                       <button 
@@ -1056,6 +1139,100 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
               </>
             )}
           </form>
+        </div>
+      )}
+
+      {/* Payment Status Modal */}
+      {showStatusModal && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalContent, width: '400px' }}>
+            <div style={styles.modalHeader}>
+              <span style={styles.modalTitle}>Enter Payment Details</span>
+              <X size={18} style={{ cursor: 'pointer', color: '#9CA3AF' }} onClick={() => setShowStatusModal(false)} />
+            </div>
+            <form onSubmit={handleSaveStatusDetails} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="form-group">
+                <label style={styles.fieldLabel}>Payment Status</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  style={{ ...styles.modalInput, backgroundColor: '#F3F4F6' }}
+                  value={statusForm.paymentStatus}
+                  disabled
+                />
+              </div>
+
+              {statusForm.paymentStatus === 'Paid by Cash' && (
+                <div className="form-group">
+                  <label style={styles.fieldLabel}>Date Cash Received *</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    style={styles.modalInput}
+                    value={statusForm.paymentDate}
+                    onChange={(e) => setStatusForm({ ...statusForm, paymentDate: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+
+              {statusForm.paymentStatus === 'Paid by Cheque' && (
+                <>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>Date on Cheque *</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      style={styles.modalInput}
+                      value={statusForm.paymentDate}
+                      onChange={(e) => setStatusForm({ ...statusForm, paymentDate: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>Cheque Number *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={styles.modalInput}
+                      placeholder="e.g. 000123"
+                      value={statusForm.chequeNo}
+                      onChange={(e) => setStatusForm({ ...statusForm, chequeNo: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>Bank Name *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={styles.modalInput}
+                      placeholder="e.g. HDFC Bank"
+                      value={statusForm.bankName}
+                      onChange={(e) => setStatusForm({ ...statusForm, bankName: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>IFSC Code</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      style={styles.modalInput}
+                      placeholder="e.g. HDFC0001234"
+                      value={statusForm.ifscCode}
+                      onChange={(e) => setStatusForm({ ...statusForm, ifscCode: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '14px', marginTop: '10px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowStatusModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Details</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

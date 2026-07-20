@@ -74,7 +74,12 @@ export interface Transaction {
   discount: number;
   gstAmount: number;
   totalAmount: number;
-  paymentStatus: 'Paid' | 'Unpaid' | 'Pending';
+  paymentStatus: 'Paid' | 'Unpaid' | 'Pending' | 'Paid by Cash' | 'Paid by Cheque';
+  paymentType?: string;
+  paymentDate?: string;
+  chequeNo?: string;
+  bankName?: string;
+  ifscCode?: string;
 }
 
 export interface StockHistory {
@@ -264,7 +269,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           discount: Number(t.discount) || 0,
           gstAmount: Number(t.gst_amount) || 0,
           totalAmount: Number(t.total_amount) || 0,
-          paymentStatus: t.payment_status
+          paymentStatus: t.payment_status,
+          paymentType: t.payment_type || '',
+          paymentDate: t.payment_date || '',
+          chequeNo: t.cheque_no || '',
+          bankName: t.bank_name || '',
+          ifscCode: t.ifsc_code || ''
         })));
 
         // Fetch stock history
@@ -574,7 +584,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           discount: invoice.discount,
           gst_amount: invoice.gstAmount,
           total_amount: invoice.totalAmount,
-          payment_status: invoice.paymentStatus
+          payment_status: invoice.paymentStatus,
+          payment_type: invoice.paymentType,
+          payment_date: invoice.paymentDate,
+          cheque_no: invoice.chequeNo,
+          bank_name: invoice.bankName,
+          ifsc_code: invoice.ifscCode
         }])
         .select()
         .single();
@@ -633,7 +648,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discount: Number(txData.discount) || 0,
         gstAmount: Number(txData.gst_amount) || 0,
         totalAmount: Number(txData.total_amount) || 0,
-        paymentStatus: txData.payment_status
+        paymentStatus: txData.payment_status,
+        paymentType: txData.payment_type || '',
+        paymentDate: txData.payment_date || '',
+        chequeNo: txData.cheque_no || '',
+        bankName: txData.bank_name || '',
+        ifscCode: txData.ifsc_code || ''
       };
 
       const newHistoryRecords: StockHistory[] = (shData || []).map((sh) => ({
@@ -729,7 +749,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           discount: invoice.discount,
           gst_amount: invoice.gstAmount,
           total_amount: invoice.totalAmount,
-          payment_status: invoice.paymentStatus
+          payment_status: invoice.paymentStatus,
+          payment_type: invoice.paymentType,
+          payment_date: invoice.paymentDate,
+          cheque_no: invoice.chequeNo,
+          bank_name: invoice.bankName,
+          ifsc_code: invoice.ifscCode
         })
         .eq('id', id);
 
@@ -779,7 +804,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           discount: purchase.discount,
           gst_amount: purchase.gstAmount,
           total_amount: purchase.totalAmount,
-          payment_status: purchase.paymentStatus
+          payment_status: purchase.paymentStatus,
+          payment_type: purchase.paymentType,
+          payment_date: purchase.paymentDate,
+          cheque_no: purchase.chequeNo,
+          bank_name: purchase.bankName,
+          ifsc_code: purchase.ifscCode
         }])
         .select()
         .single();
@@ -832,7 +862,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discount: Number(txData.discount) || 0,
         gstAmount: Number(txData.gst_amount) || 0,
         totalAmount: Number(txData.total_amount) || 0,
-        paymentStatus: txData.payment_status
+        paymentStatus: txData.payment_status,
+        paymentType: txData.payment_type || '',
+        paymentDate: txData.payment_date || '',
+        chequeNo: txData.cheque_no || '',
+        bankName: txData.bank_name || '',
+        ifscCode: txData.ifsc_code || ''
       };
 
       const newHistoryRecords: StockHistory[] = (shData || []).map((sh) => ({
