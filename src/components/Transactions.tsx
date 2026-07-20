@@ -540,7 +540,15 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       });
       setShowStatusModal(true);
     } else {
-      const updated = { ...t, paymentStatus: newStatus };
+      const updated = { 
+        ...t, 
+        paymentStatus: newStatus, 
+        paymentType: '',
+        paymentDate: '',
+        chequeNo: '',
+        bankName: '',
+        ifscCode: '' 
+      };
       if (activeSection === 'estimate-quotation') {
         setEstimates(prev => prev.map(item => item.id === t.id ? updated : item));
       } else if (activeSection === 'proforma-invoice') {
@@ -565,8 +573,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
     const updatedData = {
       ...statusToEdit,
-      paymentStatus: statusForm.paymentStatus,
-      paymentType: statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : (statusForm.paymentStatus === 'Paid by Cheque' ? 'Cheque' : ''),
+      paymentStatus: 'Paid',
+      paymentType: statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : 'Cheque',
       paymentDate: statusForm.paymentDate,
       chequeNo: statusForm.chequeNo,
       bankName: statusForm.bankName,
@@ -709,7 +717,11 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                           t.paymentStatus === 'Pending' ? 'badge-warning' : 'badge-danger'
                         }`}
                         style={{ border: 'none', outline: 'none', cursor: 'pointer', appearance: 'none', background: 'transparent' }}
-                        value={t.paymentStatus || 'Unpaid'}
+                        value={
+                          t.paymentStatus === 'Paid' && t.paymentType === 'Cash' ? 'Paid by Cash' :
+                          t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' ? 'Paid by Cheque' :
+                          t.paymentStatus || 'Unpaid'
+                        }
                         onChange={(e) => handleStatusChange(t, e.target.value)}
                       >
                         <option value="Paid">Paid</option>
