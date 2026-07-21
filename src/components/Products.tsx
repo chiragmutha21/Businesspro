@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import type { Product } from '../context/AppContext';
-import { Plus, Edit2, Trash2, AlertTriangle, Settings, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertTriangle, Settings, X, ClipboardList } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 
 export const Products: React.FC = () => {
   const { products, activeBusiness, addProduct, updateProduct, deleteProduct, stockHistory, deleteStockHistory } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [historyModalProduct, setHistoryModalProduct] = useState<Product | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'history'>('list');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -275,6 +276,9 @@ export const Products: React.FC = () => {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button style={styles.actionBtn} onClick={() => setHistoryModalProduct(p)} title="Stock Records">
+                            <ClipboardList size={14} color="var(--color-primary)" />
+                          </button>
                           <button style={styles.actionBtn} onClick={() => handleOpenEdit(p)}>
                             <Edit2 size={14} color="var(--color-primary)" />
                           </button>
@@ -670,6 +674,85 @@ export const Products: React.FC = () => {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Specific History Modal */}
+      {historyModalProduct && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalContent, width: '900px' }}>
+            <div style={styles.modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={styles.modalTitle}>Stock Records: {historyModalProduct.name}</span>
+                <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', backgroundColor: '#F3F4F6', padding: '4px 8px', borderRadius: '4px' }}>
+                  Current Stock: {historyModalProduct.stock} {historyModalProduct.unit}
+                </span>
+              </div>
+              <X size={18} style={styles.headerIcon} onClick={() => setHistoryModalProduct(null)} />
+            </div>
+            
+            <div style={{ padding: '20px', maxHeight: '600px', overflowY: 'auto' }}>
+              <div className="table-wrapper">
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Action Type</th>
+                      <th>Stock Adjusted</th>
+                      <th>Remaining Stock</th>
+                      <th>Doc Reference</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stockHistoryWithRemaining.filter(sh => sh.productId === historyModalProduct.id).map((sh) => (
+                      <tr key={sh.id}>
+                        <td>{formatDateDDMMYYYY(sh.date)}</td>
+                        <td>
+                          <span className={`badge ${
+                            sh.type === 'purchase' ? 'badge-success' : 'badge-danger'
+                          }`}>
+                            {sh.type.toUpperCase()}
+                          </span>
+                        </td>
+                        <td style={{ 
+                          fontWeight: '700', 
+                          color: sh.quantityChange > 0 ? 'var(--color-success)' : 'var(--color-danger)' 
+                        }}>
+                          {sh.quantityChange > 0 ? `+${sh.quantityChange}` : sh.quantityChange} Units
+                        </td>
+                        <td style={{ fontWeight: '600', color: 'var(--color-text)' }}>
+                          {sh.remainingStock} Units
+                        </td>
+                        <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{sh.referenceNo}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button 
+                            style={{ ...styles.actionBtn, backgroundColor: 'var(--color-danger-bg)' }} 
+                            onClick={() => {
+                              if (confirm('Are you sure you want to delete this stock history log? The stock will be adjusted accordingly.')) {
+                                deleteStockHistory(sh.id);
+                                // The modal will update automatically since it uses stockHistoryWithRemaining
+                              }
+                            }}
+                            title="Delete Log"
+                          >
+                            <Trash2 size={14} color="var(--color-danger)" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {stockHistoryWithRemaining.filter(sh => sh.productId === historyModalProduct.id).length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
+                          No stock movements recorded for this product yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       )}

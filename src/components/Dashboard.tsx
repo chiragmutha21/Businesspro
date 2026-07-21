@@ -24,9 +24,49 @@ import {
 export const Dashboard: React.FC = () => {
   const { activeBusiness, businesses, products, transactions } = useApp();
   const [viewScope, setViewScope] = useState<'current' | 'overall'>('current');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'>('all');
+  const [customDateStr, setCustomDateStr] = useState('');
+
+  const isWithinTimeFilter = (dateStr: string) => {
+    if (timeFilter === 'all') return true;
+    if (!dateStr) return false;
+    
+    const [y, m, d] = dateStr.split('-');
+    const tDate = new Date(Number(y), Number(m) - 1, Number(d));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (timeFilter === 'daily') {
+      return tDate.getTime() === today.getTime();
+    }
+    if (timeFilter === 'weekly') {
+      const lastWeek = new Date(today);
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      return tDate >= lastWeek && tDate <= today;
+    }
+    if (timeFilter === 'monthly') {
+      return tDate.getMonth() === today.getMonth() && tDate.getFullYear() === today.getFullYear();
+    }
+    if (timeFilter === 'yearly') {
+      return tDate.getFullYear() === today.getFullYear();
+    }
+    if (timeFilter === 'custom') {
+      if (customDateStr.length === 8) {
+        const cd = customDateStr.substring(0, 2);
+        const cm = customDateStr.substring(2, 4);
+        const cy = customDateStr.substring(4, 8);
+        return dateStr === `${cy}-${cm}-${cd}`;
+      }
+      return false; // Show nothing if custom date is incomplete
+    }
+    return true;
+  };
 
   // Filter transactions and items based on scope
-  const bizTransactions = transactions.filter((t) => viewScope === 'overall' || t.businessId === activeBusiness?.id);
+  const bizTransactions = transactions.filter((t) => {
+    const scopeMatch = viewScope === 'overall' || t.businessId === activeBusiness?.id;
+    return scopeMatch && isWithinTimeFilter(t.date);
+  });
   const bizProducts = products.filter((p) => viewScope === 'overall' || p.businessId === activeBusiness?.id);
 
   // Metrics calculation
@@ -108,24 +148,61 @@ export const Dashboard: React.FC = () => {
   return (
     <div style={styles.container}>
       {/* Upper Panel */}
-      <div className="responsive-top-row">
+      <div className="responsive-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
         <div>
           <h1 style={styles.title}>Aura Dashboard</h1>
           <p style={styles.subtitle}>Real-time commercial intelligence & control board.</p>
         </div>
 
-        {/* View Switcher Toggle */}
-        <div style={styles.toggleWrapper}>
-          <button 
-            style={{
-              ...styles.toggleBtn, 
-              backgroundColor: viewScope === 'current' ? '#0F1D36' : 'transparent',
-              color: viewScope === 'current' ? '#FFFFFF' : 'var(--color-primary)'
-            }}
-            onClick={() => setViewScope('current')}
-          >
-            Active Business
-          </button>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Time Filter Toggle */}
+          <div style={styles.toggleWrapper}>
+            {(['all', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as const).map((filter) => (
+              <button
+                key={filter}
+                style={{
+                  ...styles.toggleBtn,
+                  backgroundColor: timeFilter === filter ? '#0F1D36' : 'transparent',
+                  color: timeFilter === filter ? '#FFFFFF' : 'var(--color-primary)',
+                  textTransform: 'capitalize'
+                }}
+                onClick={() => setTimeFilter(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+            {timeFilter === 'custom' && (
+              <input
+                type="text"
+                placeholder="DDMMYYYY"
+                maxLength={8}
+                value={customDateStr}
+                onChange={(e) => setCustomDateStr(e.target.value.replace(/\D/g, ''))}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--color-border)',
+                  outline: 'none',
+                  fontSize: '13px',
+                  width: '100px',
+                  marginLeft: '4px'
+                }}
+              />
+            )}
+          </div>
+
+          {/* View Switcher Toggle */}
+          <div style={styles.toggleWrapper}>
+            <button 
+              style={{
+                ...styles.toggleBtn, 
+                backgroundColor: viewScope === 'current' ? '#0F1D36' : 'transparent',
+                color: viewScope === 'current' ? '#FFFFFF' : 'var(--color-primary)'
+              }}
+              onClick={() => setViewScope('current')}
+            >
+              Active Business
+            </button>
           <button 
             style={{
               ...styles.toggleBtn, 
@@ -136,6 +213,7 @@ export const Dashboard: React.FC = () => {
           >
             All Businesses
           </button>
+          </div>
         </div>
       </div>
 
@@ -285,10 +363,10 @@ export const Dashboard: React.FC = () => {
               <tbody>
                 {businesses.map((biz) => {
                   const bizSales = transactions
-                    .filter((t) => t.businessId === biz.id && t.type === 'sale')
+                    .filter((t) => t.businessId === biz.id && t.type === 'sale' && isWithinTimeFilter(t.date))
                     .reduce((sum, t) => sum + t.totalAmount, 0);
                   const bizPending = transactions
-                    .filter((t) => t.businessId === biz.id && t.paymentStatus === 'Pending')
+                    .filter((t) => t.businessId === biz.id && (t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid') && isWithinTimeFilter(t.date))
                     .reduce((sum, t) => sum + t.totalAmount, 0);
                   const bizProds = products.filter((p) => p.businessId === biz.id).length;
 
