@@ -113,7 +113,7 @@ export const Dashboard: React.FC = () => {
     months.forEach(m => monthlySales[m] = 0);
     
     bizTransactions.filter((t) => t.type === 'sale').forEach((t) => {
-      const [y, m, d] = t.date.split('-');
+      const [, m] = t.date.split('-');
       const monthIndex = parseInt(m) - 1;
       monthlySales[months[monthIndex]] += t.totalAmount;
     });

@@ -52,39 +52,83 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
   }, [searchQuery]);
 
   // Notifications calculation
-  const notifications: { id: string; type: 'stock' | 'payment'; title: string; desc: string; date: string }[] = [];
+  const notifications: { id: string; type: 'stock' | 'payment' | 'info'; title: string; desc: string; date: string }[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  // Low stock
-  const lowStockProds = products.filter((p) => p.businessId === activeBusiness?.id && p.stock <= p.minStock);
+  // 1. Stock Alerts
+  const outOfStockProds = products.filter((p) => p.businessId === activeBusiness?.id && p.stock === 0);
+  outOfStockProds.forEach((p) => {
+    notifications.push({
+      id: `oos-${p.id}`,
+      type: 'stock',
+      title: 'Out of Stock Alert',
+      desc: `${p.name} is completely out of stock! Please restock immediately.`,
+      date: 'Today'
+    });
+  });
+
+  const lowStockProds = products.filter((p) => p.businessId === activeBusiness?.id && p.stock <= p.minStock && p.stock > 0);
   lowStockProds.forEach((p) => {
     notifications.push({
       id: `ns-${p.id}`,
       type: 'stock',
       title: 'Low Stock Alert',
-      desc: `${p.name} has only ${p.stock} ${p.unit} remaining (Min: ${p.minStock})`,
+      desc: `${p.name} has only ${p.stock} ${p.unit} remaining (Min: ${p.minStock}).`,
       date: 'Today'
     });
   });
 
-  // Pending payments
+  // 2. Pending payments > 3 days
+  const threeDaysAgo = new Date(today);
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
   const pendingInvoices = transactions.filter(
-    (t) => t.businessId === activeBusiness?.id && t.paymentStatus === 'Pending'
+    (t) => t.businessId === activeBusiness?.id && (t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
   );
+  
   pendingInvoices.forEach((t) => {
-    notifications.push({
-      id: `np-${t.id}`,
-      type: 'payment',
-      title: 'Pending Payment Due',
-      desc: `Invoice ${t.invoiceNo} from ${t.contactName} (₹${t.totalAmount.toFixed(2)}) is pending.`,
-      date: t.date
-    });
+    if (t.date) {
+      const [y, m, d] = t.date.split('-');
+      const tDate = new Date(Number(y), Number(m) - 1, Number(d));
+      if (tDate <= threeDaysAgo) {
+        notifications.push({
+          id: `np-${t.id}`,
+          type: 'payment',
+          title: 'Overdue Payment',
+          desc: `Payment from ${t.contactName} (₹${t.totalAmount.toFixed(2)}) has been pending for over 3 days.`,
+          date: t.date
+        });
+      }
+    }
+  });
+
+  // 3. Cheque Reminders
+  const chequeTransactions = transactions.filter(
+    (t) => t.businessId === activeBusiness?.id && (t.paymentType === 'Cheque' || t.paymentStatus === 'Paid by Cheque' || t.chequeNo)
+  );
+
+  chequeTransactions.forEach((t) => {
+    if (t.paymentDate) {
+      const [y, m, d] = t.paymentDate.split('-');
+      const pd = new Date(Number(y), Number(m) - 1, Number(d));
+      if (pd <= today) {
+        notifications.push({
+          id: `chq-${t.id}`,
+          type: 'payment',
+          title: 'Cheque Deposit Reminder',
+          desc: `Please deposit the cheque from ${t.contactName} for ₹${t.totalAmount.toFixed(2)} (Cheque No: ${t.chequeNo || 'N/A'}).`,
+          date: t.paymentDate
+        });
+      }
+    }
   });
 
   // Default notification if empty
   if (notifications.length === 0) {
     notifications.push({
       id: 'default-notif',
-      type: 'payment',
+      type: 'info',
       title: 'Welcome Back',
       desc: 'All systems online. Your business data is up to date.',
       date: 'Just now'
@@ -205,8 +249,8 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
         <div style={styles.notifWrapper} ref={notifRef}>
           <button style={styles.notifBtn} onClick={() => setShowNotifications(!showNotifications)}>
             <Bell size={20} color="var(--color-primary)" />
-            {lowStockProds.length + pendingInvoices.length > 0 && (
-              <span style={styles.notifBadge}>{lowStockProds.length + pendingInvoices.length}</span>
+            {notifications.filter(n => n.id !== 'default-notif').length > 0 && (
+              <span style={styles.notifBadge}>{notifications.filter(n => n.id !== 'default-notif').length}</span>
             )}
           </button>
 
