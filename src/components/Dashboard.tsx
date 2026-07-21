@@ -40,9 +40,15 @@ export const Dashboard: React.FC = () => {
       return tDate.getTime() === today.getTime();
     }
     if (timeFilter === 'weekly') {
-      const lastWeek = new Date(today);
-      lastWeek.setDate(lastWeek.getDate() - 7);
-      return tDate >= lastWeek && tDate <= today;
+      const day = today.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const start = new Date(today);
+      start.setDate(today.getDate() + diffToMonday);
+      
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      
+      return tDate >= start && tDate <= end;
     }
     if (timeFilter === 'monthly') {
       return tDate.getMonth() === today.getMonth() && tDate.getFullYear() === today.getFullYear();
@@ -99,18 +105,81 @@ export const Dashboard: React.FC = () => {
   const lowStockCount = bizProducts.filter((p) => (p.stock || 0) <= (p.minStock || 0)).length;
 
   // Chart Data preparation
-  // 1. Daily sales trend (past 7 days)
-  const salesByDate: Record<string, number> = {};
-  bizTransactions.filter((t) => t.type === 'sale').forEach((t) => {
-    salesByDate[t.date] = (salesByDate[t.date] || 0) + t.totalAmount;
-  });
-  
-  const dailyChartData = Object.keys(salesByDate)
-    .sort()
-    .map((date) => ({
-      date: date.substring(5), // Just MM-DD
-      Sales: parseFloat(salesByDate[date].toFixed(2)),
+  let dailyChartData: any[] = [];
+
+  if (timeFilter === 'yearly') {
+    const monthlySales: Record<string, number> = {};
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    months.forEach(m => monthlySales[m] = 0);
+    
+    bizTransactions.filter((t) => t.type === 'sale').forEach((t) => {
+      const [y, m, d] = t.date.split('-');
+      const monthIndex = parseInt(m) - 1;
+      monthlySales[months[monthIndex]] += t.totalAmount;
+    });
+    
+    dailyChartData = months.map(m => ({
+      date: m,
+      Sales: parseFloat(monthlySales[m].toFixed(2))
     }));
+  } else {
+    const salesByDate: Record<string, number> = {};
+    bizTransactions.filter((t) => t.type === 'sale').forEach((t) => {
+      salesByDate[t.date] = (salesByDate[t.date] || 0) + t.totalAmount;
+    });
+
+    const dates: string[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const formatDateStr = (d: Date) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    if (timeFilter === 'weekly') {
+      const day = today.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const start = new Date(today);
+      start.setDate(today.getDate() + diffToMonday);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        dates.push(formatDateStr(d));
+      }
+    } else if (timeFilter === 'monthly') {
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(y, m, i);
+        dates.push(formatDateStr(d));
+      }
+    } else if (timeFilter === 'daily') {
+      dates.push(formatDateStr(today));
+    } else if (timeFilter === 'custom' && customDateStr.length === 8) {
+      const cd = customDateStr.substring(0, 2);
+      const cm = customDateStr.substring(2, 4);
+      const cy = customDateStr.substring(4, 8);
+      dates.push(`${cy}-${cm}-${cd}`);
+    }
+
+    if (dates.length > 0) {
+      dailyChartData = dates.map(dateStr => ({
+        date: dateStr.substring(5), // MM-DD
+        Sales: parseFloat((salesByDate[dateStr] || 0).toFixed(2))
+      }));
+    } else {
+      dailyChartData = Object.keys(salesByDate)
+        .sort()
+        .map((date) => ({
+          date: date.substring(5),
+          Sales: parseFloat(salesByDate[date].toFixed(2)),
+        }));
+    }
+  }
 
   if (dailyChartData.length === 0) {
     dailyChartData.push({ date: 'No Data', Sales: 0 });
