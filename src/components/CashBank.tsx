@@ -93,7 +93,7 @@ interface BankAccount {
 }
 
 export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
-  const { customers } = useApp();
+  const { customers, activeBusiness } = useApp();
 
   // State to manage showing modals
   const [showCashModal, setShowCashModal] = useState(false);
