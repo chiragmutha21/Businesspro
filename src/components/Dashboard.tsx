@@ -200,7 +200,7 @@ export const Dashboard: React.FC = () => {
   });
 
   const productSalesData = Object.keys(productSalesMap).map((name) => ({
-    name: name.length > 15 ? name.substring(0, 15) + '...' : name,
+    name,
     Sales: productSalesMap[name],
   })).slice(0, 5);
 
