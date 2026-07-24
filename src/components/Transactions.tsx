@@ -83,7 +83,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     bankName: '',
     ifscCode: '',
     receivedAmount: '',
-    paymentMethod: 'Cash'
+    paymentMethod: 'Cash',
+    splitCashAmount: '',
+    splitOnlineAmount: ''
   });
 
   // Local list states for sub-sections
@@ -543,7 +545,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   };
 
   const handleStatusChange = (t: any, newStatus: string) => {
-    if (newStatus === 'Paid by Cash' || newStatus === 'Paid by Cheque' || newStatus === 'Paid by Online' || newStatus === 'Partially Paid') {
+    if (newStatus === 'Paid by Cash' || newStatus === 'Paid by Cheque' || newStatus === 'Paid by Online' || newStatus === 'Partially Paid' || newStatus === 'Split Payment') {
       setStatusToEdit(t);
       setStatusForm({
         paymentStatus: newStatus,
@@ -552,7 +554,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         bankName: t.bankName || '',
         ifscCode: t.ifscCode || '',
         receivedAmount: t.receivedAmount || '',
-        paymentMethod: t.paymentType || 'Cash'
+        paymentMethod: t.paymentType || 'Cash',
+        splitCashAmount: t.paymentType?.startsWith('Split:') ? t.paymentType.split(':')[1] : '',
+        splitOnlineAmount: t.paymentType?.startsWith('Split:') ? t.paymentType.split(':')[2] : ''
       });
       setShowStatusModal(true);
     } else {
@@ -590,7 +594,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     const updatedData = {
       ...statusToEdit,
       paymentStatus: statusForm.paymentStatus === 'Partially Paid' ? 'Pending' : 'Paid',
-      paymentType: statusForm.paymentStatus === 'Partially Paid' ? statusForm.paymentMethod : statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : statusForm.paymentStatus === 'Paid by Online' ? 'Online' : 'Cheque',
+      paymentType: statusForm.paymentStatus === 'Partially Paid' ? statusForm.paymentMethod : 
+                   statusForm.paymentStatus === 'Split Payment' ? `Split:${parseFloat(statusForm.splitCashAmount) || 0}:${parseFloat(statusForm.splitOnlineAmount) || 0}` :
+                   statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : 
+                   statusForm.paymentStatus === 'Paid by Online' ? 'Online' : 'Cheque',
       paymentDate: statusForm.paymentDate,
       chequeNo: statusForm.chequeNo,
       bankName: statusForm.bankName,
@@ -741,6 +748,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                             t.paymentStatus === 'Paid' && t.paymentType === 'Cash' ? 'Paid by Cash' :
                             t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' ? 'Paid by Cheque' :
                             t.paymentStatus === 'Paid' && t.paymentType === 'Online' ? 'Paid by Online' :
+                            t.paymentStatus === 'Paid' && t.paymentType?.startsWith('Split:') ? 'Split Payment' :
                             (t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid') && (t.receivedAmount > 0 && t.receivedAmount < t.totalAmount) ? 'Partially Paid' :
                             t.paymentStatus || 'Unpaid'
                           }
@@ -750,6 +758,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                           <option value="Paid by Online">Paid by Online</option>
                           <option value="Paid by Cheque">Paid by Cheque</option>
                           <option value="Partially Paid">Partially Paid</option>
+                          <option value="Split Payment">Split Payment</option>
                           <option value="Unpaid">Unpaid</option>
                         </select>
 
@@ -1235,7 +1244,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                 />
               </div>
 
-              {(statusForm.paymentStatus === 'Paid by Cash' || statusForm.paymentStatus === 'Paid by Online' || statusForm.paymentStatus === 'Partially Paid') && (
+              {(statusForm.paymentStatus === 'Paid by Cash' || statusForm.paymentStatus === 'Paid by Online' || statusForm.paymentStatus === 'Partially Paid' || statusForm.paymentStatus === 'Split Payment') && (
                 <div className="form-group">
                   <label style={styles.fieldLabel}>Date Payment Received *</label>
                   <input
@@ -1277,6 +1286,38 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                       <option value="Cheque">Cheque</option>
                     </select>
                   </div>
+                </>
+              )}
+
+              {statusForm.paymentStatus === 'Split Payment' && (
+                <>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>Cash Amount *</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={statusForm.splitCashAmount}
+                      onChange={(e) => setStatusForm({ ...statusForm, splitCashAmount: e.target.value })}
+                      required
+                      min={0}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>Online Amount *</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={statusForm.splitOnlineAmount}
+                      onChange={(e) => setStatusForm({ ...statusForm, splitOnlineAmount: e.target.value })}
+                      required
+                      min={0}
+                    />
+                  </div>
+                  {((parseFloat(statusForm.splitCashAmount) || 0) + (parseFloat(statusForm.splitOnlineAmount) || 0)) !== (statusToEdit?.totalAmount || 0) && (
+                    <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                      Total split amount must equal invoice amount (₹{(statusToEdit?.totalAmount || 0).toLocaleString('en-IN')})
+                    </div>
+                  )}
                 </>
               )}
 

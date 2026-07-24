@@ -154,22 +154,29 @@ export const Dashboard: React.FC = () => {
   const pendingPayments = pendingTxList.reduce((sum, t) => sum + ((t.totalAmount || 0) - (t.receivedAmount || 0)), 0);
 
   const cashTxList = [
-    ...paymentBizTransactions.filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash')),
-    ...paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash'),
-    ...paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash')
+    ...paymentBizTransactions.filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash' || t.paymentType?.startsWith('Split:'))),
+    ...paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash' || t.paymentType?.startsWith('Split:')),
+    ...paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash' || t.paymentType?.startsWith('Split:'))
   ];
-  const paidInCash = cashTxList.reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
+  const paidInCash = cashTxList.reduce((sum, t) => {
+    if (t.paymentType?.startsWith('Split:')) return sum + (Number(t.paymentType.split(':')[1]) || 0);
+    return sum + (t.receivedAmount || t.totalAmount || 0);
+  }, 0);
 
   const onlineTxList = [
     ...paymentBizTransactions.filter((t) => t.type === 'sale' && (
       (['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType || '')) ||
-      (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || 
-      (t.paymentStatus === 'Paid by Cheque')
+      (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash' && !t.paymentType?.startsWith('Split:')) || 
+      (t.paymentStatus === 'Paid by Cheque') ||
+      t.paymentType?.startsWith('Split:')
     )),
-    ...paymentLocalPaymentsIn.filter((t: any) => t.paymentType !== 'Cash' && t.paymentType),
-    ...paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType))
+    ...paymentLocalPaymentsIn.filter((t: any) => (t.paymentType !== 'Cash' && t.paymentType) || t.paymentType?.startsWith('Split:')),
+    ...paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash' && !t.paymentType?.startsWith('Split:')) || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType) || t.paymentType?.startsWith('Split:'))
   ];
-  const paidOnline = onlineTxList.reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
+  const paidOnline = onlineTxList.reduce((sum, t) => {
+    if (t.paymentType?.startsWith('Split:')) return sum + (Number(t.paymentType.split(':')[2]) || 0);
+    return sum + (t.receivedAmount || t.totalAmount || 0);
+  }, 0);
 
   const stockValue = bizProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.purchasePrice || 0)), 0);
   const lowStockCount = bizProducts.filter((p) => (p.stock || 0) <= (p.minStock || 0)).length;
@@ -641,6 +648,10 @@ export const Dashboard: React.FC = () => {
                            ? ((t.totalAmount || 0) - (t.receivedAmount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 }) 
                            : activeModal === 'expenses'
                            ? (t.total || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                           : activeModal === 'cash' && t.paymentType?.startsWith('Split:')
+                           ? (Number(t.paymentType.split(':')[1]) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                           : activeModal === 'online' && t.paymentType?.startsWith('Split:')
+                           ? (Number(t.paymentType.split(':')[2]) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
                            : (t.receivedAmount || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </td>
                     </tr>
