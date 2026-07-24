@@ -97,7 +97,14 @@ interface BankAccount {
 }
 
 export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
-  const { customers, activeBusiness } = useApp();
+  const { 
+    customers, activeBusiness, 
+    bankAccounts, loanAccounts, cheques, cashLogs,
+    addBankAccount, updateBankAccount, deleteBankAccount,
+    addLoanAccount, deleteLoanAccount,
+    addCheque, deleteCheque,
+    addCashLog, deleteCashLog
+  } = useApp();
 
   // State to manage showing modals
   const [showCashModal, setShowCashModal] = useState(false);
@@ -116,10 +123,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [adjustDate, setAdjustDate] = useState('12/07/2026');
   const [cashDescription, setCashDescription] = useState('');
   const [cashBalance, setCashBalance] = useState<number>(0);
-  const [cashLogs, setCashLogs] = useState<any[]>(() => {
-    const s = localStorage.getItem('cashLogs');
-    return s ? JSON.parse(s) : [];
-  });
+
 
   // Cheque Form States
   const [chequePartyId, setChequePartyId] = useState('');
@@ -127,10 +131,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [chequeAmount, setChequeAmount] = useState('');
   const [isPostDated, setIsPostDated] = useState(false);
   const [chequeDate, setChequeDate] = useState('12/07/2026');
-  const [cheques, setCheques] = useState<any[]>(() => {
-    const s = localStorage.getItem('cheques');
-    return s ? JSON.parse(s) : [];
-  });
+
 
   // Loan Account Form States
   const [loanAccName, setLoanAccName] = useState('');
@@ -173,24 +174,18 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [bankTxDescription, setBankTxDescription] = useState('');
 
   // Lists saved in memory
-  const [loanAccounts, setLoanAccounts] = useState<any[]>(() => {
-    const s = localStorage.getItem('loanAccounts');
-    return s ? JSON.parse(s) : [];
-  });
+
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
   const [searchLoanQuery, setSearchLoanQuery] = useState('');
 
-  const [bankAccounts, setBankAccounts] = useState<any[]>(() => {
-    const s = localStorage.getItem('bankAccounts');
-    return s ? JSON.parse(s) : [];
-  });
+
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [searchBankQuery, setSearchBankQuery] = useState('');
 
-  React.useEffect(() => { localStorage.setItem('cashLogs', JSON.stringify(cashLogs)); }, [cashLogs]);
-  React.useEffect(() => { localStorage.setItem('cheques', JSON.stringify(cheques)); }, [cheques]);
-  React.useEffect(() => { localStorage.setItem('loanAccounts', JSON.stringify(loanAccounts)); }, [loanAccounts]);
-  React.useEffect(() => { localStorage.setItem('bankAccounts', JSON.stringify(bankAccounts)); }, [bankAccounts]);
+
+
+
+
 
   const activeCashLogs = cashLogs.filter(l => l.businessId === activeBusiness?.id);
   const activeCheques = cheques.filter(c => c.businessId === activeBusiness?.id);
@@ -216,7 +211,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       description: cashDescription
     };
 
-    setCashLogs([log, ...cashLogs]);
+    addCashLog(log as any);
     setCashBalance(prev => adjustType === 'Add' ? prev + amt : prev - amt);
     setShowCashModal(false);
     setCashAmount('');
@@ -245,7 +240,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       status: 'Pending'
     };
 
-    setCheques([newCheque, ...cheques]);
+    addCheque(newCheque as any);
     setShowChequeModal(false);
     setChequePartyId('');
     setChequeNumber('');
@@ -255,18 +250,16 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   };
 
   const handleClearCheque = (id: string) => {
-    setCheques(prev => prev.map(c => {
-      if (c.id === id) {
-        alert(`Cheque No: ${c.chequeNumber} cleared successfully! Payment completed.`);
-        return { ...c, status: 'Cleared' };
-      }
-      return c;
-    }));
+    const chq = cheques.find(c => c.id === id);
+    if (chq) {
+      alert(`Cheque No: ${chq.chequeNumber} cleared successfully! Payment completed.`);
+      deleteCheque(id).then(() => addCheque({ ...chq, status: 'Cleared' } as any));
+    }
   };
 
   const handleDeleteCheque = (id: string) => {
     if (confirm('Are you sure you want to delete this cheque log?')) {
-      setCheques(prev => prev.filter(c => c.id !== id));
+      deleteCheque(id);
     }
   };
 
@@ -305,7 +298,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       transactions: [initialTx]
     };
 
-    setLoanAccounts([...loanAccounts, newLoan]);
+    addLoanAccount(newLoan as any);
     setSelectedLoanId(newLoan.id);
     setShowAddLoanModal(false);
     
@@ -335,25 +328,23 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       return;
     }
 
-    setLoanAccounts(prev => prev.map(acc => {
-      if (acc.id === selectedLoanId) {
-        const nextTxId = String(acc.transactions.length + 1);
-        const newTx: LoanTransaction = {
-          id: nextTxId,
-          type: 'Payment',
-          date: payDate,
-          principal: princVal,
-          interest: intVal,
-          total: totalVal
-        };
-        return {
+    const acc = loanAccounts.find(a => a.id === selectedLoanId);
+    if (acc) {
+      deleteLoanAccount(acc.id).then(() => {
+        addLoanAccount({
           ...acc,
           currentBalance: acc.currentBalance - princVal,
-          transactions: [...acc.transactions, newTx]
-        };
-      }
-      return acc;
-    }));
+          transactions: [...(acc.transactions || []), {
+            id: Date.now().toString(),
+            type: 'Payment',
+            date: payDate,
+            principal: princVal,
+            interest: intVal,
+            total: totalVal
+          }]
+        } as any);
+      });
+    }
 
     setShowMakePaymentModal(false);
     setPayPrincipal('');
@@ -396,7 +387,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       transactions: [initialTx]
     };
 
-    setBankAccounts([...bankAccounts, newBank]);
+    addBankAccount(newBank as any);
     setSelectedBankId(newBank.id);
     setShowAddBankModal(false);
 
@@ -428,24 +419,13 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
         alert('Please select a valid From account.');
         return;
       }
-      setBankAccounts(prev => prev.map(acc => {
-        if (acc.id === bankTxFromAcc) {
-          const nextTxId = String(acc.transactions.length + 1);
-          const newTx: BankTransaction = {
-            id: nextTxId,
-            type: 'Bank to Cash',
-            name: bankTxDescription || 'Bank to Cash Transfer',
-            date: bankTxDate,
-            amount: -amt
-          };
-          return {
-            ...acc,
-            currentBalance: acc.currentBalance - amt,
-            transactions: [...acc.transactions, newTx]
-          };
-        }
-        return acc;
-      }));
+      const acc = bankAccounts.find(b => b.id === bankTxFromAcc);
+      if (acc) {
+        updateBankAccount(acc.id, {
+          currentBalance: acc.currentBalance - amt,
+          transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Bank to Cash', name: bankTxDescription || 'Bank to Cash Transfer', date: bankTxDate, amount: -amt }]
+        });
+      }
       setCashBalance(c => c + amt);
     } 
     else if (bankTxType === 'Cash to Bank') {
@@ -453,24 +433,13 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
         alert('Please select a valid To account.');
         return;
       }
-      setBankAccounts(prev => prev.map(acc => {
-        if (acc.id === bankTxToAcc) {
-          const nextTxId = String(acc.transactions.length + 1);
-          const newTx: BankTransaction = {
-            id: nextTxId,
-            type: 'Cash to Bank',
-            name: bankTxDescription || 'Cash to Bank Transfer',
-            date: bankTxDate,
-            amount: amt
-          };
-          return {
-            ...acc,
-            currentBalance: acc.currentBalance + amt,
-            transactions: [...acc.transactions, newTx]
-          };
-        }
-        return acc;
-      }));
+      const acc = bankAccounts.find(b => b.id === bankTxToAcc);
+      if (acc) {
+        updateBankAccount(acc.id, {
+          currentBalance: acc.currentBalance + amt,
+          transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Cash to Bank', name: bankTxDescription || 'Cash to Bank Transfer', date: bankTxDate, amount: amt }]
+        });
+      }
       setCashBalance(c => c - amt);
     }
     else if (bankTxType === 'Bank to Bank') {
@@ -478,39 +447,20 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
         alert('Please select two distinct bank accounts.');
         return;
       }
-      setBankAccounts(prev => prev.map(acc => {
-        if (acc.id === bankTxFromAcc) {
-          const nextTxId = String(acc.transactions.length + 1);
-          const newTx: BankTransaction = {
-            id: nextTxId,
-            type: 'Bank to Bank',
-            name: bankTxDescription || `Transfer to ${bankAccounts.find(b => b.id === bankTxToAcc)?.displayName}`,
-            date: bankTxDate,
-            amount: -amt
-          };
-          return {
-            ...acc,
-            currentBalance: acc.currentBalance - amt,
-            transactions: [...acc.transactions, newTx]
-          };
-        }
-        if (acc.id === bankTxToAcc) {
-          const nextTxId = String(acc.transactions.length + 1);
-          const newTx: BankTransaction = {
-            id: nextTxId,
-            type: 'Bank to Bank',
-            name: bankTxDescription || `Transfer from ${bankAccounts.find(b => b.id === bankTxFromAcc)?.displayName}`,
-            date: bankTxDate,
-            amount: amt
-          };
-          return {
-            ...acc,
-            currentBalance: acc.currentBalance + amt,
-            transactions: [...acc.transactions, newTx]
-          };
-        }
-        return acc;
-      }));
+      const fromAcc = bankAccounts.find(b => b.id === bankTxFromAcc);
+      if (fromAcc) {
+        updateBankAccount(fromAcc.id, {
+          currentBalance: fromAcc.currentBalance - amt,
+          transactions: [...(fromAcc.transactions||[]), { id: String((fromAcc.transactions?.length||0) + 1), type: 'Bank to Bank', name: bankTxDescription || `Transfer to ${bankAccounts.find(b => b.id === bankTxToAcc)?.displayName}`, date: bankTxDate, amount: -amt }]
+        });
+      }
+      const toAcc = bankAccounts.find(b => b.id === bankTxToAcc);
+      if (toAcc) {
+        updateBankAccount(toAcc.id, {
+          currentBalance: toAcc.currentBalance + amt,
+          transactions: [...(toAcc.transactions||[]), { id: String((toAcc.transactions?.length||0) + 1), type: 'Bank to Bank', name: bankTxDescription || `Transfer from ${fromAcc?.displayName}`, date: bankTxDate, amount: amt }]
+        });
+      }
     }
     else if (bankTxType === 'Adjustment') {
       if (!bankTxFromAcc) {
@@ -519,24 +469,13 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       }
       const isIncrease = bankTxAdjType === 'Increase balance';
       const actualAmt = isIncrease ? amt : -amt;
-      setBankAccounts(prev => prev.map(acc => {
-        if (acc.id === bankTxFromAcc) {
-          const nextTxId = String(acc.transactions.length + 1);
-          const newTx: BankTransaction = {
-            id: nextTxId,
-            type: 'Adjustment',
-            name: bankTxDescription || `Adjustment (${bankTxAdjType})`,
-            date: bankTxDate,
-            amount: actualAmt
-          };
-          return {
-            ...acc,
-            currentBalance: acc.currentBalance + actualAmt,
-            transactions: [...acc.transactions, newTx]
-          };
-        }
-        return acc;
-      }));
+      const acc = bankAccounts.find(b => b.id === bankTxFromAcc);
+      if (acc) {
+        updateBankAccount(acc.id, {
+          currentBalance: acc.currentBalance + actualAmt,
+          transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Adjustment', name: bankTxDescription || `Adjustment (${bankTxAdjType})`, date: bankTxDate, amount: actualAmt }]
+        });
+      }
     }
 
     setShowBankTxModal(false);

@@ -93,6 +93,62 @@ export interface StockHistory {
   referenceNo: string;
 }
 
+
+export interface BankAccount {
+  id: string;
+  businessId: string;
+  displayName: string;
+  openingBalance: number;
+  balanceDate: string;
+  accountNumber: string;
+  ifscCode: string;
+  upiId: string;
+  bankName: string;
+  holderName: string;
+  printQr: boolean;
+  printDetails: boolean;
+  acceptOnline: boolean;
+  currentBalance: number;
+  transactions: any[];
+}
+
+export interface LoanAccount {
+  id: string;
+  businessId: string;
+  name: string;
+  lenderBank: string;
+  accountNumber: string;
+  description: string;
+  currentBalance: number;
+  balanceDate: string;
+  receivedIn: string;
+  interestRate: number;
+  termDuration: number;
+  processingFee: number;
+  feePaidFrom: string;
+  transactions: any[];
+}
+
+export interface Cheque {
+  id: string;
+  businessId: string;
+  partyName: string;
+  chequeNumber: string;
+  amount: number;
+  isPostDated: boolean;
+  chequeDate: string;
+  status: string;
+}
+
+export interface CashLog {
+  id: string;
+  businessId: string;
+  type: string;
+  amount: number;
+  date: string;
+  description: string;
+}
+
 interface AppContextProps {
   businesses: Business[];
   currentBusinessId: string;
@@ -100,6 +156,20 @@ interface AppContextProps {
   products: Product[];
   transactions: Transaction[];
   stockHistory: StockHistory[];
+  bankAccounts: BankAccount[];
+  loanAccounts: LoanAccount[];
+  cheques: Cheque[];
+  cashLogs: CashLog[];
+  addBankAccount: (bank: Omit<BankAccount, 'id' | 'businessId'>) => Promise<void>;
+  updateBankAccount: (id: string, bank: Partial<BankAccount>) => Promise<void>;
+  deleteBankAccount: (id: string) => Promise<void>;
+  addLoanAccount: (loan: Omit<LoanAccount, 'id' | 'businessId'>) => Promise<void>;
+  deleteLoanAccount: (id: string) => Promise<void>;
+  addCheque: (cheque: Omit<Cheque, 'id' | 'businessId'>) => Promise<void>;
+  deleteCheque: (id: string) => Promise<void>;
+  addCashLog: (log: Omit<CashLog, 'id' | 'businessId'>) => Promise<void>;
+  deleteCashLog: (id: string) => Promise<void>;
+
   activeBusiness: Business | null;
   user: any;
   authLoading: boolean;
@@ -139,6 +209,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [products, setProducts] = useState<Product[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stockHistory, setStockHistory] = useState<StockHistory[]>([]);
+
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [loanAccounts, setLoanAccounts] = useState<LoanAccount[]>([]);
+  const [cheques, setCheques] = useState<Cheque[]>([]);
+  const [cashLogs, setCashLogs] = useState<CashLog[]>([]);
+
   const [activeBusiness, setActiveBusiness] = useState<Business | null>(null);
 
   // Authentication State Listener
@@ -284,6 +360,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
           
+        
+        // Fetch Bank Accounts
+        const { data: bankData } = await supabase.from('bank_accounts').select('*').eq('user_id', user.id);
+        setBankAccounts((bankData || []).map((b) => ({
+          id: b.id, businessId: b.business_id, displayName: b.display_name, openingBalance: Number(b.opening_balance),
+          balanceDate: b.balance_date, accountNumber: b.account_number, ifscCode: b.ifsc_code, upiId: b.upi_id,
+          bankName: b.bank_name, holderName: b.holder_name, printQr: b.print_qr, printDetails: b.print_details,
+          acceptOnline: b.accept_online, currentBalance: Number(b.current_balance), transactions: b.transactions || []
+        })));
+
+        // Fetch Loan Accounts
+        const { data: loanData } = await supabase.from('loan_accounts').select('*').eq('user_id', user.id);
+        setLoanAccounts((loanData || []).map((l) => ({
+          id: l.id, businessId: l.business_id, name: l.name, lenderBank: l.lender_bank, accountNumber: l.account_number,
+          description: l.description, currentBalance: Number(l.current_balance), balanceDate: l.balance_date,
+          receivedIn: l.received_in, interestRate: Number(l.interest_rate), termDuration: Number(l.term_duration),
+          processingFee: Number(l.processing_fee), feePaidFrom: l.fee_paid_from, transactions: l.transactions || []
+        })));
+
+        // Fetch Cheques
+        const { data: chequeData } = await supabase.from('cheques').select('*').eq('user_id', user.id);
+        setCheques((chequeData || []).map((c) => ({
+          id: c.id, businessId: c.business_id, partyName: c.party_name, chequeNumber: c.cheque_number,
+          amount: Number(c.amount), isPostDated: c.is_post_dated, chequeDate: c.cheque_date, status: c.status
+        })));
+
+        // Fetch Cash Logs
+        const { data: cashData } = await supabase.from('cash_logs').select('*').eq('user_id', user.id);
+        setCashLogs((cashData || []).map((c) => ({
+          id: c.id, businessId: c.business_id, type: c.type, amount: Number(c.amount), date: c.date, description: c.description
+        })));
+
         setStockHistory((shData || []).map((sh) => ({
           id: sh.id,
           businessId: sh.business_id,
@@ -1027,9 +1135,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   };
 
+  
+  const addBankAccount = async (bank: Omit<BankAccount, 'id' | 'businessId'>) => {
+    if (!user || !activeBusiness) return;
+    const { data, error } = await supabase.from('bank_accounts').insert([{
+      user_id: user.id, business_id: activeBusiness.id, display_name: bank.displayName, opening_balance: bank.openingBalance,
+      balance_date: bank.balanceDate, account_number: bank.accountNumber, ifsc_code: bank.ifscCode, upi_id: bank.upiId,
+      bank_name: bank.bankName, holder_name: bank.holderName, print_qr: bank.printQr, print_details: bank.printDetails,
+      accept_online: bank.acceptOnline, current_balance: bank.currentBalance
+    }]).select().single();
+    if (error) throw error;
+    setBankAccounts([...bankAccounts, { ...bank, id: data.id, businessId: activeBusiness.id }]);
+  };
+
+  const updateBankAccount = async (id: string, updates: Partial<BankAccount>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.currentBalance !== undefined) dbUpdates.current_balance = updates.currentBalance;
+    if (updates.transactions !== undefined) dbUpdates.transactions = updates.transactions;
+    const { error } = await supabase.from('bank_accounts').update(dbUpdates).eq('id', id);
+    if (error) throw error;
+    setBankAccounts(bankAccounts.map(b => b.id === id ? { ...b, ...updates } : b));
+  };
+
+  const deleteBankAccount = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('bank_accounts').delete().eq('id', id);
+    if (error) throw error;
+    setBankAccounts(bankAccounts.filter(b => b.id !== id));
+  };
+
+  const addLoanAccount = async (loan: Omit<LoanAccount, 'id' | 'businessId'>) => {
+    if (!user || !activeBusiness) return;
+    const { data, error } = await supabase.from('loan_accounts').insert([{
+      user_id: user.id, business_id: activeBusiness.id, name: loan.name, lender_bank: loan.lenderBank,
+      account_number: loan.accountNumber, description: loan.description, current_balance: loan.currentBalance,
+      balance_date: loan.balanceDate, received_in: loan.receivedIn, interest_rate: loan.interestRate,
+      term_duration: loan.termDuration, processing_fee: loan.processingFee, fee_paid_from: loan.feePaidFrom
+    }]).select().single();
+    if (error) throw error;
+    setLoanAccounts([...loanAccounts, { ...loan, id: data.id, businessId: activeBusiness.id }]);
+  };
+
+  const deleteLoanAccount = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('loan_accounts').delete().eq('id', id);
+    if (error) throw error;
+    setLoanAccounts(loanAccounts.filter(b => b.id !== id));
+  };
+
+  const addCheque = async (cheque: Omit<Cheque, 'id' | 'businessId'>) => {
+    if (!user || !activeBusiness) return;
+    const { data, error } = await supabase.from('cheques').insert([{
+      user_id: user.id, business_id: activeBusiness.id, party_name: cheque.partyName, cheque_number: cheque.chequeNumber,
+      amount: cheque.amount, is_post_dated: cheque.isPostDated, cheque_date: cheque.chequeDate, status: cheque.status
+    }]).select().single();
+    if (error) throw error;
+    setCheques([...cheques, { ...cheque, id: data.id, businessId: activeBusiness.id }]);
+  };
+
+  const deleteCheque = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('cheques').delete().eq('id', id);
+    if (error) throw error;
+    setCheques(cheques.filter(b => b.id !== id));
+  };
+
+  const addCashLog = async (log: Omit<CashLog, 'id' | 'businessId'>) => {
+    if (!user || !activeBusiness) return;
+    const { data, error } = await supabase.from('cash_logs').insert([{
+      user_id: user.id, business_id: activeBusiness.id, type: log.type, amount: log.amount, date: log.date, description: log.description
+    }]).select().single();
+    if (error) throw error;
+    setCashLogs([...cashLogs, { ...log, id: data.id, businessId: activeBusiness.id }]);
+  };
+
+  const deleteCashLog = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from('cash_logs').delete().eq('id', id);
+    if (error) throw error;
+    setCashLogs(cashLogs.filter(b => b.id !== id));
+  };
+
   return (
     <AppContext.Provider
       value={{
+        bankAccounts, loanAccounts, cheques, cashLogs, addBankAccount, updateBankAccount, deleteBankAccount, addLoanAccount, deleteLoanAccount, addCheque, deleteCheque, addCashLog, deleteCashLog,
         businesses,
         currentBusinessId,
         customers,
