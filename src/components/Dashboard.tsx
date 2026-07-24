@@ -142,12 +142,12 @@ export const Dashboard: React.FC = () => {
   // Calculate pending, cash, online combining Supabase and Local Storage (using independent paymentTimeFilter)
   const pendingPayments = paymentBizTransactions
     .filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
-    .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
-    paymentLocalSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid').reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
+    .reduce((sum, t) => sum + ((t.totalAmount || 0) - (t.receivedAmount || 0)), 0) + 
+    paymentLocalSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid').reduce((sum: number, t: any) => sum + ((t.totalAmount || 0) - (t.receivedAmount || 0)), 0);
 
   const paidInCash = paymentBizTransactions
     .filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash'))
-    .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
+    .reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0) + 
     paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
     paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
 
@@ -157,7 +157,7 @@ export const Dashboard: React.FC = () => {
       (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || 
       (t.paymentStatus === 'Paid by Cheque')
     ))
-    .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
+    .reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0) + 
     paymentLocalPaymentsIn.filter((t: any) => t.paymentType !== 'Cash' && t.paymentType).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
     paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType)).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
 
