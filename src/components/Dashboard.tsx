@@ -420,21 +420,6 @@ export const Dashboard: React.FC = () => {
             <span style={{ color: 'var(--color-text-muted)', marginLeft: '6px' }}>are low in stock</span>
           </div>
         </div>
-
-        <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('pending')}>
-          <div style={styles.cardHeader}>
-            <span style={styles.cardLabel}>PENDING RECEIVABLES</span>
-            <div style={{ ...styles.iconBadge, backgroundColor: 'var(--color-warning-bg)' }}>
-              <CreditCard size={16} color="var(--color-warning)" />
-            </div>
-          </div>
-          <span style={{ ...styles.metricValue, color: pendingPayments > 0 ? 'var(--color-warning)' : 'var(--color-primary)' }}>
-            ₹{pendingPayments.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-          </span>
-          <div style={styles.cardFooter}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Awaiting client clearance</span>
-          </div>
-        </div>
       </div>
 
       {/* Payment Modes Section */}
@@ -469,7 +454,7 @@ export const Dashboard: React.FC = () => {
             <span style={styles.metricValue}>₹ {paidInCash.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
           
-          <div className="card" style={styles.metricCard}>
+          <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('online')}>
             <div style={styles.cardHeader}>
               <span style={styles.cardLabel}>PAID ONLINE</span>
               <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
@@ -479,14 +464,19 @@ export const Dashboard: React.FC = () => {
             <span style={styles.metricValue}>₹ {paidOnline.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
 
-          <div className="card" style={styles.metricCard}>
+          <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('pending')}>
             <div style={styles.cardHeader}>
-              <span style={styles.cardLabel}>UNPAID / PENDING</span>
-              <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
-                <TrendingUp size={20} color="#EF4444" />
+              <span style={styles.cardLabel}>PENDING RECEIVABLES</span>
+              <div style={{ ...styles.iconBadge, backgroundColor: 'var(--color-warning-bg)' }}>
+                <CreditCard size={16} color="var(--color-warning)" />
               </div>
             </div>
-            <span style={styles.metricValue}>₹ {pendingPayments.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+            <span style={{ ...styles.metricValue, color: pendingPayments > 0 ? 'var(--color-warning)' : 'var(--color-primary)' }}>
+              ₹ {pendingPayments.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            </span>
+            <div style={styles.cardFooter}>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>Awaiting client clearance</span>
+            </div>
           </div>
         </div>
       </div>
