@@ -25,10 +25,11 @@ export const Dashboard: React.FC = () => {
   const { activeBusiness, businesses, products, transactions } = useApp();
   const [viewScope, setViewScope] = useState<'current' | 'overall'>('current');
   const [timeFilter, setTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'>('all');
+  const [paymentTimeFilter, setPaymentTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('all');
   const [customDateStr, setCustomDateStr] = useState('');
 
-  const isWithinTimeFilter = (dateStr: string) => {
-    if (timeFilter === 'all') return true;
+  const checkTimeFilter = (dateStr: string, filter: string) => {
+    if (filter === 'all') return true;
     if (!dateStr) return false;
     
     const normalized = dateStr.replace(/\//g, '-');
@@ -43,10 +44,10 @@ export const Dashboard: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    if (timeFilter === 'daily') {
+    if (filter === 'daily') {
       return tDate.getTime() === today.getTime();
     }
-    if (timeFilter === 'weekly') {
+    if (filter === 'weekly') {
       const day = today.getDay();
       const diffToMonday = day === 0 ? -6 : 1 - day;
       const start = new Date(today);
@@ -57,13 +58,13 @@ export const Dashboard: React.FC = () => {
       
       return tDate >= start && tDate <= end;
     }
-    if (timeFilter === 'monthly') {
+    if (filter === 'monthly') {
       return tDate.getMonth() === today.getMonth() && tDate.getFullYear() === today.getFullYear();
     }
-    if (timeFilter === 'yearly') {
+    if (filter === 'yearly') {
       return tDate.getFullYear() === today.getFullYear();
     }
-    if (timeFilter === 'custom') {
+    if (filter === 'custom') {
       if (customDateStr.length === 8) {
         const cd = customDateStr.substring(0, 2);
         const cm = customDateStr.substring(2, 4);
@@ -74,6 +75,9 @@ export const Dashboard: React.FC = () => {
     }
     return true;
   };
+
+  const isWithinTimeFilter = (dateStr: string) => checkTimeFilter(dateStr, timeFilter);
+  const isWithinPaymentTimeFilter = (dateStr: string) => checkTimeFilter(dateStr, paymentTimeFilter);
 
   // Filter transactions and items based on scope
   const bizTransactions = transactions.filter((t) => {
@@ -88,14 +92,18 @@ export const Dashboard: React.FC = () => {
     return s ? JSON.parse(s) : [];
   };
   
-  const localPaymentsIn = getLocal('paymentsIn').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
-  const localSaleOrders = getLocal('saleOrders').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
-  // const localEstimates = getLocal('estimates').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
-  // const localDeliveryChallans = getLocal('deliveryChallans').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  const localPaymentsInRaw = getLocal('paymentsIn').filter((t: any) => viewScope === 'overall' || t.businessId === activeBusiness?.id);
+  const localSaleOrdersRaw = getLocal('saleOrders').filter((t: any) => viewScope === 'overall' || t.businessId === activeBusiness?.id);
   
-  // const localPaymentsOut = getLocal('paymentsOut').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
-  // const localPurchaseBills = getLocal('purchaseBills').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
-  // const localExpenses = getLocal('expenses').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  const localSaleOrders = localSaleOrdersRaw.filter((t: any) => isWithinTimeFilter(t.date));
+  
+  const localExpenses = getLocal('expenses').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  const localPurchaseBills = getLocal('purchaseBills').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+
+  // Payment specific arrays (ignoring main dashboard time filter)
+  const paymentBizTransactions = transactions.filter((t) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinPaymentTimeFilter(t.date));
+  const paymentLocalPaymentsIn = localPaymentsInRaw.filter((t: any) => isWithinPaymentTimeFilter(t.date));
+  const paymentLocalSaleOrders = localSaleOrdersRaw.filter((t: any) => isWithinPaymentTimeFilter(t.date));
 
   // Consolidate "Sales" from Supabase transactions + local saleOrders + local estimates + local deliveryChallans
   // Actually, standard totalSales is just bizTransactions (type=sale). We can add localSaleOrders and localEstimates if they are considered "Sales" by user.
@@ -106,6 +114,13 @@ export const Dashboard: React.FC = () => {
   const totalSales = bizTransactions
     .filter((t) => t.type === 'sale')
     .reduce((sum, t) => sum + t.totalAmount, 0) + localSaleOrders.reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
+
+  // Total Expenses & Purchases
+  const txExpenses = bizTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+  const txPurchases = bizTransactions.filter(t => t.type === 'Purchase' || t.type === 'purchase').reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+  const totalExpense = localExpenses.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0) + txExpenses + localPurchaseBills.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0) + txPurchases;
+
+  const totalBalance = totalSales - totalExpense;
 
   // Profit calculation (revenue - cost of goods sold/purchased for simplicity)
   // Let's calculate based on sales: (sellingPrice - purchasePrice) * qty
@@ -124,23 +139,27 @@ export const Dashboard: React.FC = () => {
     totalProfit -= t.discount;
   });
 
-  // Calculate pending, cash, online combining Supabase and Local Storage
-  const pendingPayments = bizTransactions
+  // Calculate pending, cash, online combining Supabase and Local Storage (using independent paymentTimeFilter)
+  const pendingPayments = paymentBizTransactions
     .filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
     .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
-    localSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid').reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
+    paymentLocalSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid').reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
 
-  const paidInCash = bizTransactions
+  const paidInCash = paymentBizTransactions
     .filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash'))
     .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
-    localPaymentsIn.filter((t: any) => t.paymentType === 'Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
-    localSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
+    paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
+    paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
 
-  const paidOnline = bizTransactions
-    .filter((t) => t.type === 'sale' && (t.paymentStatus === 'Paid' || t.paymentType === 'Online' || t.paymentType === 'UPI' || t.paymentType === 'Bank Transfer' || t.paymentType === 'Card' || t.paymentType === 'Cheque' || t.paymentStatus === 'Paid by Cheque'))
+  const paidOnline = paymentBizTransactions
+    .filter((t) => t.type === 'sale' && (
+      (['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType || '')) ||
+      (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || 
+      (t.paymentStatus === 'Paid by Cheque')
+    ))
     .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
-    localPaymentsIn.filter((t: any) => t.paymentType !== 'Cash' && t.paymentType).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
-    localSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType)).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
+    paymentLocalPaymentsIn.filter((t: any) => t.paymentType !== 'Cash' && t.paymentType).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
+    paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType)).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
 
 
   const stockValue = bizProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.purchasePrice || 0)), 0);
@@ -332,42 +351,32 @@ export const Dashboard: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '24px' }}>
         <div className="card" style={styles.metricCard}>
           <div style={styles.cardHeader}>
-            <span style={styles.cardLabel}>PAID IN CASH</span>
-            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
-              <DollarSign size={20} color="#10B981" />
-            </div>
-          </div>
-          <div style={styles.cardValue}>₹ {paidInCash.toFixed(2)}</div>
-        </div>
-        
-        <div className="card" style={styles.metricCard}>
-          <div style={styles.cardHeader}>
-            <span style={styles.cardLabel}>PAID ONLINE</span>
-            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
-              <CreditCard size={20} color="#3B82F6" />
-            </div>
-          </div>
-          <div style={styles.cardValue}>₹ {paidOnline.toFixed(2)}</div>
-        </div>
-
-        <div className="card" style={styles.metricCard}>
-          <div style={styles.cardHeader}>
-            <span style={styles.cardLabel}>UNPAID / PENDING</span>
-            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
-              <TrendingUp size={20} color="#EF4444" />
-            </div>
-          </div>
-          <div style={styles.cardValue}>₹ {pendingPayments.toFixed(2)}</div>
-        </div>
-
-        <div className="card" style={styles.metricCard}>
-          <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL SALES</span>
             <div style={{ ...styles.iconBadge, backgroundColor: 'var(--color-success-bg)' }}>
               <TrendingUp size={16} color="var(--color-success)" />
             </div>
           </div>
           <span style={styles.metricValue}>₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+        </div>
+
+        <div className="card" style={styles.metricCard}>
+          <div style={styles.cardHeader}>
+            <span style={styles.cardLabel}>TOTAL EXPENSES</span>
+            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+              <DollarSign size={16} color="#EF4444" />
+            </div>
+          </div>
+          <span style={styles.metricValue}>₹{totalExpense.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+        </div>
+
+        <div className="card" style={styles.metricCard}>
+          <div style={styles.cardHeader}>
+            <span style={styles.cardLabel}>TOTAL BALANCE</span>
+            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
+              <CreditCard size={16} color="#3B82F6" />
+            </div>
+          </div>
+          <span style={styles.metricValue}>₹{totalBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
         </div>
 
         <div className="card" style={styles.metricCard}>
@@ -408,6 +417,60 @@ export const Dashboard: React.FC = () => {
           </span>
           <div style={styles.cardFooter}>
             <span style={{ color: 'var(--color-text-muted)' }}>Awaiting client clearance</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Modes Section */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 style={styles.chartTitle}>Payment Collection</h3>
+          <div style={styles.toggleWrapper}>
+            {(['all', 'daily', 'weekly', 'monthly'] as const).map((filter) => (
+              <button
+                key={filter}
+                style={{
+                  ...styles.toggleBtn,
+                  backgroundColor: paymentTimeFilter === filter ? '#0F1D36' : 'transparent',
+                  color: paymentTimeFilter === filter ? '#FFFFFF' : 'var(--color-primary)',
+                  textTransform: 'capitalize'
+                }}
+                onClick={() => setPaymentTimeFilter(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+          <div className="card" style={styles.metricCard}>
+            <div style={styles.cardHeader}>
+              <span style={styles.cardLabel}>PAID IN CASH</span>
+              <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+                <DollarSign size={20} color="#10B981" />
+              </div>
+            </div>
+            <span style={styles.metricValue}>₹ {paidInCash.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+          </div>
+          
+          <div className="card" style={styles.metricCard}>
+            <div style={styles.cardHeader}>
+              <span style={styles.cardLabel}>PAID ONLINE</span>
+              <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
+                <CreditCard size={20} color="#3B82F6" />
+              </div>
+            </div>
+            <span style={styles.metricValue}>₹ {paidOnline.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+          </div>
+
+          <div className="card" style={styles.metricCard}>
+            <div style={styles.cardHeader}>
+              <span style={styles.cardLabel}>UNPAID / PENDING</span>
+              <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                <TrendingUp size={20} color="#EF4444" />
+              </div>
+            </div>
+            <span style={styles.metricValue}>₹ {pendingPayments.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
         </div>
       </div>

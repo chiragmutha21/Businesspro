@@ -35,7 +35,7 @@ interface PurchaseItem {
 }
 
 export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
-  const { customers, activeBusiness, transactions, addTransaction, deleteTransaction, createPurchaseEntry } = useApp();
+  const { customers, activeBusiness, transactions } = useApp();
 
   // State to manage showing modals
   const [showBillModal, setShowBillModal] = useState(false);
@@ -205,7 +205,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
-    setPurchaseBills([...purchaseBills, record]);
+    // setPurchaseBills([...purchaseBills, record]);
     setShowBillModal(false);
     resetForm();
     alert('Purchase Bill saved successfully!');
@@ -223,7 +223,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       paymentType,
       description
     };
-    setPaymentsOut([...paymentsOut, record]);
+    // setPaymentsOut([...paymentsOut, record]);
     setShowPaymentOutModal(false);
     resetForm();
     alert('Payment-Out recorded successfully!');
@@ -239,7 +239,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
-    setExpenses([...expenses, record]);
+    // setExpenses([...expenses, record]);
     setShowExpenseModal(false);
     resetForm();
     alert('Expense recorded successfully!');
@@ -257,7 +257,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
-    setPurchaseOrders([...purchaseOrders, record]);
+    // setPurchaseOrders([...purchaseOrders, record]);
     setShowOrderModal(false);
     resetForm();
     alert('Purchase Order saved successfully!');
@@ -276,7 +276,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
-    setDebitNotes([...debitNotes, record]);
+    // setDebitNotes([...debitNotes, record]);
     setShowDebitNoteModal(false);
     resetForm();
     alert('Debit Note (Purchase Return) saved successfully!');
@@ -522,7 +522,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       <tr key={p.id}>
                         <td style={{ fontWeight: '700' }}>{p.invoiceNo}</td>
                         <td>{formatDateDDMMYYYY(p.date)}</td>
-                        <td>{formatDateDDMMYYYY(p.paymentDate)}</td>
+                        <td>{formatDateDDMMYYYY(p.paymentDate || '')}</td>
                         <td style={{ fontWeight: '600' }}>{p.contactName}</td>
                         <td>{p.paymentType}</td>
                         <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{p.totalAmount.toFixed(2)}</td>
@@ -657,7 +657,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
 
             {/* Bottom Total Bar */}
             <div style={styles.tableFooterBar}>
-              <span>Total Amount: ₹ {debitNotes.reduce((acc, curr) => acc + curr.total, 0).toFixed(2)}</span>
+              <span>Total Amount: ₹ {debitNotes.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0).toFixed(2)}</span>
               <span>Balance: ₹ 0.00</span>
             </div>
           </div>
