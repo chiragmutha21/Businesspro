@@ -415,7 +415,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </td>
                   </tr>
                 ))}
-                {paymentsOut.filter(p => p.businessId === activeBusiness?.id).length === 0 ? (
+                {paymentsOut.filter(p => p.businessId === activeBusiness?.id).length === 0 && (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
                       No payments-out registered yet. Click "Record Payment-Out" to log.
@@ -656,7 +656,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </td>
                   </tr>
                 ))}
-                {debitNotes.filter(d => d.businessId === activeBusiness?.id).length === 0 ? (
+                {debitNotes.filter(d => d.businessId === activeBusiness?.id).length === 0 && (
                   <tr>
                     <td colSpan={9}>
                       <div style={styles.emptyTableState}>
