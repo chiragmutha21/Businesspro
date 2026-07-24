@@ -351,7 +351,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           totalAmount: Number(t.total_amount) || 0,
           paymentStatus: t.payment_status,
           paymentType: t.payment_type || '',
-          paymentDate: t.payment_date || '',
+          paymentDate: (t.payment_date || '').split('||')[0] || '',
+          receivedAmount: (t.payment_date || '').includes('||') ? Number((t.payment_date || '').split('||')[1]) : undefined,
           chequeNo: t.cheque_no || '',
           bankName: t.bank_name || '',
           ifscCode: t.ifsc_code || ''
@@ -698,7 +699,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           total_amount: invoice.totalAmount,
           payment_status: invoice.paymentStatus,
           ...(invoice.paymentType ? { payment_type: invoice.paymentType } : {}),
-          ...(invoice.paymentDate ? { payment_date: invoice.paymentDate } : {}),
+          ...((invoice.paymentDate || invoice.receivedAmount !== undefined) ? { payment_date: invoice.receivedAmount !== undefined ? `${invoice.paymentDate || ''}||${invoice.receivedAmount}` : invoice.paymentDate } : {}),
           ...(invoice.chequeNo ? { cheque_no: invoice.chequeNo } : {}),
           ...(invoice.bankName ? { bank_name: invoice.bankName } : {}),
           ...(invoice.ifscCode ? { ifsc_code: invoice.ifscCode } : {})
@@ -863,7 +864,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           total_amount: invoice.totalAmount,
           payment_status: invoice.paymentStatus,
           ...(invoice.paymentType ? { payment_type: invoice.paymentType } : {}),
-          ...(invoice.paymentDate ? { payment_date: invoice.paymentDate } : {}),
+          ...((invoice.paymentDate || invoice.receivedAmount !== undefined) ? { payment_date: invoice.receivedAmount !== undefined ? `${invoice.paymentDate || ''}||${invoice.receivedAmount}` : invoice.paymentDate } : {}),
           ...(invoice.chequeNo ? { cheque_no: invoice.chequeNo } : {}),
           ...(invoice.bankName ? { bank_name: invoice.bankName } : {}),
           ...(invoice.ifscCode ? { ifsc_code: invoice.ifscCode } : {})
@@ -1057,7 +1058,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           total_amount: tx.totalAmount || 0,
           payment_status: tx.paymentStatus || null,
           payment_type: tx.paymentType || null,
-          payment_date: tx.paymentDate || null,
+          payment_date: tx.receivedAmount !== undefined ? `${tx.paymentDate || ''}||${tx.receivedAmount}` : (tx.paymentDate || null),
           cheque_no: tx.chequeNo || null,
           bank_name: tx.bankName || null,
           ifsc_code: tx.ifscCode || null
@@ -1083,7 +1084,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         totalAmount: Number(data.total_amount),
         paymentStatus: data.payment_status as any,
         paymentType: data.payment_type as any,
-        paymentDate: data.payment_date,
+        paymentDate: (data.payment_date || '').split('||')[0] || '',
+        receivedAmount: (data.payment_date || '').includes('||') ? Number((data.payment_date || '').split('||')[1]) : undefined,
         chequeNo: data.cheque_no,
         bankName: data.bank_name,
         ifscCode: data.ifsc_code
@@ -1111,7 +1113,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (updates.totalAmount !== undefined) dbUpdates.total_amount = updates.totalAmount;
       if (updates.paymentStatus !== undefined) dbUpdates.payment_status = updates.paymentStatus;
       if (updates.paymentType !== undefined) dbUpdates.payment_type = updates.paymentType;
-      if (updates.paymentDate !== undefined) dbUpdates.payment_date = updates.paymentDate;
+      
+      if (updates.paymentDate !== undefined || updates.receivedAmount !== undefined) {
+        if (updates.receivedAmount !== undefined) {
+          dbUpdates.payment_date = `${updates.paymentDate || ''}||${updates.receivedAmount}`;
+        } else {
+          dbUpdates.payment_date = updates.paymentDate;
+        }
+      }
+      
       if (updates.chequeNo !== undefined) dbUpdates.cheque_no = updates.chequeNo;
       if (updates.bankName !== undefined) dbUpdates.bank_name = updates.bankName;
       if (updates.ifscCode !== undefined) dbUpdates.ifsc_code = updates.ifscCode;

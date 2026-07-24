@@ -113,14 +113,19 @@ export const Dashboard: React.FC = () => {
 
 
   // Metrics calculation
-  const totalSales = bizTransactions
-    .filter((t) => t.type === 'sale')
-    .reduce((sum, t) => sum + t.totalAmount, 0) + localSaleOrders.reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
+  const salesTxList = [
+    ...bizTransactions.filter((t) => t.type === 'sale'),
+    ...localSaleOrders
+  ];
+  const totalSales = salesTxList.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
 
   // Total Expenses & Purchases
-  const txExpenses = bizTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + (t.totalAmount || 0), 0);
-  const txPurchases = bizTransactions.filter(t => t.type === 'Purchase' || t.type === 'purchase').reduce((sum, t) => sum + (t.totalAmount || 0), 0);
-  const totalExpense = localExpenses.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0) + txExpenses + localPurchaseBills.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0) + txPurchases;
+  const expenseTxList = [
+    ...bizTransactions.filter(t => t.type === 'Expense' || t.type === 'Purchase' || t.type === 'purchase'),
+    ...localExpenses,
+    ...localPurchaseBills
+  ];
+  const totalExpense = expenseTxList.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0);
 
   const totalBalance = totalSales - totalExpense;
 
@@ -353,7 +358,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Cards Metrics Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '24px' }}>
-        <div className="card" style={styles.metricCard}>
+        <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('sales')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL SALES</span>
             <div style={{ ...styles.iconBadge, backgroundColor: 'var(--color-success-bg)' }}>
@@ -363,7 +368,7 @@ export const Dashboard: React.FC = () => {
           <span style={styles.metricValue}>₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
         </div>
 
-        <div className="card" style={styles.metricCard}>
+        <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('expenses')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL EXPENSES</span>
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
@@ -601,7 +606,11 @@ export const Dashboard: React.FC = () => {
           <div style={styles.modalContent}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>
-                {activeModal === 'cash' ? 'Paid in Cash Transactions' : activeModal === 'online' ? 'Paid Online Transactions' : 'Pending Transactions'}
+                {activeModal === 'cash' ? 'Paid in Cash Transactions' 
+                 : activeModal === 'online' ? 'Paid Online Transactions' 
+                 : activeModal === 'sales' ? 'Sales Transactions'
+                 : activeModal === 'expenses' ? 'Expenses & Purchases'
+                 : 'Pending Transactions'}
               </h3>
               <X size={20} style={{ cursor: 'pointer' }} onClick={() => setActiveModal(null)} />
             </div>
@@ -610,23 +619,39 @@ export const Dashboard: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Invoice No</th>
-                    <th>Customer Name</th>
+                    <th>Ref / Invoice No</th>
+                    <th>Party Name</th>
                     <th>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(activeModal === 'cash' ? cashTxList : activeModal === 'online' ? onlineTxList : pendingTxList).map((t, i) => (
+                  {(
+                    activeModal === 'cash' ? cashTxList : 
+                    activeModal === 'online' ? onlineTxList : 
+                    activeModal === 'sales' ? salesTxList :
+                    activeModal === 'expenses' ? expenseTxList :
+                    pendingTxList
+                  ).map((t, i) => (
                     <tr key={i}>
                       <td>{t.date}</td>
-                      <td>{t.invoiceNo || t.referenceNo || '-'}</td>
-                      <td>{t.contactName || '-'}</td>
+                      <td>{t.invoiceNo || t.referenceNo || t.id?.substring(0,6) || '-'}</td>
+                      <td>{t.contactName || t.partyName || t.vendorName || '-'}</td>
                       <td style={{ fontWeight: '600' }}>
-                        ₹{activeModal === 'pending' ? ((t.totalAmount || 0) - (t.receivedAmount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : (t.receivedAmount || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        ₹{activeModal === 'pending' 
+                           ? ((t.totalAmount || 0) - (t.receivedAmount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 }) 
+                           : activeModal === 'expenses'
+                           ? (t.total || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                           : (t.receivedAmount || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   ))}
-                  {(activeModal === 'cash' ? cashTxList : activeModal === 'online' ? onlineTxList : pendingTxList).length === 0 && (
+                  {(
+                    activeModal === 'cash' ? cashTxList : 
+                    activeModal === 'online' ? onlineTxList : 
+                    activeModal === 'sales' ? salesTxList :
+                    activeModal === 'expenses' ? expenseTxList :
+                    pendingTxList
+                  ).length === 0 && (
                     <tr>
                       <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
                         No transactions found for the selected time filter.
