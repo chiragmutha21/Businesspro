@@ -4,7 +4,8 @@ import {
   TrendingUp, 
   DollarSign, 
   Package, 
-  CreditCard
+  CreditCard,
+  X
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -27,6 +28,7 @@ export const Dashboard: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'>('all');
   const [paymentTimeFilter, setPaymentTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('all');
   const [customDateStr, setCustomDateStr] = useState('');
+  const [activeModal, setActiveModal] = useState<string | null>(null);
 
   const checkTimeFilter = (dateStr: string, filter: string) => {
     if (filter === 'all') return true;
@@ -140,27 +142,29 @@ export const Dashboard: React.FC = () => {
   });
 
   // Calculate pending, cash, online combining Supabase and Local Storage (using independent paymentTimeFilter)
-  const pendingPayments = paymentBizTransactions
-    .filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
-    .reduce((sum, t) => sum + ((t.totalAmount || 0) - (t.receivedAmount || 0)), 0) + 
-    paymentLocalSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid').reduce((sum: number, t: any) => sum + ((t.totalAmount || 0) - (t.receivedAmount || 0)), 0);
+  const pendingTxList = [
+    ...paymentBizTransactions.filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid'),
+    ...paymentLocalSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
+  ];
+  const pendingPayments = pendingTxList.reduce((sum, t) => sum + ((t.totalAmount || 0) - (t.receivedAmount || 0)), 0);
 
-  const paidInCash = paymentBizTransactions
-    .filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash'))
-    .reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0) + 
-    paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
-    paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
+  const cashTxList = [
+    ...paymentBizTransactions.filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash')),
+    ...paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash'),
+    ...paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash')
+  ];
+  const paidInCash = cashTxList.reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
 
-  const paidOnline = paymentBizTransactions
-    .filter((t) => t.type === 'sale' && (
+  const onlineTxList = [
+    ...paymentBizTransactions.filter((t) => t.type === 'sale' && (
       (['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType || '')) ||
       (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || 
       (t.paymentStatus === 'Paid by Cheque')
-    ))
-    .reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0) + 
-    paymentLocalPaymentsIn.filter((t: any) => t.paymentType !== 'Cash' && t.paymentType).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
-    paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType)).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
-
+    )),
+    ...paymentLocalPaymentsIn.filter((t: any) => t.paymentType !== 'Cash' && t.paymentType),
+    ...paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType))
+  ];
+  const paidOnline = onlineTxList.reduce((sum, t) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
 
   const stockValue = bizProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.purchasePrice || 0)), 0);
   const lowStockCount = bizProducts.filter((p) => (p.stock || 0) <= (p.minStock || 0)).length;
@@ -405,7 +409,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="card" style={styles.metricCard}>
+        <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('pending')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>PENDING RECEIVABLES</span>
             <div style={{ ...styles.iconBadge, backgroundColor: 'var(--color-warning-bg)' }}>
@@ -443,7 +447,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-          <div className="card" style={styles.metricCard}>
+          <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('cash')}>
             <div style={styles.cardHeader}>
               <span style={styles.cardLabel}>PAID IN CASH</span>
               <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
@@ -591,6 +595,51 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {activeModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>
+                {activeModal === 'cash' ? 'Paid in Cash Transactions' : activeModal === 'online' ? 'Paid Online Transactions' : 'Pending Transactions'}
+              </h3>
+              <X size={20} style={{ cursor: 'pointer' }} onClick={() => setActiveModal(null)} />
+            </div>
+            <div className="table-wrapper" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Invoice No</th>
+                    <th>Customer Name</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(activeModal === 'cash' ? cashTxList : activeModal === 'online' ? onlineTxList : pendingTxList).map((t, i) => (
+                    <tr key={i}>
+                      <td>{t.date}</td>
+                      <td>{t.invoiceNo || t.referenceNo || '-'}</td>
+                      <td>{t.contactName || '-'}</td>
+                      <td style={{ fontWeight: '600' }}>
+                        ₹{activeModal === 'pending' ? ((t.totalAmount || 0) - (t.receivedAmount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : (t.receivedAmount || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                  {(activeModal === 'cash' ? cashTxList : activeModal === 'online' ? onlineTxList : pendingTxList).length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
+                        No transactions found for the selected time filter.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
@@ -703,5 +752,36 @@ const styles: Record<string, React.CSSProperties> = {
   legendText: {
     fontSize: '11px',
     color: 'var(--color-text-muted)',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    padding: '24px',
+    width: '90%',
+    maxWidth: '700px',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+  },
+  modalTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    color: 'var(--color-text-main)',
   }
 };
