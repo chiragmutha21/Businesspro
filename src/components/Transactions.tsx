@@ -63,6 +63,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     activeBusiness,
     createSaleInvoice,
     updateSaleInvoice,
+    addTransaction,
+    updateTransaction,
     deleteTransaction,
     products,
     customers
@@ -83,30 +85,12 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   });
 
   // Local list states for sub-sections
-  const [estimates, setEstimates] = useState<any[]>(() => {
-    const s = localStorage.getItem('estimates');
-    return s ? JSON.parse(s) : [];
-  });
-  const [proformaInvoices, setProformaInvoices] = useState<any[]>(() => {
-    const s = localStorage.getItem('proformaInvoices');
-    return s ? JSON.parse(s) : [];
-  });
-  const [paymentsIn, setPaymentsIn] = useState<any[]>(() => {
-    const s = localStorage.getItem('paymentsIn');
-    return s ? JSON.parse(s) : [];
-  });
-  const [saleOrders, setSaleOrders] = useState<any[]>(() => {
-    const s = localStorage.getItem('saleOrders');
-    return s ? JSON.parse(s) : [];
-  });
-  const [deliveryChallans, setDeliveryChallans] = useState<any[]>(() => {
-    const s = localStorage.getItem('deliveryChallans');
-    return s ? JSON.parse(s) : [];
-  });
-  const [saleReturns, setSaleReturns] = useState<any[]>(() => {
-    const s = localStorage.getItem('saleReturns');
-    return s ? JSON.parse(s) : [];
-  });
+  const estimates = transactions.filter(t => t.type === 'Estimate');
+  const proformaInvoices = transactions.filter(t => t.type === 'Proforma Invoice');
+  const paymentsIn = transactions.filter(t => t.type === 'Payment In');
+  const saleOrders = transactions.filter(t => t.type === 'Sale Order');
+  const deliveryChallans = transactions.filter(t => t.type === 'Delivery Challan');
+  const saleReturns = transactions.filter(t => t.type === 'Sale Return');
 
   useEffect(() => {
     const directForm = localStorage.getItem('open_sale_form_direct');
@@ -348,20 +332,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     };
 
     if (editingTransactionId) {
-      if (activeSection === 'estimate-quotation') {
-        setEstimates((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
-      } else if (activeSection === 'proforma-invoice') {
-        setProformaInvoices((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
-      } else if (activeSection === 'payment-in') {
-        setPaymentsIn((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
-      } else if (activeSection === 'sale-order') {
-        setSaleOrders((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
-      } else if (activeSection === 'delivery-challan') {
-        setDeliveryChallans((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
-      } else if (activeSection === 'sale-return') {
-        setSaleReturns((prev) => prev.map(item => item.id === editingTransactionId ? { ...item, ...payload } : item));
-      } else {
+      if (activeSection === 'sale-invoice') {
         updateSaleInvoice(editingTransactionId, payload);
+      } else {
+        updateTransaction(editingTransactionId, payload);
       }
       setEditingTransactionId(null);
       alert(`${getSectionTitle()} updated successfully!`);
@@ -382,7 +356,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
           gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
           type: 'Estimate/Quotation'
         };
-        setEstimates([record, ...estimates]);
+        addTransaction(record as any);
       } else if (activeSection === 'proforma-invoice') {
         const record = {
           id: String(activeProformaInvoices.length + 1),
@@ -399,7 +373,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
           gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
           type: 'Proforma Invoice'
         };
-        setProformaInvoices([record, ...proformaInvoices]);
+        addTransaction(record as any);
       } else if (activeSection === 'payment-in') {
         const record = {
           id: String(activePaymentsIn.length + 1),
@@ -416,7 +390,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
           gstAmount: 0,
           type: 'Payment-In'
         };
-        setPaymentsIn([record, ...paymentsIn]);
+        addTransaction(record as any);
       } else if (activeSection === 'sale-order') {
         const record = {
           id: String(activeSaleOrders.length + 1),
@@ -433,7 +407,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
           gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
           type: 'Sale Order'
         };
-        setSaleOrders([record, ...saleOrders]);
+        addTransaction(record as any);
       } else if (activeSection === 'delivery-challan') {
         const record = {
           id: String(activeDeliveryChallans.length + 1),
@@ -450,7 +424,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
           gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
           type: 'Delivery Challan'
         };
-        setDeliveryChallans([record, ...deliveryChallans]);
+        addTransaction(record as any);
       } else if (activeSection === 'sale-return') {
         const record = {
           id: String(activeSaleReturns.length + 1),
@@ -467,7 +441,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
           gstAmount: billedItems.reduce((acc, curr) => acc + curr.taxAmount, 0),
           type: 'Sale Return/ Credit Note'
         };
-        setSaleReturns([record, ...saleReturns]);
+        addTransaction(record as any);
       } else {
         createSaleInvoice(payload);
       }
@@ -588,17 +562,17 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         ifscCode: ''
       };
       if (activeSection === 'estimate-quotation') {
-        setEstimates(prev => prev.map(item => item.id === t.id ? updated : item));
+        updateTransaction(t.id, updated);
       } else if (activeSection === 'proforma-invoice') {
-        setProformaInvoices(prev => prev.map(item => item.id === t.id ? updated : item));
+        updateTransaction(t.id, updated);
       } else if (activeSection === 'payment-in') {
-        setPaymentsIn(prev => prev.map(item => item.id === t.id ? updated : item));
+        updateTransaction(t.id, updated);
       } else if (activeSection === 'sale-order') {
-        setSaleOrders(prev => prev.map(item => item.id === t.id ? updated : item));
+        updateTransaction(t.id, updated);
       } else if (activeSection === 'delivery-challan') {
-        setDeliveryChallans(prev => prev.map(item => item.id === t.id ? updated : item));
+        updateTransaction(t.id, updated);
       } else if (activeSection === 'sale-return') {
-        setSaleReturns(prev => prev.map(item => item.id === t.id ? updated : item));
+        updateTransaction(t.id, updated);
       } else {
         updateSaleInvoice(t.id, updated);
       }
@@ -621,17 +595,17 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
     try {
       if (activeSection === 'estimate-quotation') {
-        setEstimates(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+        updateTransaction(statusToEdit.id, updatedData);
       } else if (activeSection === 'proforma-invoice') {
-        setProformaInvoices(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+        updateTransaction(statusToEdit.id, updatedData);
       } else if (activeSection === 'payment-in') {
-        setPaymentsIn(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+        updateTransaction(statusToEdit.id, updatedData);
       } else if (activeSection === 'sale-order') {
-        setSaleOrders(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+        updateTransaction(statusToEdit.id, updatedData);
       } else if (activeSection === 'delivery-challan') {
-        setDeliveryChallans(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+        updateTransaction(statusToEdit.id, updatedData);
       } else if (activeSection === 'sale-return') {
-        setSaleReturns(prev => prev.map(item => item.id === statusToEdit.id ? updatedData : item));
+        updateTransaction(statusToEdit.id, updatedData);
       } else {
         await updateSaleInvoice(statusToEdit.id, updatedData);
       }

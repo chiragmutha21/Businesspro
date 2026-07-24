@@ -35,7 +35,7 @@ interface PurchaseItem {
 }
 
 export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
-  const { customers, activeBusiness } = useApp();
+  const { customers, activeBusiness, transactions, addTransaction, deleteTransaction, createPurchaseEntry } = useApp();
 
   // State to manage showing modals
   const [showBillModal, setShowBillModal] = useState(false);
@@ -73,26 +73,11 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const [origBillDate, setOrigBillDate] = useState('12/07/2026');
 
   // List arrays saved in memory
-  const [purchaseBills, setPurchaseBills] = useState<any[]>(() => {
-    const s = localStorage.getItem('purchaseBills');
-    return s ? JSON.parse(s) : [];
-  });
-  const [paymentsOut, setPaymentsOut] = useState<any[]>(() => {
-    const s = localStorage.getItem('paymentsOut');
-    return s ? JSON.parse(s) : [];
-  });
-  const [expenses, setExpenses] = useState<any[]>(() => {
-    const s = localStorage.getItem('expenses');
-    return s ? JSON.parse(s) : [];
-  });
-  const [purchaseOrders, setPurchaseOrders] = useState<any[]>(() => {
-    const s = localStorage.getItem('purchaseOrders');
-    return s ? JSON.parse(s) : [];
-  });
-  const [debitNotes, setDebitNotes] = useState<any[]>(() => {
-    const s = localStorage.getItem('debitNotes');
-    return s ? JSON.parse(s) : [];
-  });
+  const purchaseBills = transactions.filter(t => t.type === 'Purchase');
+  const paymentsOut = transactions.filter(t => t.type === 'Payment Out');
+  const expenses = transactions.filter(t => t.type === 'Expense');
+  const purchaseOrders = transactions.filter(t => t.type === 'Purchase Order');
+  const debitNotes = transactions.filter(t => t.type === 'Debit Note');
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
@@ -346,12 +331,12 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                   <tbody>
                     {purchaseBills.filter(b => b.businessId === activeBusiness?.id).map((b) => (
                       <tr key={b.id}>
-                        <td style={{ fontWeight: '700' }}>{b.billNumber}</td>
+                        <td style={{ fontWeight: '700' }}>{b.invoiceNo}</td>
                         <td>{formatDateDDMMYYYY(b.date)}</td>
-                        <td style={{ fontWeight: '600' }}>{b.partyName}</td>
-                        <td>{b.phone}</td>
+                        <td style={{ fontWeight: '600' }}>{b.contactName}</td>
+                        <td>{b.contactPhone}</td>
                         <td>{b.paymentType}</td>
-                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{b.total.toFixed(2)}</td>
+                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{b.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button 
                             className="btn btn-secondary" 
@@ -397,17 +382,17 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               <tbody>
                 {paymentsOut.filter(p => p.businessId === activeBusiness?.id).map((p) => (
                   <tr key={p.id}>
-                    <td style={{ fontWeight: '700' }}>{p.receiptNo}</td>
+                    <td style={{ fontWeight: '700' }}>{p.invoiceNo}</td>
                     <td>{formatDateDDMMYYYY(p.date)}</td>
-                    <td style={{ fontWeight: '600' }}>{p.partyName}</td>
+                    <td style={{ fontWeight: '600' }}>{p.contactName}</td>
                     <td>{p.paymentType}</td>
-                    <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>₹{p.paid.toFixed(2)}</td>
-                    <td>{p.description || '-'}</td>
+                    <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>₹{p.totalAmount.toFixed(2)}</td>
+                    <td>{p.contactAddress || '-'}</td>
                     <td style={{ textAlign: 'right' }}>
                       <button 
                         className="btn btn-secondary" 
                         style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        onClick={() => { setSelectedBill({ ...p, total: p.paid, billNumber: p.receiptNo, type: 'Payment-Out' }); setShowPreviewModal(true); }}
+                        onClick={() => { setSelectedBill({ ...p, total: p.totalAmount, billNumber: p.invoiceNo, type: 'Payment-Out' }); setShowPreviewModal(true); }}
                       >
                         <Eye size={12} />
                         <span>Preview</span>
@@ -468,16 +453,16 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                   <tbody>
                     {expenses.filter(e => e.businessId === activeBusiness?.id).map((e) => (
                       <tr key={e.id}>
-                        <td style={{ fontWeight: '700' }}>{e.expenseNo}</td>
+                        <td style={{ fontWeight: '700' }}>{e.invoiceNo}</td>
                         <td>{formatDateDDMMYYYY(e.date)}</td>
-                        <td style={{ fontWeight: '600' }}>{e.category}</td>
+                        <td style={{ fontWeight: '600' }}>{e.contactName}</td>
                         <td>{e.paymentType}</td>
-                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{e.total.toFixed(2)}</td>
+                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{e.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => { setSelectedBill({ ...e, billNumber: e.expenseNo, partyName: e.category, type: 'Expense' }); setShowPreviewModal(true); }}
+                            onClick={() => { setSelectedBill({ ...e, billNumber: e.invoiceNo, partyName: e.contactName, type: 'Expense' }); setShowPreviewModal(true); }}
                           >
                             <Eye size={12} />
                             <span>Preview</span>
@@ -535,17 +520,17 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                   <tbody>
                     {purchaseOrders.filter(p => p.businessId === activeBusiness?.id).map((p) => (
                       <tr key={p.id}>
-                        <td style={{ fontWeight: '700' }}>{p.orderNo}</td>
+                        <td style={{ fontWeight: '700' }}>{p.invoiceNo}</td>
                         <td>{formatDateDDMMYYYY(p.date)}</td>
-                        <td>{formatDateDDMMYYYY(p.dueDate)}</td>
-                        <td style={{ fontWeight: '600' }}>{p.partyName}</td>
+                        <td>{formatDateDDMMYYYY(p.paymentDate)}</td>
+                        <td style={{ fontWeight: '600' }}>{p.contactName}</td>
                         <td>{p.paymentType}</td>
-                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{p.total.toFixed(2)}</td>
+                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{p.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => { setSelectedBill({ ...p, billNumber: p.orderNo, type: 'Purchase Order' }); setShowPreviewModal(true); }}
+                            onClick={() => { setSelectedBill({ ...p, billNumber: p.invoiceNo, type: 'Purchase Order' }); setShowPreviewModal(true); }}
                           >
                             <Eye size={12} />
                             <span>Preview</span>
@@ -632,19 +617,19 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                 {debitNotes.filter(d => d.businessId === activeBusiness?.id).map((d) => (
                   <tr key={d.id}>
                     <td>{formatDateDDMMYYYY(d.date)}</td>
-                    <td style={{ fontWeight: '700' }}>{d.returnNo}</td>
-                    <td style={{ fontWeight: '600' }}>{d.partyName}</td>
+                    <td style={{ fontWeight: '700' }}>{d.invoiceNo}</td>
+                    <td style={{ fontWeight: '600' }}>{d.contactName}</td>
                     <td>General Purchase</td>
                     <td>Debit Note</td>
-                    <td style={{ fontWeight: '700' }}>₹{d.total.toFixed(2)}</td>
-                    <td>₹{d.total.toFixed(2)}</td>
+                    <td style={{ fontWeight: '700' }}>₹{d.totalAmount.toFixed(2)}</td>
+                    <td>₹{d.totalAmount.toFixed(2)}</td>
                     <td>₹0.00</td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button 
                           className="btn btn-secondary" 
                           style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          onClick={() => { setSelectedBill({ ...d, billNumber: d.returnNo, type: 'Debit Note' }); setShowPreviewModal(true); }}
+                          onClick={() => { setSelectedBill({ ...d, billNumber: d.invoiceNo, type: 'Debit Note' }); setShowPreviewModal(true); }}
                         >
                           <Eye size={12} />
                           <span>Preview</span>
@@ -1519,15 +1504,15 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       const id = selectedBill.id;
                       const type = selectedBill.type;
                       if (type === 'Purchase Bill') {
-                        setPurchaseBills((prev) => prev.filter((b) => b.id !== id));
+                        deleteTransaction(id);
                       } else if (type === 'Payment-Out') {
-                        setPaymentsOut((prev) => prev.filter((p) => p.id !== id));
+                        deleteTransaction(id);
                       } else if (type === 'Expense') {
-                        setExpenses((prev) => prev.filter((e) => e.id !== id));
+                        deleteTransaction(id);
                       } else if (type === 'Purchase Order') {
-                        setPurchaseOrders((prev) => prev.filter((o) => o.id !== id));
+                        deleteTransaction(id);
                       } else if (type === 'Debit Note') {
-                        setDebitNotes((prev) => prev.filter((d) => d.id !== id));
+                        deleteTransaction(id);
                       }
                       setShowPreviewModal(false);
                       alert('Record deleted successfully!');
@@ -1580,7 +1565,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#6B7280' }}>Ref/Bill No:</span>
-                      <strong style={{ color: '#1F2937' }}>{selectedBill.billNumber}</strong>
+                      <strong style={{ color: '#1F2937' }}>{selectedBill.invoiceNo}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#6B7280' }}>Date:</span>
@@ -1598,8 +1583,8 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '14px', marginBottom: '20px' }}>
                 <h4 style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#8F5B1E', textTransform: 'uppercase' }}>Details of Party</h4>
                 <div style={{ fontSize: '12px', color: '#1F2937' }}>
-                  <strong style={{ fontSize: '14px' }}>{selectedBill.partyName}</strong>
-                  {selectedBill.phone && <div style={{ color: '#4B5563', marginTop: '2px' }}>📞 {selectedBill.phone}</div>}
+                  <strong style={{ fontSize: '14px' }}>{selectedBill.contactName}</strong>
+                  {selectedBill.phone && <div style={{ color: '#4B5563', marginTop: '2px' }}>📞 {selectedBill.contactPhone}</div>}
                 </div>
               </div>
 
@@ -1614,7 +1599,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                 <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#0B2545', color: '#FFFFFF', borderRadius: '4px', fontSize: '13px', fontWeight: '800' }}>
                     <span>GRAND TOTAL (₹)</span>
-                    <span>₹{selectedBill.total.toFixed(2)}</span>
+                    <span>₹{selectedBill.totalAmount.toFixed(2)}</span>
                   </div>
                   {selectedBill.paymentType && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 12px', fontSize: '11px', color: '#6B7280' }}>
