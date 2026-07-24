@@ -81,7 +81,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     paymentDate: '',
     chequeNo: '',
     bankName: '',
-    ifscCode: ''
+    ifscCode: '',
+    receivedAmount: '',
+    paymentMethod: 'Cash'
   });
 
   // Local list states for sub-sections
@@ -541,14 +543,16 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   };
 
   const handleStatusChange = (t: any, newStatus: string) => {
-    if (newStatus === 'Paid by Cash' || newStatus === 'Paid by Cheque' || newStatus === 'Paid by Online') {
+    if (newStatus === 'Paid by Cash' || newStatus === 'Paid by Cheque' || newStatus === 'Paid by Online' || newStatus === 'Partially Paid') {
       setStatusToEdit(t);
       setStatusForm({
         paymentStatus: newStatus,
         paymentDate: t.paymentDate || '',
         chequeNo: t.chequeNo || '',
         bankName: t.bankName || '',
-        ifscCode: t.ifscCode || ''
+        ifscCode: t.ifscCode || '',
+        receivedAmount: t.receivedAmount || '',
+        paymentMethod: t.paymentType || 'Cash'
       });
       setShowStatusModal(true);
     } else {
@@ -585,12 +589,16 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
     const updatedData = {
       ...statusToEdit,
-      paymentStatus: 'Paid',
-      paymentType: statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : statusForm.paymentStatus === 'Paid by Online' ? 'Online' : 'Cheque',
+      paymentStatus: statusForm.paymentStatus === 'Partially Paid' ? 'Partially Paid' : 'Paid',
+      paymentType: statusForm.paymentStatus === 'Partially Paid' ? statusForm.paymentMethod : statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : statusForm.paymentStatus === 'Paid by Online' ? 'Online' : 'Cheque',
       paymentDate: statusForm.paymentDate,
       chequeNo: statusForm.chequeNo,
       bankName: statusForm.bankName,
-      ifscCode: statusForm.ifscCode
+      ifscCode: statusForm.ifscCode,
+      ...(statusForm.paymentStatus === 'Partially Paid' && {
+        receivedAmount: parseFloat(statusForm.receivedAmount) || 0,
+        balanceAmount: (statusToEdit.totalAmount || 0) - (parseFloat(statusForm.receivedAmount) || 0)
+      })
     };
 
     try {
@@ -737,11 +745,10 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                           }
                           onChange={(e) => handleStatusChange(t, e.target.value)}
                         >
-                          <option value="Paid">Paid</option>
                           <option value="Paid by Cash">Paid by Cash</option>
                           <option value="Paid by Online">Paid by Online</option>
                           <option value="Paid by Cheque">Paid by Cheque</option>
-                          <option value="Pending">Pending</option>
+                          <option value="Partially Paid">Partially Paid</option>
                           <option value="Unpaid">Unpaid</option>
                         </select>
 
@@ -1214,7 +1221,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                 />
               </div>
 
-              {(statusForm.paymentStatus === 'Paid by Cash' || statusForm.paymentStatus === 'Paid by Online') && (
+              {(statusForm.paymentStatus === 'Paid by Cash' || statusForm.paymentStatus === 'Paid by Online' || statusForm.paymentStatus === 'Partially Paid') && (
                 <div className="form-group">
                   <label style={styles.fieldLabel}>Date Payment Received *</label>
                   <input
@@ -1227,6 +1234,36 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     required
                   />
                 </div>
+              )}
+
+              {statusForm.paymentStatus === 'Partially Paid' && (
+                <>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>Amount Received *</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      style={styles.modalInput}
+                      placeholder="Enter Amount"
+                      value={statusForm.receivedAmount}
+                      onChange={(e) => setStatusForm({ ...statusForm, receivedAmount: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={styles.fieldLabel}>Payment Method *</label>
+                    <select
+                      className="form-control"
+                      style={styles.modalInput}
+                      value={statusForm.paymentMethod}
+                      onChange={(e) => setStatusForm({ ...statusForm, paymentMethod: e.target.value })}
+                    >
+                      <option value="Cash">Cash</option>
+                      <option value="Online">Online</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
+                </>
               )}
 
               {statusForm.paymentStatus === 'Paid by Cheque' && (
