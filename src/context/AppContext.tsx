@@ -74,12 +74,14 @@ export interface Transaction {
   discount: number;
   gstAmount: number;
   totalAmount: number;
-  paymentStatus: 'Paid' | 'Unpaid' | 'Pending' | 'Paid by Cash' | 'Paid by Cheque';
+  paymentStatus: 'Paid' | 'Unpaid' | 'Pending' | 'Paid by Cash' | 'Paid by Cheque' | string;
   paymentType?: string;
   paymentDate?: string;
   chequeNo?: string;
   bankName?: string;
   ifscCode?: string;
+  receivedAmount?: number;
+  balanceAmount?: number;
 }
 
 export interface StockHistory {
