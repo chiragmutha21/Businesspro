@@ -100,10 +100,10 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const { 
     customers, activeBusiness, 
     bankAccounts, loanAccounts, cheques, cashLogs,
-    addBankAccount, updateBankAccount, deleteBankAccount,
+    addBankAccount, updateBankAccount,
     addLoanAccount, deleteLoanAccount,
     addCheque, deleteCheque,
-    addCashLog, deleteCashLog
+    addCashLog
   } = useApp();
 
   // State to manage showing modals

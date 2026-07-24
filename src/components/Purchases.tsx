@@ -35,7 +35,7 @@ interface PurchaseItem {
 }
 
 export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
-  const { customers, activeBusiness, transactions } = useApp();
+  const { customers, activeBusiness, transactions, deleteTransaction } = useApp();
 
   // State to manage showing modals
   const [showBillModal, setShowBillModal] = useState(false);
@@ -195,6 +195,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
 
   const savePurchaseBill = () => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    /*
     const record = {
       id: String(purchaseBills.length + 1),
       businessId: activeBusiness?.id,
@@ -205,6 +206,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
+    */
     // setPurchaseBills([...purchaseBills, record]);
     setShowBillModal(false);
     resetForm();
@@ -213,6 +215,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
 
   const savePaymentOut = () => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    /*
     const record = {
       id: String(paymentsOut.length + 1),
       businessId: activeBusiness?.id,
@@ -223,6 +226,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       paymentType,
       description
     };
+    */
     // setPaymentsOut([...paymentsOut, record]);
     setShowPaymentOutModal(false);
     resetForm();
@@ -230,6 +234,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const saveExpense = () => {
+    /*
     const record = {
       id: String(expenses.length + 1),
       businessId: activeBusiness?.id,
@@ -239,6 +244,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
+    */
     // setExpenses([...expenses, record]);
     setShowExpenseModal(false);
     resetForm();
@@ -247,6 +253,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
 
   const savePurchaseOrder = () => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    /*
     const record = {
       id: String(purchaseOrders.length + 1),
       businessId: activeBusiness?.id,
@@ -257,6 +264,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
+    */
     // setPurchaseOrders([...purchaseOrders, record]);
     setShowOrderModal(false);
     resetForm();
@@ -265,6 +273,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
 
   const saveDebitNote = () => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    /*
     const record = {
       id: String(debitNotes.length + 1),
       businessId: activeBusiness?.id,
@@ -276,6 +285,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       total: roundOff ? Math.round(totalAmount) : totalAmount,
       paymentType
     };
+    */
     // setDebitNotes([...debitNotes, record]);
     setShowDebitNoteModal(false);
     resetForm();
