@@ -769,6 +769,19 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                             <span style={{ textDecoration: 'underline' }}>View Details</span>
                           </div>
                         )}
+
+                        {(t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid') && (t.receivedAmount > 0 && t.receivedAmount < t.totalAmount) && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '4px', marginTop: '4px' }}>
+                            <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600' }}>
+                              Pending: ₹{((t.totalAmount || 0) - (t.receivedAmount || 0)).toFixed(2)}
+                            </span>
+                            {t.paymentDate && (
+                              <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '600' }}>
+                                📅 {t.paymentDate}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
