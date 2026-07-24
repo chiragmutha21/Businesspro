@@ -199,7 +199,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const handleSaveCheque = (e: React.FormEvent) => {
     e.preventDefault();
     const amt = parseFloat(chequeAmount) || 0;
-    const party = customers.find(c => c.id === chequePartyId);
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === chequePartyId);
     
     if (!chequeNumber || amt <= 0) {
       alert('Please fill all mandatory cheque details correctly.');
@@ -1094,7 +1094,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                 <label style={styles.fieldLabel}>Party Name *</label>
                 <select className="form-control" style={styles.modalSelect} value={chequePartyId} onChange={(e) => setChequePartyId(e.target.value)} required>
                   <option value="">Select Party</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {customers.filter(c => c.businessId === activeBusiness?.id).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div className="form-group">

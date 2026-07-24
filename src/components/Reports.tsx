@@ -26,7 +26,8 @@ type ReportCategory =
   | 'loan';
 
 export const Reports: React.FC = () => {
-  const { transactions, products, customers } = useApp();
+  const { activeBusiness, transactions, products, customers } = useApp();
+  const bizTransactions = transactions.filter(t => t.businessId === activeBusiness?.id);
   const [selectedReport, setSelectedReport] = useState<ReportCategory>('transaction');
 
   const reportItems = [
@@ -119,13 +120,13 @@ export const Reports: React.FC = () => {
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Total Sales</span>
                   <strong style={styles.aggValue}>
-                    ₹ {transactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
                   </strong>
                 </div>
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Total Purchase</span>
                   <strong style={{ ...styles.aggValue, color: '#EF4444' }}>
-                    ₹ {transactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
                   </strong>
                 </div>
               </div>
@@ -142,7 +143,7 @@ export const Reports: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map((t) => (
+                    {bizTransactions.map((t) => (
                       <tr key={t.id}>
                         <td>{formatDateDDMMYYYY(t.date)}</td>
                         <td style={{ fontWeight: '700' }}>{t.invoiceNo || '-'}</td>
@@ -155,7 +156,7 @@ export const Reports: React.FC = () => {
                         <td style={{ fontWeight: '700' }}>₹{t.totalAmount.toFixed(2)}</td>
                       </tr>
                     ))}
-                    {transactions.length === 0 && (
+                    {bizTransactions.length === 0 && (
                       <tr>
                         <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF' }}>
                           No transaction records registered.
@@ -182,7 +183,7 @@ export const Reports: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {customers.map((c) => {
+                    {customers.filter(c => c.businessId === activeBusiness?.id).map((c) => {
                       const balance = getPartyBalance(c.name);
                       return (
                         <tr key={c.id}>
@@ -195,7 +196,7 @@ export const Reports: React.FC = () => {
                         </tr>
                       );
                     })}
-                    {customers.length === 0 && (
+                    {customers.filter(c => c.businessId === activeBusiness?.id).length === 0 && (
                       <tr>
                         <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF' }}>
                           No parties/customers configured.
@@ -215,13 +216,13 @@ export const Reports: React.FC = () => {
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Output GST (Tax on Sales)</span>
                   <strong style={styles.aggValue}>
-                    ₹ {transactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
                   </strong>
                 </div>
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Input Tax Credit (ITC)</span>
                   <strong style={{ ...styles.aggValue, color: '#10B981' }}>
-                    ₹ {transactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
                   </strong>
                 </div>
               </div>
@@ -238,7 +239,7 @@ export const Reports: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.map((t) => (
+                    {bizTransactions.map((t) => (
                       <tr key={t.id}>
                         <td>{formatDateDDMMYYYY(t.date)}</td>
                         <td style={{ fontWeight: '700' }}>{t.invoiceNo || '-'}</td>
@@ -268,7 +269,7 @@ export const Reports: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {products.map((p) => (
+                    {products.filter(p => p.businessId === activeBusiness?.id).map((p) => (
                       <tr key={p.id}>
                         <td style={{ fontWeight: '600' }}>{p.name}</td>
                         <td>{p.category || 'General'}</td>
@@ -279,7 +280,7 @@ export const Reports: React.FC = () => {
                         </td>
                       </tr>
                     ))}
-                    {products.length === 0 && (
+                    {products.filter(p => p.businessId === activeBusiness?.id).length === 0 && (
                       <tr>
                         <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF' }}>
                           No stock items registered in inventory.
@@ -301,17 +302,17 @@ export const Reports: React.FC = () => {
                   <div style={styles.statusTile}>
                     <span>Net Margin</span>
                     <strong style={{ color: '#10B981' }}>₹ {
-                      (transactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.totalAmount, 0) -
-                       transactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0)).toFixed(2)
+                      (bizTransactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.totalAmount, 0) -
+                       bizTransactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0)).toFixed(2)
                     }</strong>
                   </div>
                   <div style={styles.statusTile}>
                     <span>Total Sales Transactions</span>
-                    <strong>{transactions.filter(t => t.type === 'sale').length} Invoices</strong>
+                    <strong>{bizTransactions.filter(t => t.type === 'sale').length} Invoices</strong>
                   </div>
                   <div style={styles.statusTile}>
                     <span>Active Stock Categories</span>
-                    <strong>{products.length} Products</strong>
+                    <strong>{products.filter(p => p.businessId === activeBusiness?.id).length} Products</strong>
                   </div>
                 </div>
               </div>

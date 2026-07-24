@@ -286,7 +286,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     const productsPayload: TransactionProduct[] = billedItems
       .filter(item => item.name)
       .map(item => {
-        const prodMatch = products.find(p => p.name.toLowerCase() === item.name.toLowerCase());
+        const prodMatch = products.filter(p => p.businessId === activeBusiness?.id).find(p => p.name.toLowerCase() === item.name.toLowerCase());
         return {
           productId: prodMatch?.id || 'custom',
           productName: item.name,
@@ -300,7 +300,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         };
       });
 
-    const selectedParty = customers.find(c => c.id === selectedPartyId);
+    const selectedParty = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === selectedPartyId);
     const payload = {
       invoiceNo: invoiceNumber,
       date: invoiceDate,
@@ -483,7 +483,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     setInvoiceNumber(invoice.invoiceNo);
     setInvoiceDate(formatDateDDMMYYYY(invoice.date));
 
-    const cust = customers.find(c => c.name === invoice.contactName);
+    const cust = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.name === invoice.contactName);
     if (cust) {
       setSelectedPartyId(cust.id);
       setCustomerName(cust.name);
@@ -1339,6 +1339,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                         {activeSearchRowId === item.id && searchItemQuery && (
                           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 99, maxHeight: '150px', overflowY: 'auto', textAlign: 'left' }}>
                             {products
+                              .filter(p => p.businessId === activeBusiness?.id)
                               .filter(p =>
                                 p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
                                 (p.barcode && p.barcode.includes(searchItemQuery))
@@ -1385,7 +1386,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                                   <strong>{p.name}</strong> <span style={{ color: '#6B7280' }}>({p.barcode || 'No HSN'})</span> - ₹{p.sellingPrice || 0}
                                 </div>
                               ))}
-                            {products.filter(p =>
+                            {products.filter(p => p.businessId === activeBusiness?.id).filter(p =>
                               p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
                               (p.barcode && p.barcode.includes(searchItemQuery))
                             ).length === 0 && (

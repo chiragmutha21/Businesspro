@@ -6,7 +6,10 @@ import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 import html2pdf from 'html2pdf.js';
 
 export const Backup: React.FC = () => {
-  const { customers, products, transactions } = useApp();
+  const { activeBusiness, customers, products, transactions } = useApp();
+  const bizCustomers = customers.filter(c => c.businessId === activeBusiness?.id);
+  const bizProducts = products.filter(p => p.businessId === activeBusiness?.id);
+  const bizTransactions = transactions.filter(t => t.businessId === activeBusiness?.id);
 
   const handleDownloadPDF = () => {
     const element = document.getElementById('backup-report-pdf');
@@ -57,19 +60,19 @@ export const Backup: React.FC = () => {
             <div style={styles.summaryGrid}>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Parties Record: <strong>{customers.length} Contacts</strong></span>
+                <span>Parties Record: <strong>{bizCustomers.length} Contacts</strong></span>
               </div>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Stock Items: <strong>{products.length} Products</strong></span>
+                <span>Stock Items: <strong>{bizProducts.length} Products</strong></span>
               </div>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Sale Transactions: <strong>{transactions.filter(t => t.type === 'sale').length} Invoices</strong></span>
+                <span>Sale Transactions: <strong>{bizTransactions.filter(t => t.type === 'sale').length} Invoices</strong></span>
               </div>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Purchase Records: <strong>{transactions.filter(t => t.type === 'purchase').length} Invoices</strong></span>
+                <span>Purchase Records: <strong>{bizTransactions.filter(t => t.type === 'purchase').length} Invoices</strong></span>
               </div>
             </div>
           </div>
@@ -122,7 +125,7 @@ export const Backup: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {customers.map((c) => (
+              {bizCustomers.map((c) => (
                 <tr key={c.id}>
                   <td>{c.name}</td>
                   <td>{c.phone}</td>
@@ -131,7 +134,7 @@ export const Backup: React.FC = () => {
                   <td>{c.address || '-'}</td>
                 </tr>
               ))}
-              {customers.length === 0 && (
+              {bizCustomers.length === 0 && (
                 <tr>
                   <td colSpan={5} style={{ textAlign: 'center' }}>No Parties Data Found</td>
                 </tr>
@@ -156,7 +159,7 @@ export const Backup: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {bizProducts.map((p) => (
                 <tr key={p.id}>
                   <td>{p.name}</td>
                   <td>{p.sku || '-'}</td>
@@ -167,7 +170,7 @@ export const Backup: React.FC = () => {
                   <td>{p.unit}</td>
                 </tr>
               ))}
-              {products.length === 0 && (
+              {bizProducts.length === 0 && (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center' }}>No Stock Data Found</td>
                 </tr>
@@ -192,7 +195,7 @@ export const Backup: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t) => (
+              {bizTransactions.map((t) => (
                 <tr key={t.id}>
                   <td>{formatDateDDMMYYYY(t.date)}</td>
                   <td>{t.invoiceNo}</td>

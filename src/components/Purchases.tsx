@@ -156,7 +156,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
 
   const handlePartySelect = (id: string) => {
     setPartyId(id);
-    const found = customers.find(c => c.id === id);
+    const found = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === id);
     if (found) {
       setPartyPhone(found.phone);
     } else {
@@ -188,7 +188,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const savePurchaseBill = () => {
-    const party = customers.find(c => c.id === partyId);
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(purchaseBills.length + 1),
       partyName: party ? party.name : 'Unknown Party',
@@ -205,7 +205,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const savePaymentOut = () => {
-    const party = customers.find(c => c.id === partyId);
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(paymentsOut.length + 1),
       partyName: party ? party.name : 'Unknown Party',
@@ -237,7 +237,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const savePurchaseOrder = () => {
-    const party = customers.find(c => c.id === partyId);
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(purchaseOrders.length + 1),
       partyName: party ? party.name : 'Unknown Party',
@@ -254,7 +254,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const saveDebitNote = () => {
-    const party = customers.find(c => c.id === partyId);
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(debitNotes.length + 1),
       partyName: party ? party.name : 'Unknown Party',
@@ -681,7 +681,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       onChange={(e) => handlePartySelect(e.target.value)}
                     >
                       <option value="">Select Party</option>
-                      {customers.map(c => (
+                      {customers.filter(c => c.businessId === activeBusiness?.id).map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
@@ -910,7 +910,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     onChange={(e) => handlePartySelect(e.target.value)}
                   >
                     <option value="">Select Party</option>
-                    {customers.map(c => (
+                    {customers.filter(c => c.businessId === activeBusiness?.id).map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -1139,7 +1139,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     onChange={(e) => handlePartySelect(e.target.value)}
                   >
                     <option value="">Select Party</option>
-                    {customers.map(c => (
+                    {customers.filter(c => c.businessId === activeBusiness?.id).map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -1313,7 +1313,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       onChange={(e) => handlePartySelect(e.target.value)}
                     >
                       <option value="">Select Party</option>
-                      {customers.map(c => (
+                      {customers.filter(c => c.businessId === activeBusiness?.id).map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>

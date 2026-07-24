@@ -31,7 +31,13 @@ export const Dashboard: React.FC = () => {
     if (timeFilter === 'all') return true;
     if (!dateStr) return false;
     
-    const [y, m, d] = dateStr.split('-');
+    const parts = dateStr.split('-');
+    let y, m, d;
+    if (parts[0].length === 4) {
+      [y, m, d] = parts;
+    } else {
+      [d, m, y] = parts;
+    }
     const tDate = new Date(Number(y), Number(m) - 1, Number(d));
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -132,11 +138,11 @@ export const Dashboard: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const formatDateStr = (d: Date) => {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
+    const formatDateStr = (dObj: Date) => {
+      const yyyy = dObj.getFullYear();
+      const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(dObj.getDate()).padStart(2, '0');
+      return `${dd}-${mm}-${yyyy}`;
     };
 
     if (timeFilter === 'weekly') {
@@ -163,19 +169,19 @@ export const Dashboard: React.FC = () => {
       const cd = customDateStr.substring(0, 2);
       const cm = customDateStr.substring(2, 4);
       const cy = customDateStr.substring(4, 8);
-      dates.push(`${cy}-${cm}-${cd}`);
+      dates.push(`${cd}-${cm}-${cy}`);
     }
 
     if (dates.length > 0) {
       dailyChartData = dates.map(dateStr => ({
-        date: dateStr.substring(5), // MM-DD
+        date: dateStr.substring(0, 5), // DD-MM
         Sales: parseFloat((salesByDate[dateStr] || 0).toFixed(2))
       }));
     } else {
       dailyChartData = Object.keys(salesByDate)
         .sort()
         .map((date) => ({
-          date: date.substring(5),
+          date: date.substring(0, 5), // DD-MM
           Sales: parseFloat(salesByDate[date].toFixed(2)),
         }));
     }

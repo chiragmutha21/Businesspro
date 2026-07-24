@@ -89,7 +89,13 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
   
   pendingInvoices.forEach((t) => {
     if (t.date) {
-      const [y, m, d] = t.date.split('-');
+      const parts = t.date.split('-');
+      let y, m, d;
+      if (parts[0].length === 4) {
+        [y, m, d] = parts;
+      } else {
+        [d, m, y] = parts;
+      }
       const tDate = new Date(Number(y), Number(m) - 1, Number(d));
       if (tDate <= threeDaysAgo) {
         notifications.push({
@@ -110,7 +116,13 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
 
   chequeTransactions.forEach((t) => {
     if (t.paymentDate) {
-      const [y, m, d] = t.paymentDate.split('-');
+      const parts = t.paymentDate.split('-');
+      let y, m, d;
+      if (parts[0].length === 4) {
+        [y, m, d] = parts;
+      } else {
+        [d, m, y] = parts;
+      }
       const pd = new Date(Number(y), Number(m) - 1, Number(d));
       if (pd <= today) {
         notifications.push({
