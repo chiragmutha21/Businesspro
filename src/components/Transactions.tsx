@@ -779,6 +779,22 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                           </div>
                         )}
 
+                        {t.paymentStatus === 'Paid' && t.paymentType?.startsWith('Split:') && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '4px', marginTop: '4px' }}>
+                            <span style={{ fontSize: '11px', color: '#10B981', fontWeight: '600' }}>
+                              Cash: ₹{(Number(t.paymentType.split(':')[1]) || 0).toFixed(2)}
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#3B82F6', fontWeight: '600' }}>
+                              Online: ₹{(Number(t.paymentType.split(':')[2]) || 0).toFixed(2)}
+                            </span>
+                            {t.paymentDate && (
+                              <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: '600', marginTop: '2px' }}>
+                                📅 {t.paymentDate}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         {(t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid') && (t.receivedAmount > 0 && t.receivedAmount < t.totalAmount) && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '4px', marginTop: '4px' }}>
                             <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: '600' }}>
