@@ -31,7 +31,8 @@ export const Dashboard: React.FC = () => {
     if (timeFilter === 'all') return true;
     if (!dateStr) return false;
     
-    const parts = dateStr.split('-');
+    const normalized = dateStr.replace(/\//g, '-');
+    const parts = normalized.split('-');
     let y, m, d;
     if (parts[0].length === 4) {
       [y, m, d] = parts;
@@ -81,10 +82,30 @@ export const Dashboard: React.FC = () => {
   });
   const bizProducts = products.filter((p) => viewScope === 'overall' || p.businessId === activeBusiness?.id);
 
+  // Load local data for complete metrics
+  const getLocal = (key: string) => {
+    const s = localStorage.getItem(key);
+    return s ? JSON.parse(s) : [];
+  };
+  
+  const localPaymentsIn = getLocal('paymentsIn').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  const localSaleOrders = getLocal('saleOrders').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  // const localEstimates = getLocal('estimates').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  // const localDeliveryChallans = getLocal('deliveryChallans').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  
+  // const localPaymentsOut = getLocal('paymentsOut').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  // const localPurchaseBills = getLocal('purchaseBills').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  // const localExpenses = getLocal('expenses').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+
+  // Consolidate "Sales" from Supabase transactions + local saleOrders + local estimates + local deliveryChallans
+  // Actually, standard totalSales is just bizTransactions (type=sale). We can add localSaleOrders and localEstimates if they are considered "Sales" by user.
+  // We'll just stick to the original bizTransactions + paymentsIn for revenue.
+
+
   // Metrics calculation
   const totalSales = bizTransactions
     .filter((t) => t.type === 'sale')
-    .reduce((sum, t) => sum + t.totalAmount, 0);
+    .reduce((sum, t) => sum + t.totalAmount, 0) + localSaleOrders.reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
 
   // Profit calculation (revenue - cost of goods sold/purchased for simplicity)
   // Let's calculate based on sales: (sellingPrice - purchasePrice) * qty
@@ -103,9 +124,24 @@ export const Dashboard: React.FC = () => {
     totalProfit -= t.discount;
   });
 
+  // Calculate pending, cash, online combining Supabase and Local Storage
   const pendingPayments = bizTransactions
     .filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
-    .reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+    .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
+    localSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid').reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
+
+  const paidInCash = bizTransactions
+    .filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash'))
+    .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
+    localPaymentsIn.filter((t: any) => t.paymentType === 'Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
+    localSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash').reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
+
+  const paidOnline = bizTransactions
+    .filter((t) => t.type === 'sale' && (t.paymentStatus === 'Paid' || t.paymentType === 'Online' || t.paymentType === 'UPI' || t.paymentType === 'Bank Transfer' || t.paymentType === 'Card' || t.paymentType === 'Cheque' || t.paymentStatus === 'Paid by Cheque'))
+    .reduce((sum, t) => sum + (t.totalAmount || 0), 0) + 
+    localPaymentsIn.filter((t: any) => t.paymentType !== 'Cash' && t.paymentType).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0) +
+    localSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash') || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType)).reduce((sum: number, t: any) => sum + (t.receivedAmount || t.totalAmount || 0), 0);
+
 
   const stockValue = bizProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.purchasePrice || 0)), 0);
   const lowStockCount = bizProducts.filter((p) => (p.stock || 0) <= (p.minStock || 0)).length;
@@ -293,7 +329,37 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Cards Metrics Grid */}
-      <div className="grid-cols-4" style={{ marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+        <div className="card" style={styles.metricCard}>
+          <div style={styles.cardHeader}>
+            <span style={styles.cardLabel}>PAID IN CASH</span>
+            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+              <DollarSign size={20} color="#10B981" />
+            </div>
+          </div>
+          <div style={styles.cardValue}>₹ {paidInCash.toFixed(2)}</div>
+        </div>
+        
+        <div className="card" style={styles.metricCard}>
+          <div style={styles.cardHeader}>
+            <span style={styles.cardLabel}>PAID ONLINE</span>
+            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
+              <CreditCard size={20} color="#3B82F6" />
+            </div>
+          </div>
+          <div style={styles.cardValue}>₹ {paidOnline.toFixed(2)}</div>
+        </div>
+
+        <div className="card" style={styles.metricCard}>
+          <div style={styles.cardHeader}>
+            <span style={styles.cardLabel}>UNPAID / PENDING</span>
+            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+              <TrendingUp size={20} color="#EF4444" />
+            </div>
+          </div>
+          <div style={styles.cardValue}>₹ {pendingPayments.toFixed(2)}</div>
+        </div>
+
         <div className="card" style={styles.metricCard}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL SALES</span>
@@ -439,10 +505,10 @@ export const Dashboard: React.FC = () => {
                 {businesses.map((biz) => {
                   const bizSales = transactions
                     .filter((t) => t.businessId === biz.id && t.type === 'sale' && isWithinTimeFilter(t.date))
-                    .reduce((sum, t) => sum + t.totalAmount, 0);
+                    .reduce((sum, t) => sum + t.totalAmount, 0) + localSaleOrders.reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
                   const bizPending = transactions
                     .filter((t) => t.businessId === biz.id && (t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid') && isWithinTimeFilter(t.date))
-                    .reduce((sum, t) => sum + t.totalAmount, 0);
+                    .reduce((sum, t) => sum + t.totalAmount, 0) + localSaleOrders.reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
                   const bizProds = products.filter((p) => p.businessId === biz.id).length;
 
                   return (
