@@ -73,13 +73,34 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const [origBillDate, setOrigBillDate] = useState('12/07/2026');
 
   // List arrays saved in memory
-  const [purchaseBills, setPurchaseBills] = useState<any[]>([]);
-  const [paymentsOut, setPaymentsOut] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
-  const [debitNotes, setDebitNotes] = useState<any[]>([]);
+  const [purchaseBills, setPurchaseBills] = useState<any[]>(() => {
+    const s = localStorage.getItem('purchaseBills');
+    return s ? JSON.parse(s) : [];
+  });
+  const [paymentsOut, setPaymentsOut] = useState<any[]>(() => {
+    const s = localStorage.getItem('paymentsOut');
+    return s ? JSON.parse(s) : [];
+  });
+  const [expenses, setExpenses] = useState<any[]>(() => {
+    const s = localStorage.getItem('expenses');
+    return s ? JSON.parse(s) : [];
+  });
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>(() => {
+    const s = localStorage.getItem('purchaseOrders');
+    return s ? JSON.parse(s) : [];
+  });
+  const [debitNotes, setDebitNotes] = useState<any[]>(() => {
+    const s = localStorage.getItem('debitNotes');
+    return s ? JSON.parse(s) : [];
+  });
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  React.useEffect(() => { localStorage.setItem('paymentsOut', JSON.stringify(paymentsOut)); }, [paymentsOut]);
+  React.useEffect(() => { localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses]);
+  React.useEffect(() => { localStorage.setItem('purchaseBills', JSON.stringify(purchaseBills)); }, [purchaseBills]);
+  React.useEffect(() => { localStorage.setItem('purchaseOrders', JSON.stringify(purchaseOrders)); }, [purchaseOrders]);
+  React.useEffect(() => { localStorage.setItem('debitNotes', JSON.stringify(debitNotes)); }, [debitNotes]);
 
   const generateUniqueId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 
@@ -191,6 +212,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(purchaseBills.length + 1),
+      businessId: activeBusiness?.id,
       partyName: party ? party.name : 'Unknown Party',
       phone: partyPhone,
       billNumber: billNumber || `PB-${purchaseBills.length + 1}`,
@@ -208,6 +230,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(paymentsOut.length + 1),
+      businessId: activeBusiness?.id,
       partyName: party ? party.name : 'Unknown Party',
       receiptNo,
       date: billDate,
@@ -224,6 +247,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const saveExpense = () => {
     const record = {
       id: String(expenses.length + 1),
+      businessId: activeBusiness?.id,
       category: expenseCategory || 'General Expense',
       expenseNo,
       date: billDate,
@@ -240,6 +264,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(purchaseOrders.length + 1),
+      businessId: activeBusiness?.id,
       partyName: party ? party.name : 'Unknown Party',
       orderNo: orderNo || `PO-${purchaseOrders.length + 1}`,
       date: billDate,
@@ -257,6 +282,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     const record = {
       id: String(debitNotes.length + 1),
+      businessId: activeBusiness?.id,
       partyName: party ? party.name : 'Unknown Party',
       returnNo,
       origBillNo,
@@ -281,7 +307,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       {/* 1. PURCHASE BILLS SECTION */}
       {activeSection === 'purchase-bills' && (
         <>
-          {purchaseBills.length === 0 ? (
+          {purchaseBills.filter(b => b.businessId === activeBusiness?.id).length === 0 ? (
             <div style={styles.emptyContainer}>
               <div style={styles.iconCircleBlue}>
                 <ShoppingCart size={48} color="#3B82F6" />
@@ -318,7 +344,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {purchaseBills.map((b) => (
+                    {purchaseBills.filter(b => b.businessId === activeBusiness?.id).map((b) => (
                       <tr key={b.id}>
                         <td style={{ fontWeight: '700' }}>{b.billNumber}</td>
                         <td>{formatDateDDMMYYYY(b.date)}</td>
@@ -369,7 +395,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                 </tr>
               </thead>
               <tbody>
-                {paymentsOut.map((p) => (
+                {paymentsOut.filter(p => p.businessId === activeBusiness?.id).map((p) => (
                   <tr key={p.id}>
                     <td style={{ fontWeight: '700' }}>{p.receiptNo}</td>
                     <td>{formatDateDDMMYYYY(p.date)}</td>
@@ -389,7 +415,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </td>
                   </tr>
                 ))}
-                {paymentsOut.length === 0 && (
+                {paymentsOut.filter(p => p.businessId === activeBusiness?.id).length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
                       No payments-out registered yet. Click "Record Payment-Out" to log.
@@ -405,7 +431,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       {/* 3. EXPENSES SECTION */}
       {activeSection === 'expenses' && (
         <>
-          {expenses.length === 0 ? (
+          {expenses.filter(e => e.businessId === activeBusiness?.id).length === 0 ? (
             <div style={styles.emptyContainer}>
               <div style={styles.iconCircleRed}>
                 <Wallet size={48} color="#EF4444" />
@@ -440,7 +466,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {expenses.map((e) => (
+                    {expenses.filter(e => e.businessId === activeBusiness?.id).map((e) => (
                       <tr key={e.id}>
                         <td style={{ fontWeight: '700' }}>{e.expenseNo}</td>
                         <td>{formatDateDDMMYYYY(e.date)}</td>
@@ -470,7 +496,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       {/* 4. PURCHASE ORDER SECTION (1st & 2nd Screenshots) */}
       {activeSection === 'purchase-order' && (
         <>
-          {purchaseOrders.length === 0 ? (
+          {purchaseOrders.filter(p => p.businessId === activeBusiness?.id).length === 0 ? (
             <div style={styles.emptyContainer}>
               <div style={styles.iconCircleBlue}>
                 <ShoppingCart size={48} color="#3B82F6" />
@@ -507,19 +533,19 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {purchaseOrders.map((o) => (
-                      <tr key={o.id}>
-                        <td style={{ fontWeight: '700' }}>{o.orderNo}</td>
-                        <td>{formatDateDDMMYYYY(o.date)}</td>
-                        <td>{formatDateDDMMYYYY(o.dueDate)}</td>
-                        <td style={{ fontWeight: '600' }}>{o.partyName}</td>
-                        <td>{o.paymentType}</td>
-                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{o.total.toFixed(2)}</td>
+                    {purchaseOrders.filter(p => p.businessId === activeBusiness?.id).map((p) => (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: '700' }}>{p.orderNo}</td>
+                        <td>{formatDateDDMMYYYY(p.date)}</td>
+                        <td>{formatDateDDMMYYYY(p.dueDate)}</td>
+                        <td style={{ fontWeight: '600' }}>{p.partyName}</td>
+                        <td>{p.paymentType}</td>
+                        <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{p.total.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => { setSelectedBill({ ...o, billNumber: o.orderNo, type: 'Purchase Order' }); setShowPreviewModal(true); }}
+                            onClick={() => { setSelectedBill({ ...p, billNumber: p.orderNo, type: 'Purchase Order' }); setShowPreviewModal(true); }}
                           >
                             <Eye size={12} />
                             <span>Preview</span>
@@ -603,7 +629,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                 </tr>
               </thead>
               <tbody>
-                {debitNotes.map((d) => (
+                {debitNotes.filter(d => d.businessId === activeBusiness?.id).map((d) => (
                   <tr key={d.id}>
                     <td>{formatDateDDMMYYYY(d.date)}</td>
                     <td style={{ fontWeight: '700' }}>{d.returnNo}</td>
@@ -630,7 +656,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </td>
                   </tr>
                 ))}
-                {debitNotes.length === 0 && (
+                {debitNotes.filter(d => d.businessId === activeBusiness?.id).length === 0 ? (
                   <tr>
                     <td colSpan={9}>
                       <div style={styles.emptyTableState}>
