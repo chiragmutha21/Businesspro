@@ -32,6 +32,7 @@ interface Cheque {
   isPostDated: boolean;
   chequeDate: string;
   status: 'Pending' | 'Cleared';
+  businessId?: string;
 }
 
 interface CashAdjustment {
@@ -40,6 +41,7 @@ interface CashAdjustment {
   amount: number;
   date: string;
   description: string;
+  businessId?: string;
 }
 
 interface LoanTransaction {
@@ -65,6 +67,7 @@ interface LoanAccount {
   processingFee: number;
   feePaidFrom: string;
   transactions: LoanTransaction[];
+  businessId?: string;
 }
 
 interface BankTransaction {
@@ -90,6 +93,7 @@ interface BankAccount {
   acceptOnline: boolean;
   currentBalance: number;
   transactions: BankTransaction[];
+  businessId?: string;
 }
 
 export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
@@ -112,7 +116,10 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [adjustDate, setAdjustDate] = useState('12/07/2026');
   const [cashDescription, setCashDescription] = useState('');
   const [cashBalance, setCashBalance] = useState<number>(0);
-  const [cashLogs, setCashLogs] = useState<CashAdjustment[]>([]);
+  const [cashLogs, setCashLogs] = useState<any[]>(() => {
+    const s = localStorage.getItem('cashLogs');
+    return s ? JSON.parse(s) : [];
+  });
 
   // Cheque Form States
   const [chequePartyId, setChequePartyId] = useState('');
@@ -120,7 +127,10 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [chequeAmount, setChequeAmount] = useState('');
   const [isPostDated, setIsPostDated] = useState(false);
   const [chequeDate, setChequeDate] = useState('12/07/2026');
-  const [cheques, setCheques] = useState<Cheque[]>([]);
+  const [cheques, setCheques] = useState<any[]>(() => {
+    const s = localStorage.getItem('cheques');
+    return s ? JSON.parse(s) : [];
+  });
 
   // Loan Account Form States
   const [loanAccName, setLoanAccName] = useState('');
@@ -163,13 +173,30 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [bankTxDescription, setBankTxDescription] = useState('');
 
   // Lists saved in memory
-  const [loanAccounts, setLoanAccounts] = useState<LoanAccount[]>([]);
+  const [loanAccounts, setLoanAccounts] = useState<any[]>(() => {
+    const s = localStorage.getItem('loanAccounts');
+    return s ? JSON.parse(s) : [];
+  });
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
   const [searchLoanQuery, setSearchLoanQuery] = useState('');
 
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<any[]>(() => {
+    const s = localStorage.getItem('bankAccounts');
+    return s ? JSON.parse(s) : [];
+  });
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [searchBankQuery, setSearchBankQuery] = useState('');
+
+  React.useEffect(() => { localStorage.setItem('cashLogs', JSON.stringify(cashLogs)); }, [cashLogs]);
+  React.useEffect(() => { localStorage.setItem('cheques', JSON.stringify(cheques)); }, [cheques]);
+  React.useEffect(() => { localStorage.setItem('loanAccounts', JSON.stringify(loanAccounts)); }, [loanAccounts]);
+  React.useEffect(() => { localStorage.setItem('bankAccounts', JSON.stringify(bankAccounts)); }, [bankAccounts]);
+
+  const activeCashLogs = cashLogs.filter(l => l.businessId === activeBusiness?.id);
+  const activeCheques = cheques.filter(c => c.businessId === activeBusiness?.id);
+  const activeLoanAccounts = loanAccounts.filter(l => l.businessId === activeBusiness?.id);
+  const activeBankAccounts = bankAccounts.filter(b => b.businessId === activeBusiness?.id);
+
   const [showDepMenu, setShowDepMenu] = useState(false);
 
   const handleSaveCashAdjustment = (e: React.FormEvent) => {
@@ -182,6 +209,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
 
     const log: CashAdjustment = {
       id: String(cashLogs.length + 1),
+      businessId: activeBusiness?.id,
       type: adjustType,
       amount: amt,
       date: adjustDate,
@@ -208,6 +236,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
 
     const newCheque: Cheque = {
       id: String(cheques.length + 1),
+      businessId: activeBusiness?.id,
       partyName: party ? party.name : 'Unknown Party',
       chequeNumber,
       amount: amt,
@@ -261,6 +290,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
 
     const newLoan: LoanAccount = {
       id: String(loanAccounts.length + 1),
+      businessId: activeBusiness?.id,
       name: loanAccName,
       lenderBank: loanLenderBank,
       accountNumber: loanAccNumber,
@@ -350,6 +380,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
 
     const newBank: BankAccount = {
       id: String(bankAccounts.length + 1),
+      businessId: activeBusiness?.id,
       displayName: bankDispName,
       openingBalance: opBal,
       balanceDate: bankAsOfDate,
@@ -534,7 +565,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       {activeSection === 'bank-accounts' && (
         <div style={{ width: '100%' }}>
           
-          {bankAccounts.length === 0 ? (
+          {activeBankAccounts.length === 0 ? (
             <div style={styles.emptyContainer}>
               <h2 style={styles.emptyTextHeader}>Manage Multiple Bank Accounts</h2>
               <p style={styles.emptyTextSub}>With Vyapar you can manage multiple banks and payment types like UPI, Net Banking and Credit Card</p>
@@ -683,7 +714,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedBank.transactions.map((tx) => (
+                            {selectedBank.transactions.map((tx: any) => (
                               <tr key={tx.id}>
                                 <td style={{ fontWeight: '600' }}>{tx.type}</td>
                                 <td>{tx.name}</td>
@@ -726,7 +757,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
             </button>
           </div>
 
-          {cashLogs.length === 0 ? (
+          {activeCashLogs.length === 0 ? (
             <div style={styles.emptyContainer}>
               <div style={styles.iconCircleGreen}>
                 <Coins size={48} color="#10B981" />
@@ -754,7 +785,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {cashLogs.map((log) => (
+                  {activeCashLogs.map((log) => (
                     <tr key={log.id}>
                       <td>{formatDateDDMMYYYY(log.date)}</td>
                       <td style={{ fontWeight: '700', color: log.type === 'Add' ? '#10B981' : '#EF4444' }}>
@@ -781,7 +812,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
             </button>
           </div>
 
-          {cheques.length === 0 ? (
+          {activeCheques.length === 0 ? (
             <div style={styles.emptyContainer}>
               <div style={styles.iconCircleBlue}>
                 <FileCheck2 size={48} color="#3B82F6" />
@@ -810,7 +841,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {cheques.map((c) => (
+                  {activeCheques.map((c) => (
                     <tr key={c.id}>
                       <td style={{ fontWeight: '700', fontFamily: 'monospace' }}>{c.chequeNumber}</td>
                       <td style={{ fontWeight: '600' }}>{c.partyName}</td>
@@ -873,7 +904,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       {activeSection === 'loan-accounts' && (
         <div style={{ width: '100%' }}>
           
-          {loanAccounts.length === 0 ? (
+          {activeLoanAccounts.length === 0 ? (
             <div style={styles.emptyContainer}>
               <h2 style={styles.emptyTextHeader}>Manage Your Loan Accounts</h2>
               <p style={styles.emptyTextSub}>Add your loan accounts and check all loan transactions at one place</p>
@@ -1000,7 +1031,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedLoan.transactions.map((tx) => (
+                            {selectedLoan.transactions.map((tx: any) => (
                               <tr key={tx.id}>
                                 <td style={{ fontWeight: '600' }}>{tx.type}</td>
                                 <td style={{ textAlign: 'center' }}>{formatDateDDMMYYYY(tx.date)}</td>
@@ -1359,7 +1390,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                     <label style={styles.fieldLabel}>From:</label>
                     <select className="form-control" style={styles.modalSelect} value={bankTxFromAcc} onChange={(e) => setBankTxFromAcc(e.target.value)} required>
                       <option value="">Select Source Bank</option>
-                      {bankAccounts.map(b => (
+                      {activeBankAccounts.map(b => (
                         <option key={b.id} value={b.id}>{b.displayName}</option>
                       ))}
                     </select>
@@ -1382,7 +1413,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                     <label style={styles.fieldLabel}>To:</label>
                     <select className="form-control" style={styles.modalSelect} value={bankTxToAcc} onChange={(e) => setBankTxToAcc(e.target.value)} required>
                       <option value="">Select Destination Bank</option>
-                      {bankAccounts.map(b => (
+                      {activeBankAccounts.map(b => (
                         <option key={b.id} value={b.id}>{b.displayName}</option>
                       ))}
                     </select>
@@ -1397,7 +1428,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                     <label style={styles.fieldLabel}>From:</label>
                     <select className="form-control" style={styles.modalSelect} value={bankTxFromAcc} onChange={(e) => setBankTxFromAcc(e.target.value)} required>
                       <option value="">Select Source Bank</option>
-                      {bankAccounts.map(b => (
+                      {activeBankAccounts.map(b => (
                         <option key={b.id} value={b.id}>{b.displayName}</option>
                       ))}
                     </select>
@@ -1421,7 +1452,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                     <label style={styles.fieldLabel}>Account Name</label>
                     <select className="form-control" style={styles.modalSelect} value={bankTxFromAcc} onChange={(e) => setBankTxFromAcc(e.target.value)} required>
                       <option value="">Select Bank Account</option>
-                      {bankAccounts.map(b => (
+                      {activeBankAccounts.map(b => (
                         <option key={b.id} value={b.id}>{b.displayName}</option>
                       ))}
                     </select>

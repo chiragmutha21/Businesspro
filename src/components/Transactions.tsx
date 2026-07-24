@@ -83,12 +83,30 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
   });
 
   // Local list states for sub-sections
-  const [estimates, setEstimates] = useState<any[]>([]);
-  const [proformaInvoices, setProformaInvoices] = useState<any[]>([]);
-  const [paymentsIn, setPaymentsIn] = useState<any[]>([]);
-  const [saleOrders, setSaleOrders] = useState<any[]>([]);
-  const [deliveryChallans, setDeliveryChallans] = useState<any[]>([]);
-  const [saleReturns, setSaleReturns] = useState<any[]>([]);
+  const [estimates, setEstimates] = useState<any[]>(() => {
+    const s = localStorage.getItem('estimates');
+    return s ? JSON.parse(s) : [];
+  });
+  const [proformaInvoices, setProformaInvoices] = useState<any[]>(() => {
+    const s = localStorage.getItem('proformaInvoices');
+    return s ? JSON.parse(s) : [];
+  });
+  const [paymentsIn, setPaymentsIn] = useState<any[]>(() => {
+    const s = localStorage.getItem('paymentsIn');
+    return s ? JSON.parse(s) : [];
+  });
+  const [saleOrders, setSaleOrders] = useState<any[]>(() => {
+    const s = localStorage.getItem('saleOrders');
+    return s ? JSON.parse(s) : [];
+  });
+  const [deliveryChallans, setDeliveryChallans] = useState<any[]>(() => {
+    const s = localStorage.getItem('deliveryChallans');
+    return s ? JSON.parse(s) : [];
+  });
+  const [saleReturns, setSaleReturns] = useState<any[]>(() => {
+    const s = localStorage.getItem('saleReturns');
+    return s ? JSON.parse(s) : [];
+  });
 
   useEffect(() => {
     const directForm = localStorage.getItem('open_sale_form_direct');
@@ -157,6 +175,20 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
   // Item List Modal states
   const [showItemModal, setShowItemModal] = useState(false);
+  React.useEffect(() => { localStorage.setItem('estimates', JSON.stringify(estimates)); }, [estimates]);
+  React.useEffect(() => { localStorage.setItem('proformaInvoices', JSON.stringify(proformaInvoices)); }, [proformaInvoices]);
+  React.useEffect(() => { localStorage.setItem('paymentsIn', JSON.stringify(paymentsIn)); }, [paymentsIn]);
+  React.useEffect(() => { localStorage.setItem('saleOrders', JSON.stringify(saleOrders)); }, [saleOrders]);
+  React.useEffect(() => { localStorage.setItem('deliveryChallans', JSON.stringify(deliveryChallans)); }, [deliveryChallans]);
+  React.useEffect(() => { localStorage.setItem('saleReturns', JSON.stringify(saleReturns)); }, [saleReturns]);
+
+  const activeEstimates = estimates.filter(e => e.businessId === activeBusiness?.id);
+  const activeProformaInvoices = proformaInvoices.filter(e => e.businessId === activeBusiness?.id);
+  const activePaymentsIn = paymentsIn.filter(e => e.businessId === activeBusiness?.id);
+  const activeSaleOrders = saleOrders.filter(e => e.businessId === activeBusiness?.id);
+  const activeDeliveryChallans = deliveryChallans.filter(e => e.businessId === activeBusiness?.id);
+  const activeSaleReturns = saleReturns.filter(e => e.businessId === activeBusiness?.id);
+
   const generateUniqueId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 
   const [billedItems, setBilledItems] = useState<BilledItem[]>([
@@ -336,7 +368,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     } else {
       if (activeSection === 'estimate-quotation') {
         const record = {
-          id: String(estimates.length + 1),
+          id: String(activeEstimates.length + 1),
+          businessId: activeBusiness?.id,
           invoiceNo: invoiceNumber,
           date: invoiceDate,
           contactName: customerName,
@@ -352,7 +385,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         setEstimates([record, ...estimates]);
       } else if (activeSection === 'proforma-invoice') {
         const record = {
-          id: String(proformaInvoices.length + 1),
+          id: String(activeProformaInvoices.length + 1),
+          businessId: activeBusiness?.id,
           invoiceNo: invoiceNumber,
           date: invoiceDate,
           contactName: customerName,
@@ -368,7 +402,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         setProformaInvoices([record, ...proformaInvoices]);
       } else if (activeSection === 'payment-in') {
         const record = {
-          id: String(paymentsIn.length + 1),
+          id: String(activePaymentsIn.length + 1),
+          businessId: activeBusiness?.id,
           invoiceNo: invoiceNumber,
           date: invoiceDate,
           contactName: customerName,
@@ -384,7 +419,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         setPaymentsIn([record, ...paymentsIn]);
       } else if (activeSection === 'sale-order') {
         const record = {
-          id: String(saleOrders.length + 1),
+          id: String(activeSaleOrders.length + 1),
+          businessId: activeBusiness?.id,
           invoiceNo: invoiceNumber,
           date: invoiceDate,
           contactName: customerName,
@@ -400,7 +436,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         setSaleOrders([record, ...saleOrders]);
       } else if (activeSection === 'delivery-challan') {
         const record = {
-          id: String(deliveryChallans.length + 1),
+          id: String(activeDeliveryChallans.length + 1),
+          businessId: activeBusiness?.id,
           invoiceNo: invoiceNumber,
           date: invoiceDate,
           contactName: customerName,
@@ -416,7 +453,8 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         setDeliveryChallans([record, ...deliveryChallans]);
       } else if (activeSection === 'sale-return') {
         const record = {
-          id: String(saleReturns.length + 1),
+          id: String(activeSaleReturns.length + 1),
+          businessId: activeBusiness?.id,
           invoiceNo: invoiceNumber,
           date: invoiceDate,
           contactName: customerName,
