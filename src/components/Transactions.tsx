@@ -589,7 +589,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
 
     const updatedData = {
       ...statusToEdit,
-      paymentStatus: statusForm.paymentStatus === 'Partially Paid' ? 'Partially Paid' : 'Paid',
+      paymentStatus: statusForm.paymentStatus === 'Partially Paid' ? 'Pending' : 'Paid',
       paymentType: statusForm.paymentStatus === 'Partially Paid' ? statusForm.paymentMethod : statusForm.paymentStatus === 'Paid by Cash' ? 'Cash' : statusForm.paymentStatus === 'Paid by Online' ? 'Online' : 'Cheque',
       paymentDate: statusForm.paymentDate,
       chequeNo: statusForm.chequeNo,
@@ -741,6 +741,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                             t.paymentStatus === 'Paid' && t.paymentType === 'Cash' ? 'Paid by Cash' :
                             t.paymentStatus === 'Paid' && t.paymentType === 'Cheque' ? 'Paid by Cheque' :
                             t.paymentStatus === 'Paid' && t.paymentType === 'Online' ? 'Paid by Online' :
+                            (t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid') && (t.receivedAmount > 0 && t.receivedAmount < t.totalAmount) ? 'Partially Paid' :
                             t.paymentStatus || 'Unpaid'
                           }
                           onChange={(e) => handleStatusChange(t, e.target.value)}
