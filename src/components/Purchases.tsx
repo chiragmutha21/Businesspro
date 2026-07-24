@@ -56,7 +56,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   // Specific Payment Out States
   const [receiptNo, setReceiptNo] = useState('1');
   const [paidAmt, setPaidAmt] = useState('');
-  const [description, setDescription] = useState('');
+  // const [description, setDescription] = useState('');
 
   // Specific Expense States
   const [expenseCategory, setExpenseCategory] = useState('');
@@ -176,7 +176,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     setBillNumber('');
     setTotalAmount(0);
     setPaidAmt('');
-    setDescription('');
+    // setDescription('');
     setOrigBillNo('');
     setItems([
       {
@@ -194,7 +194,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const savePurchaseBill = () => {
-    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     /*
     const record = {
       id: String(purchaseBills.length + 1),
@@ -214,7 +214,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const savePaymentOut = () => {
-    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     /*
     const record = {
       id: String(paymentsOut.length + 1),
@@ -252,7 +252,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const savePurchaseOrder = () => {
-    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     /*
     const record = {
       id: String(purchaseOrders.length + 1),
@@ -272,7 +272,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   };
 
   const saveDebitNote = () => {
-    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
     /*
     const record = {
       id: String(debitNotes.length + 1),
