@@ -68,11 +68,11 @@ export const Backup: React.FC = () => {
               </div>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Sale Transactions: <strong>{bizTransactions.filter(t => t.type === 'sale').length} Invoices</strong></span>
+                <span>Sale Transactions: <strong>{bizTransactions.filter(t => t.type?.toLowerCase() === 'sale').length} Invoices</strong></span>
               </div>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Purchase Records: <strong>{bizTransactions.filter(t => t.type === 'purchase').length} Invoices</strong></span>
+                <span>Purchase Records: <strong>{bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase').length} Invoices</strong></span>
               </div>
             </div>
           </div>

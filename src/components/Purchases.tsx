@@ -107,6 +107,12 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     return mapped;
   };
 
+  const handleViewUploadedRow = (b: any, type: string) => {
+    setSelectedBill(prepareBillSelection(b, type));
+    setViewingUploaded(true);
+    setShowPreviewModal(true);
+  };
+
   const handlePrintRow = (b: any, type: string) => {
     setSelectedBill(prepareBillSelection(b, type));
     setIsAutoPrint(true);
@@ -772,6 +778,16 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                               <Eye size={12} />
                               <span>View</span>
                             </button>
+                            {b.contactAddress && b.contactAddress.startsWith('http') && (
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#D97706', borderColor: '#F59E0B' }}
+                                onClick={() => handleViewUploadedRow(b, 'Purchase Bill')}
+                              >
+                                <Eye size={12} />
+                                <span>View Uploaded Bill</span>
+                              </button>
+                            )}
                             <button 
                               className="btn btn-secondary" 
                               style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
@@ -878,6 +894,16 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                               <Eye size={12} />
                               <span>View</span>
                             </button>
+                            {p.contactAddress && p.contactAddress.startsWith('http') && (
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#D97706', borderColor: '#F59E0B' }}
+                                onClick={() => handleViewUploadedRow(p, 'Payment-Out')}
+                              >
+                                <Eye size={12} />
+                                <span>View Uploaded Bill</span>
+                              </button>
+                            )}
                             <button 
                               className="btn btn-secondary" 
                               style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
@@ -995,6 +1021,16 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                               <Eye size={12} />
                               <span>View</span>
                             </button>
+                            {e.contactAddress && e.contactAddress.startsWith('http') && (
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#D97706', borderColor: '#F59E0B' }}
+                                onClick={() => handleViewUploadedRow(e, 'Expense')}
+                              >
+                                <Eye size={12} />
+                                <span>View Uploaded Bill</span>
+                              </button>
+                            )}
                             <button 
                               className="btn btn-secondary" 
                               style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
@@ -1109,6 +1145,16 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                               <Eye size={12} />
                               <span>View</span>
                             </button>
+                            {p.contactAddress && p.contactAddress.startsWith('http') && (
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#D97706', borderColor: '#F59E0B' }}
+                                onClick={() => handleViewUploadedRow(p, 'Purchase Order')}
+                              >
+                                <Eye size={12} />
+                                <span>View Uploaded Bill</span>
+                              </button>
+                            )}
                             <button 
                               className="btn btn-secondary" 
                               style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
@@ -1225,14 +1271,24 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     <td>₹0.00</td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                        <button 
-                          className="btn btn-secondary" 
-                          style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          onClick={() => { setSelectedBill({ ...d, billNumber: d.invoiceNo, type: 'Debit Note' }); setShowPreviewModal(true); setViewingUploaded(false); }}
-                        >
-                          <Eye size={12} />
-                          <span>View</span>
-                        </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => { setSelectedBill({ ...d, billNumber: d.invoiceNo, type: 'Debit Note' }); setShowPreviewModal(true); setViewingUploaded(false); }}
+                            >
+                              <Eye size={12} />
+                              <span>View</span>
+                            </button>
+                            {d.contactAddress && d.contactAddress.startsWith('http') && (
+                              <button 
+                                className="btn btn-secondary" 
+                                style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#D97706', borderColor: '#F59E0B' }}
+                                onClick={() => handleViewUploadedRow(d, 'Debit Note')}
+                              >
+                                <Eye size={12} />
+                                <span>View Uploaded Bill</span>
+                              </button>
+                            )}
                         <button 
                           className="btn btn-secondary" 
                           style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
@@ -2316,15 +2372,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                 </div>
               </div>
 
-              {/* Uploaded Bill Image */}
-              {selectedBill.contactAddress && selectedBill.contactAddress.startsWith('http') && (
-                <div style={{ marginTop: '16px', borderTop: '1px solid #E5E7EB', paddingTop: '14px' }}>
-                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#8F5B1E', textTransform: 'uppercase' }}>Uploaded Bill</h4>
-                  <a href={selectedBill.contactAddress} target="_blank" rel="noopener noreferrer">
-                    <img src={selectedBill.contactAddress} alt="Bill" style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #E5E7EB' }} />
-                  </a>
-                </div>
-              )}              {/* Signatory */}
+                            {/* Signatory */}
               <div className="invoice-grid" style={{ borderTop: '1px solid #E5E7EB', marginTop: '30px', paddingTop: '16px', fontSize: '10px', color: '#4B5563' }}>
                 <div>
                   <h4 style={{ margin: '0 0 6px 0', color: '#8F5B1E', textTransform: 'uppercase' }}>Terms & Conditions</h4>

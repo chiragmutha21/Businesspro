@@ -49,10 +49,10 @@ export const Reports: React.FC = () => {
 
   const getPartyBalance = (customerName: string) => {
     const sales = transactions
-      .filter(t => t.type === 'sale' && t.contactName === customerName)
+      .filter(t => t.type?.toLowerCase() === 'sale' && t.contactName === customerName)
       .reduce((sum, t) => sum + t.totalAmount, 0);
     const purchases = transactions
-      .filter(t => t.type === 'purchase' && t.contactName === customerName)
+      .filter(t => t.type?.toLowerCase() === 'purchase' && t.contactName === customerName)
       .reduce((sum, t) => sum + t.totalAmount, 0);
     return sales - purchases;
   };
@@ -120,13 +120,13 @@ export const Reports: React.FC = () => {
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Total Sales</span>
                   <strong style={styles.aggValue}>
-                    ₹ {bizTransactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type?.toLowerCase() === 'sale').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
                   </strong>
                 </div>
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Total Purchase</span>
                   <strong style={{ ...styles.aggValue, color: '#EF4444' }}>
-                    ₹ {bizTransactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0).toFixed(2)}
                   </strong>
                 </div>
               </div>
@@ -216,13 +216,13 @@ export const Reports: React.FC = () => {
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Output GST (Tax on Sales)</span>
                   <strong style={styles.aggValue}>
-                    ₹ {bizTransactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type?.toLowerCase() === 'sale').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
                   </strong>
                 </div>
                 <div style={styles.aggCard}>
                   <span style={styles.aggLabel}>Input Tax Credit (ITC)</span>
                   <strong style={{ ...styles.aggValue, color: '#10B981' }}>
-                    ₹ {bizTransactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
+                    ₹ {bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase').reduce((sum, t) => sum + t.gstAmount, 0).toFixed(2)}
                   </strong>
                 </div>
               </div>
@@ -302,13 +302,13 @@ export const Reports: React.FC = () => {
                   <div style={styles.statusTile}>
                     <span>Net Margin</span>
                     <strong style={{ color: '#10B981' }}>₹ {
-                      (bizTransactions.filter(t => t.type === 'sale').reduce((sum, t) => sum + t.totalAmount, 0) -
-                       bizTransactions.filter(t => t.type === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0)).toFixed(2)
+                      (bizTransactions.filter(t => t.type?.toLowerCase() === 'sale').reduce((sum, t) => sum + t.totalAmount, 0) -
+                       bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase').reduce((sum, t) => sum + t.totalAmount, 0)).toFixed(2)
                     }</strong>
                   </div>
                   <div style={styles.statusTile}>
                     <span>Total Sales Transactions</span>
-                    <strong>{bizTransactions.filter(t => t.type === 'sale').length} Invoices</strong>
+                    <strong>{bizTransactions.filter(t => t.type?.toLowerCase() === 'sale').length} Invoices</strong>
                   </div>
                   <div style={styles.statusTile}>
                     <span>Active Stock Categories</span>
