@@ -201,7 +201,7 @@ interface AppContextProps {
 }
 
 const typeUIMap: Record<string, string> = {
-  'sale': 'Sale',
+  'sale': 'sale',
   'purchase': 'Purchase',
   'expense': 'Expense',
   'payment_in': 'Payment In',
@@ -216,7 +216,7 @@ const typeUIMap: Record<string, string> = {
 };
 
 const typeDBMap: Record<string, string> = {
-  'Sale': 'sale',
+  'sale': 'sale',
   'Purchase': 'purchase',
   'Expense': 'expense',
   'Payment In': 'payment_in',
