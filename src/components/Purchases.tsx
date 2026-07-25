@@ -35,7 +35,10 @@ interface PurchaseItem {
 }
 
 export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
-  const { customers, activeBusiness, transactions, deleteTransaction } = useApp();
+  const { customers, activeBusiness, transactions, deleteTransaction, addTransaction, updateTransaction } = useApp();
+
+  const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
   // State to manage showing modals
   const [showBillModal, setShowBillModal] = useState(false);
@@ -50,8 +53,12 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const [billNumber, setBillNumber] = useState('');
   const [billDate, setBillDate] = useState('12/07/2026');
   const [paymentType, setPaymentType] = useState('Cash');
+  const [showPaymentTypeOptions, setShowPaymentTypeOptions] = useState(false);
   const [roundOff, setRoundOff] = useState(false);
   const [totalAmount, setTotalAmount] = useState<number>(0);
+  const [billImageUrl, setBillImageUrl] = useState('');
+  const [uploadingBill, setUploadingBill] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Specific Payment Out States
   const [receiptNo, setReceiptNo] = useState('1');
@@ -193,103 +200,255 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     ]);
   };
 
-  const savePurchaseBill = () => {
-    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
-    /*
-    const record = {
-      id: String(purchaseBills.length + 1),
-      businessId: activeBusiness?.id,
-      partyName: party ? party.name : 'Unknown Party',
-      phone: partyPhone,
-      billNumber: billNumber || `PB-${purchaseBills.length + 1}`,
+  const savePurchaseBill = async () => {
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    const productsPayload = items.filter(i => i.name).map(i => ({
+      productId: 'custom',
+      productName: i.name,
+      quantity: i.qty,
+      price: i.priceUnit,
+      gst: i.taxPercentage || 0,
+      total: i.amount
+    }));
+    const finalTotal = roundOff ? Math.round(totalAmount) : totalAmount;
+    const gstAmt = items.reduce((acc, curr) => acc + (curr.taxAmount || 0), 0);
+
+    const txData: any = {
+      type: 'Purchase',
+      invoiceNo: billNumber || `PB-${Date.now().toString(36)}`,
       date: billDate,
-      total: roundOff ? Math.round(totalAmount) : totalAmount,
-      paymentType
+      contactName: party ? party.name : '',
+      contactPhone: partyPhone,
+      contactGst: '',
+      contactAddress: billImageUrl || '',
+      products: productsPayload,
+      discount: 0,
+      gstAmount: gstAmt,
+      totalAmount: finalTotal,
+      paymentStatus: 'Paid',
+      paymentType: paymentType,
+      paymentDate: billDate,
+      chequeNo: '',
+      bankName: '',
+      ifscCode: ''
     };
-    */
-    // setPurchaseBills([...purchaseBills, record]);
-    setShowBillModal(false);
-    resetForm();
-    alert('Purchase Bill saved successfully!');
+
+    try {
+      if (editingId) {
+        await updateTransaction(editingId, txData);
+        setEditingId(null);
+      } else {
+        await addTransaction(txData);
+      }
+      setShowBillModal(false);
+      resetForm();
+      alert(editingId ? 'Purchase Bill updated!' : 'Purchase Bill saved successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error saving purchase bill');
+    }
   };
 
-  const savePaymentOut = () => {
-    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
-    /*
-    const record = {
-      id: String(paymentsOut.length + 1),
-      businessId: activeBusiness?.id,
-      partyName: party ? party.name : 'Unknown Party',
-      receiptNo,
-      date: billDate,
-      paid: parseFloat(paidAmt) || 0,
-      paymentType,
-      description
-    };
-    */
-    // setPaymentsOut([...paymentsOut, record]);
-    setShowPaymentOutModal(false);
-    resetForm();
-    alert('Payment-Out recorded successfully!');
+  const savePaymentOut = async () => {
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    try {
+      await addTransaction({
+        type: 'Payment Out',
+        invoiceNo: receiptNo || `PO-${Date.now().toString(36)}`,
+        date: billDate,
+        contactName: party ? party.name : '',
+        contactPhone: partyPhone,
+        contactGst: '',
+        contactAddress: '',
+        products: [],
+        discount: 0,
+        gstAmount: 0,
+        totalAmount: parseFloat(paidAmt) || 0,
+        paymentStatus: 'Paid',
+        paymentType: paymentType,
+        paymentDate: billDate,
+        chequeNo: '',
+        bankName: '',
+        ifscCode: ''
+      });
+      setShowPaymentOutModal(false);
+      resetForm();
+      alert('Payment-Out recorded successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error saving payment out');
+    }
   };
 
-  const saveExpense = () => {
-    /*
-    const record = {
-      id: String(expenses.length + 1),
-      businessId: activeBusiness?.id,
-      category: expenseCategory || 'General Expense',
-      expenseNo,
-      date: billDate,
-      total: roundOff ? Math.round(totalAmount) : totalAmount,
-      paymentType
-    };
-    */
-    // setExpenses([...expenses, record]);
-    setShowExpenseModal(false);
-    resetForm();
-    alert('Expense recorded successfully!');
+  const saveExpense = async () => {
+    try {
+      await addTransaction({
+        type: 'Expense',
+        invoiceNo: expenseNo || `EX-${Date.now().toString(36)}`,
+        date: billDate,
+        contactName: expenseCategory || 'General Expense',
+        contactPhone: '',
+        contactGst: '',
+        contactAddress: '',
+        products: items.filter(i => i.name).map(i => ({
+          productId: 'custom',
+          productName: i.name,
+          quantity: i.qty,
+          price: i.priceUnit,
+          gst: i.taxPercentage || 0,
+          total: i.amount
+        })),
+        discount: 0,
+        gstAmount: items.reduce((acc, curr) => acc + (curr.taxAmount || 0), 0),
+        totalAmount: roundOff ? Math.round(totalAmount) : totalAmount,
+        paymentStatus: 'Paid',
+        paymentType: paymentType,
+        paymentDate: billDate,
+        chequeNo: '',
+        bankName: '',
+        ifscCode: ''
+      });
+      setShowExpenseModal(false);
+      resetForm();
+      alert('Expense recorded successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error saving expense');
+    }
   };
 
-  const savePurchaseOrder = () => {
-    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
-    /*
-    const record = {
-      id: String(purchaseOrders.length + 1),
-      businessId: activeBusiness?.id,
-      partyName: party ? party.name : 'Unknown Party',
-      orderNo: orderNo || `PO-${purchaseOrders.length + 1}`,
-      date: billDate,
-      dueDate,
-      total: roundOff ? Math.round(totalAmount) : totalAmount,
-      paymentType
-    };
-    */
-    // setPurchaseOrders([...purchaseOrders, record]);
-    setShowOrderModal(false);
-    resetForm();
-    alert('Purchase Order saved successfully!');
+  const savePurchaseOrder = async () => {
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    try {
+      await addTransaction({
+        type: 'Purchase Order',
+        invoiceNo: orderNo || `POR-${Date.now().toString(36)}`,
+        date: billDate,
+        contactName: party ? party.name : '',
+        contactPhone: partyPhone,
+        contactGst: '',
+        contactAddress: dueDate,
+        products: items.filter(i => i.name).map(i => ({
+          productId: 'custom',
+          productName: i.name,
+          quantity: i.qty,
+          price: i.priceUnit,
+          gst: i.taxPercentage || 0,
+          total: i.amount
+        })),
+        discount: 0,
+        gstAmount: items.reduce((acc, curr) => acc + (curr.taxAmount || 0), 0),
+        totalAmount: roundOff ? Math.round(totalAmount) : totalAmount,
+        paymentStatus: 'Pending',
+        paymentType: paymentType,
+        paymentDate: '',
+        chequeNo: '',
+        bankName: '',
+        ifscCode: ''
+      });
+      setShowOrderModal(false);
+      resetForm();
+      alert('Purchase Order saved successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error saving purchase order');
+    }
   };
 
-  const saveDebitNote = () => {
-    // const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
-    /*
-    const record = {
-      id: String(debitNotes.length + 1),
-      businessId: activeBusiness?.id,
-      partyName: party ? party.name : 'Unknown Party',
-      returnNo,
-      origBillNo,
-      origBillDate,
-      date: billDate,
-      total: roundOff ? Math.round(totalAmount) : totalAmount,
-      paymentType
+  const saveDebitNote = async () => {
+    const party = customers.filter(c => c.businessId === activeBusiness?.id).find(c => c.id === partyId);
+    try {
+      await addTransaction({
+        type: 'Debit Note',
+        invoiceNo: returnNo || `DN-${Date.now().toString(36)}`,
+        date: billDate,
+        contactName: party ? party.name : '',
+        contactPhone: partyPhone,
+        contactGst: origBillNo,
+        contactAddress: origBillDate,
+        products: items.filter(i => i.name).map(i => ({
+          productId: 'custom',
+          productName: i.name,
+          quantity: i.qty,
+          price: i.priceUnit,
+          gst: i.taxPercentage || 0,
+          total: i.amount
+        })),
+        discount: 0,
+        gstAmount: items.reduce((acc, curr) => acc + (curr.taxAmount || 0), 0),
+        totalAmount: roundOff ? Math.round(totalAmount) : totalAmount,
+        paymentStatus: 'Paid',
+        paymentType: paymentType,
+        paymentDate: billDate,
+        chequeNo: '',
+        bankName: '',
+        ifscCode: ''
+      });
+      setShowDebitNoteModal(false);
+      resetForm();
+      alert('Debit Note (Purchase Return) saved successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error saving debit note');
+    }
+  };
+
+  const handleUploadBill = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,application/pdf';
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      setUploadingBill(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        setBillImageUrl(data.secure_url);
+        alert('Bill uploaded successfully!');
+      } catch (err) {
+        console.error(err);
+        alert('Error uploading bill');
+      } finally {
+        setUploadingBill(false);
+      }
     };
-    */
-    // setDebitNotes([...debitNotes, record]);
-    setShowDebitNoteModal(false);
-    resetForm();
-    alert('Debit Note (Purchase Return) saved successfully!');
+    input.click();
+  };
+
+  const handleEditBill = (b: any) => {
+    setEditingId(b.id);
+    const party = customers.find(c => c.name === b.contactName);
+    setPartyId(party?.id || '');
+    setPartyPhone(b.contactPhone || '');
+    setBillNumber(b.invoiceNo || '');
+    setBillDate(b.date || '');
+    setPaymentType(b.paymentType || 'Cash');
+    setTotalAmount(b.totalAmount || 0);
+    setBillImageUrl(b.contactAddress || '');
+    setRoundOff(false);
+    const mappedItems = (b.products || []).map((p: any) => ({
+      id: generateUniqueId(),
+      name: p.productName || '',
+      qty: p.quantity || 0,
+      unit: 'NONE',
+      priceUnit: p.price || 0,
+      priceTaxMode: 'Without Tax' as const,
+      taxPercentage: 0,
+      taxAmount: 0,
+      amount: p.total || 0
+    }));
+    setItems(mappedItems.length > 0 ? mappedItems : [{
+      id: generateUniqueId(), name: '', qty: 0, unit: 'NONE', priceUnit: 0,
+      priceTaxMode: 'Without Tax' as const, taxPercentage: 0, taxAmount: 0, amount: 0
+    }]);
+    setShowBillModal(true);
   };
 
   const triggerCalculator = () => {
@@ -348,14 +507,32 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                         <td>{b.paymentType}</td>
                         <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{b.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => { setSelectedBill({ ...b, type: 'Purchase Bill' }); setShowPreviewModal(true); }}
-                          >
-                            <Eye size={12} />
-                            <span>Preview</span>
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => { setSelectedBill({ ...b, type: 'Purchase Bill' }); setShowPreviewModal(true); }}
+                            >
+                              <Eye size={12} />
+                              <span>View</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
+                              onClick={() => handleEditBill(b)}
+                            >
+                              <FileText size={12} />
+                              <span>Edit</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-danger)' }}
+                              onClick={() => { if (window.confirm('Delete this purchase bill?')) deleteTransaction(b.id); }}
+                            >
+                              <Trash2 size={12} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -874,7 +1051,14 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       <option value="Online">Online</option>
                     </select>
                   </div>
-                  <button type="button" style={styles.linkBtn}>+ Add Payment type</button>
+                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                  {showPaymentTypeOptions && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', fontSize: '12px', color: '#4B5563', marginRight: '8px', marginBottom: '6px' }}>
@@ -894,10 +1078,13 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               <div style={styles.modalFooter}>
-                <button type="button" style={styles.uploadBillBtn}>
+                <button type="button" style={styles.uploadBillBtn} onClick={handleUploadBill} disabled={uploadingBill}>
                   <Upload size={14} />
-                  <span>Upload Bill</span>
+                  <span>{uploadingBill ? 'Uploading...' : billImageUrl ? '✅ Bill Uploaded' : 'Upload Bill'}</span>
                 </button>
+                {billImageUrl && (
+                  <a href={billImageUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--color-primary)', textDecoration: 'underline', marginLeft: '8px' }}>View Uploaded Bill</a>
+                )}
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button type="button" style={styles.shareBtn}><span>Share</span><Share2 size={12} /></button>
                   <button type="button" style={styles.saveBtnBlue} onClick={savePurchaseBill}>Save</button>
@@ -956,7 +1143,14 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       <option value="Online">Online</option>
                     </select>
                   </div>
-                  <button type="button" style={styles.linkBtn}>+ Add Payment type</button>
+                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                  {showPaymentTypeOptions && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="form-group" style={{ width: '200px' }}>
                   <label style={styles.fieldLabel}>Paid</label>
@@ -1103,7 +1297,14 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       <option value="Online">Online</option>
                     </select>
                   </div>
-                  <button type="button" style={styles.linkBtn}>+ Add Payment type</button>
+                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                  {showPaymentTypeOptions && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', fontSize: '12px', color: '#4B5563', marginRight: '8px', marginBottom: '6px' }}>
@@ -1270,7 +1471,14 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       <option value="Online">Online</option>
                     </select>
                   </div>
-                  <button type="button" style={styles.linkBtn}>+ Add Payment type</button>
+                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                  {showPaymentTypeOptions && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1453,7 +1661,14 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       <option value="Online">Online</option>
                     </select>
                   </div>
-                  <button type="button" style={styles.linkBtn}>+ Add Payment type</button>
+                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                  {showPaymentTypeOptions && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1620,7 +1835,15 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                 </div>
               </div>
 
-              {/* Signatory */}
+              {/* Uploaded Bill Image */}
+              {selectedBill.contactAddress && selectedBill.contactAddress.startsWith('http') && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid #E5E7EB', paddingTop: '14px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#8F5B1E', textTransform: 'uppercase' }}>Uploaded Bill</h4>
+                  <a href={selectedBill.contactAddress} target="_blank" rel="noopener noreferrer">
+                    <img src={selectedBill.contactAddress} alt="Bill" style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #E5E7EB' }} />
+                  </a>
+                </div>
+              )}              {/* Signatory */}
               <div className="invoice-grid" style={{ borderTop: '1px solid #E5E7EB', marginTop: '30px', paddingTop: '16px', fontSize: '10px', color: '#4B5563' }}>
                 <div>
                   <h4 style={{ margin: '0 0 6px 0', color: '#8F5B1E', textTransform: 'uppercase' }}>Terms & Conditions</h4>
