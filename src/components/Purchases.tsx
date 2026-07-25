@@ -60,6 +60,12 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const [uploadingBill, setUploadingBill] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Payment Detail Fields
+  const [paymentDetails, setPaymentDetails] = useState<any>({
+    utrNumber: '', accountNumber: '', ifscCode: '', upiId: '',
+    transactionId: '', cardLast4: '', creditDueDate: '', paidAmount: '', paymentNote: ''
+  });
+
   // Specific Payment Out States
   const [receiptNo, setReceiptNo] = useState('1');
   const [paidAmt, setPaidAmt] = useState('');
@@ -198,6 +204,11 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
         amount: 0
       }
     ]);
+    setBillImageUrl('');
+    setPaymentDetails({
+      utrNumber: '', accountNumber: '', ifscCode: '', upiId: '',
+      transactionId: '', cardLast4: '', creditDueDate: '', paidAmount: '', paymentNote: ''
+    });
   };
 
   const savePurchaseBill = async () => {
@@ -228,7 +239,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       paymentStatus: 'Paid',
       paymentType: paymentType,
       paymentDate: billDate,
-      chequeNo: '',
+      chequeNo: (paymentType !== 'Cash' && paymentType !== 'Cheque' && paymentType !== 'Online') ? JSON.stringify(paymentDetails) : '',
       bankName: '',
       ifscCode: ''
     };
@@ -267,7 +278,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
         paymentStatus: 'Paid',
         paymentType: paymentType,
         paymentDate: billDate,
-        chequeNo: '',
+        chequeNo: (paymentType !== 'Cash' && paymentType !== 'Cheque' && paymentType !== 'Online') ? JSON.stringify(paymentDetails) : '',
         bankName: '',
         ifscCode: ''
       });
@@ -304,7 +315,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
         paymentStatus: 'Paid',
         paymentType: paymentType,
         paymentDate: billDate,
-        chequeNo: '',
+        chequeNo: (paymentType !== 'Cash' && paymentType !== 'Cheque' && paymentType !== 'Online') ? JSON.stringify(paymentDetails) : '',
         bankName: '',
         ifscCode: ''
       });
@@ -342,7 +353,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
         paymentStatus: 'Pending',
         paymentType: paymentType,
         paymentDate: '',
-        chequeNo: '',
+        chequeNo: (paymentType !== 'Cash' && paymentType !== 'Cheque' && paymentType !== 'Online') ? JSON.stringify(paymentDetails) : '',
         bankName: '',
         ifscCode: ''
       });
@@ -380,7 +391,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
         paymentStatus: 'Paid',
         paymentType: paymentType,
         paymentDate: billDate,
-        chequeNo: '',
+        chequeNo: (paymentType !== 'Cash' && paymentType !== 'Cheque' && paymentType !== 'Online') ? JSON.stringify(paymentDetails) : '',
         bankName: '',
         ifscCode: ''
       });
@@ -448,7 +459,130 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       id: generateUniqueId(), name: '', qty: 0, unit: 'NONE', priceUnit: 0,
       priceTaxMode: 'Without Tax' as const, taxPercentage: 0, taxAmount: 0, amount: 0
     }]);
+    // Restore payment details if stored
+    try {
+      const details = b.chequeNo ? JSON.parse(b.chequeNo) : {};
+      setPaymentDetails({
+        utrNumber: details.utrNumber || '', accountNumber: details.accountNumber || '',
+        ifscCode: details.ifscCode || '', upiId: details.upiId || '',
+        transactionId: details.transactionId || '', cardLast4: details.cardLast4 || '',
+        creditDueDate: details.creditDueDate || '', paidAmount: details.paidAmount || '',
+        paymentNote: details.paymentNote || ''
+      });
+    } catch { setPaymentDetails({ utrNumber: '', accountNumber: '', ifscCode: '', upiId: '', transactionId: '', cardLast4: '', creditDueDate: '', paidAmount: '', paymentNote: '' }); }
     setShowBillModal(true);
+  };
+
+  const renderPaymentDetailsForm = () => {
+    if (paymentType === 'Bank Transfer') {
+      return (
+        <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#F0F9FF', borderRadius: '8px', border: '1px solid #BAE6FD', width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={{ fontSize: '12px', color: '#0369A1', margin: '0', fontStyle: 'italic', fontWeight: '500' }}>
+            Note: Please enter the bank account details of the recipient you paid to.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>UTR Number *</label>
+              <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="UTR / Ref Number" value={paymentDetails.utrNumber || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, utrNumber: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Amount *</label>
+              <input type="number" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="0.00" value={paymentDetails.paidAmount || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paidAmount: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Account Number *</label>
+              <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="Account No." value={paymentDetails.accountNumber || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, accountNumber: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>IFSC Code *</label>
+              <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="IFSC Code" value={paymentDetails.ifscCode || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, ifscCode: e.target.value })} required />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Payment Note</label>
+            <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="Enter payment note" value={paymentDetails.paymentNote || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentNote: e.target.value })} />
+          </div>
+        </div>
+      );
+    }
+    if (paymentType === 'UPI') {
+      return (
+        <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#F0FDF4', borderRadius: '8px', border: '1px solid #BBF7D0', width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={{ fontSize: '12px', color: '#166534', margin: '0', fontStyle: 'italic', fontWeight: '500' }}>
+            Note: Please enter the UPI details of the recipient you paid to.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>UPI ID *</label>
+              <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="name@upi" value={paymentDetails.upiId || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, upiId: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Transaction ID *</label>
+              <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="Transaction ID" value={paymentDetails.transactionId || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, transactionId: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Amount *</label>
+              <input type="number" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="0.00" value={paymentDetails.paidAmount || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paidAmount: e.target.value })} required />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Payment Note</label>
+            <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="Enter payment note" value={paymentDetails.paymentNote || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentNote: e.target.value })} />
+          </div>
+        </div>
+      );
+    }
+    if (paymentType === 'Card') {
+      return (
+        <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#FFF7ED', borderRadius: '8px', border: '1px solid #FED7AA', width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={{ fontSize: '12px', color: '#9A3412', margin: '0', fontStyle: 'italic', fontWeight: '500' }}>
+            Note: Please enter the details of the card transaction.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Card Last 4 Digits</label>
+              <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="XXXX" maxLength={4} value={paymentDetails.cardLast4 || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, cardLast4: e.target.value })} />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Transaction ID *</label>
+              <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="Transaction ID" value={paymentDetails.transactionId || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, transactionId: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Amount *</label>
+              <input type="number" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="0.00" value={paymentDetails.paidAmount || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paidAmount: e.target.value })} required />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Payment Note</label>
+            <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="Enter payment note" value={paymentDetails.paymentNote || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentNote: e.target.value })} />
+          </div>
+        </div>
+      );
+    }
+    if (paymentType === 'Credit') {
+      return (
+        <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#FDF2F8', borderRadius: '8px', border: '1px solid #FBCFE8', width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={{ fontSize: '12px', color: '#9D174D', margin: '0', fontStyle: 'italic', fontWeight: '500' }}>
+            Note: Please enter the credit details.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Credit Amount *</label>
+              <input type="number" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="0.00" value={paymentDetails.paidAmount || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paidAmount: e.target.value })} required />
+            </div>
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Due Date *</label>
+              <input type="date" className="form-control" style={{ fontSize: '12px', height: '32px' }} value={paymentDetails.creditDueDate || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, creditDueDate: e.target.value })} required />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '2px' }}>Payment Note</label>
+            <input type="text" className="form-control" style={{ fontSize: '12px', height: '32px' }} placeholder="Enter payment note" value={paymentDetails.paymentNote || ''} onChange={(e) => setPaymentDetails({ ...paymentDetails, paymentNote: e.target.value })} />
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   const triggerCalculator = () => {
@@ -504,7 +638,27 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                         <td>{formatDateDDMMYYYY(b.date)}</td>
                         <td style={{ fontWeight: '600' }}>{b.contactName}</td>
                         <td>{b.contactPhone}</td>
-                        <td>{b.paymentType}</td>
+                        <td>
+                          <div>
+                            <span style={{ fontWeight: '500' }}>{b.paymentType}</span>
+                            {(() => {
+                              if (!b.chequeNo) return null;
+                              try {
+                                const details = JSON.parse(b.chequeNo);
+                                return (
+                                  <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                    {details.utrNumber && <span>UTR: {details.utrNumber}</span>}
+                                    {details.upiId && <span>UPI: {details.upiId}</span>}
+                                    {details.transactionId && <span>Txn ID: {details.transactionId}</span>}
+                                    {details.cardLast4 && <span>Card: *{details.cardLast4}</span>}
+                                  </div>
+                                );
+                              } catch {
+                                return null;
+                              }
+                            })()}
+                          </div>
+                        </td>
                         <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{b.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
@@ -572,7 +726,27 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     <td style={{ fontWeight: '700' }}>{p.invoiceNo}</td>
                     <td>{formatDateDDMMYYYY(p.date)}</td>
                     <td style={{ fontWeight: '600' }}>{p.contactName}</td>
-                    <td>{p.paymentType}</td>
+                    <td>
+                      <div>
+                        <span style={{ fontWeight: '500' }}>{p.paymentType}</span>
+                        {(() => {
+                          if (!p.chequeNo) return null;
+                          try {
+                            const details = JSON.parse(p.chequeNo);
+                            return (
+                              <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                {details.utrNumber && <span>UTR: {details.utrNumber}</span>}
+                                {details.upiId && <span>UPI: {details.upiId}</span>}
+                                {details.transactionId && <span>Txn ID: {details.transactionId}</span>}
+                                {details.cardLast4 && <span>Card: *{details.cardLast4}</span>}
+                              </div>
+                            );
+                          } catch {
+                            return null;
+                          }
+                        })()}
+                      </div>
+                    </td>
                     <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>₹{p.totalAmount.toFixed(2)}</td>
                     <td>{p.contactAddress || '-'}</td>
                     <td style={{ textAlign: 'right' }}>
@@ -643,7 +817,27 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                         <td style={{ fontWeight: '700' }}>{e.invoiceNo}</td>
                         <td>{formatDateDDMMYYYY(e.date)}</td>
                         <td style={{ fontWeight: '600' }}>{e.contactName}</td>
-                        <td>{e.paymentType}</td>
+                        <td>
+                          <div>
+                            <span style={{ fontWeight: '500' }}>{e.paymentType}</span>
+                            {(() => {
+                              if (!e.chequeNo) return null;
+                              try {
+                                const details = JSON.parse(e.chequeNo);
+                                return (
+                                  <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                    {details.utrNumber && <span>UTR: {details.utrNumber}</span>}
+                                    {details.upiId && <span>UPI: {details.upiId}</span>}
+                                    {details.transactionId && <span>Txn ID: {details.transactionId}</span>}
+                                    {details.cardLast4 && <span>Card: *{details.cardLast4}</span>}
+                                  </div>
+                                );
+                              } catch {
+                                return null;
+                              }
+                            })()}
+                          </div>
+                        </td>
                         <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{e.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button 
@@ -711,7 +905,27 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                         <td>{formatDateDDMMYYYY(p.date)}</td>
                         <td>{formatDateDDMMYYYY(p.paymentDate || '')}</td>
                         <td style={{ fontWeight: '600' }}>{p.contactName}</td>
-                        <td>{p.paymentType}</td>
+                        <td>
+                      <div>
+                        <span style={{ fontWeight: '500' }}>{p.paymentType}</span>
+                        {(() => {
+                          if (!p.chequeNo) return null;
+                          try {
+                            const details = JSON.parse(p.chequeNo);
+                            return (
+                              <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                {details.utrNumber && <span>UTR: {details.utrNumber}</span>}
+                                {details.upiId && <span>UPI: {details.upiId}</span>}
+                                {details.transactionId && <span>Txn ID: {details.transactionId}</span>}
+                                {details.cardLast4 && <span>Card: *{details.cardLast4}</span>}
+                              </div>
+                            );
+                          } catch {
+                            return null;
+                          }
+                        })()}
+                      </div>
+                    </td>
                         <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{p.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button 
@@ -1042,23 +1256,26 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               <div style={styles.bottomBlock}>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div className="form-group">
-                    <label style={styles.fieldLabel}>Payment Type</label>
-                    <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
-                      <option value="Cash">Cash</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Online">Online</option>
-                    </select>
-                  </div>
-                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
-                  {showPaymentTypeOptions && (
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
-                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
-                      ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <div className="form-group">
+                      <label style={styles.fieldLabel}>Payment Type</label>
+                      <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                        <option value="Cash">Cash</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Online">Online</option>
+                      </select>
                     </div>
-                  )}
+                    <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                    {showPaymentTypeOptions && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                          <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {renderPaymentDetailsForm()}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', fontSize: '12px', color: '#4B5563', marginRight: '8px', marginBottom: '6px' }}>
@@ -1134,23 +1351,26 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <div className="form-group">
-                    <label style={styles.fieldLabel}>Payment Type</label>
-                    <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
-                      <option value="Cash">Cash</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Online">Online</option>
-                    </select>
-                  </div>
-                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
-                  {showPaymentTypeOptions && (
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
-                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
-                      ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div className="form-group">
+                      <label style={styles.fieldLabel}>Payment Type</label>
+                      <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                        <option value="Cash">Cash</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Online">Online</option>
+                      </select>
                     </div>
-                  )}
+                    <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                    {showPaymentTypeOptions && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                          <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {renderPaymentDetailsForm()}
                 </div>
                 <div className="form-group" style={{ width: '200px' }}>
                   <label style={styles.fieldLabel}>Paid</label>
@@ -1288,23 +1508,26 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               <div style={styles.bottomBlock}>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div className="form-group">
-                    <label style={styles.fieldLabel}>Payment Type</label>
-                    <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
-                      <option value="Cash">Cash</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Online">Online</option>
-                    </select>
-                  </div>
-                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
-                  {showPaymentTypeOptions && (
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
-                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
-                      ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <div className="form-group">
+                      <label style={styles.fieldLabel}>Payment Type</label>
+                      <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                        <option value="Cash">Cash</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Online">Online</option>
+                      </select>
                     </div>
-                  )}
+                    <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                    {showPaymentTypeOptions && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                          <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {renderPaymentDetailsForm()}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end', fontSize: '12px', color: '#4B5563', marginRight: '8px', marginBottom: '6px' }}>
@@ -1462,23 +1685,26 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               <div style={styles.bottomBlock}>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div className="form-group">
-                    <label style={styles.fieldLabel}>Payment Type</label>
-                    <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
-                      <option value="Cash">Cash</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Online">Online</option>
-                    </select>
-                  </div>
-                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
-                  {showPaymentTypeOptions && (
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
-                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
-                      ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <div className="form-group">
+                      <label style={styles.fieldLabel}>Payment Type</label>
+                      <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                        <option value="Cash">Cash</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Online">Online</option>
+                      </select>
                     </div>
-                  )}
+                    <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                    {showPaymentTypeOptions && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                          <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {renderPaymentDetailsForm()}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1652,23 +1878,26 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               <div style={styles.bottomBlock}>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                  <div className="form-group">
-                    <label style={styles.fieldLabel}>Payment Type</label>
-                    <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
-                      <option value="Cash">Cash</option>
-                      <option value="Cheque">Cheque</option>
-                      <option value="Online">Online</option>
-                    </select>
-                  </div>
-                  <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
-                  {showPaymentTypeOptions && (
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                      {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
-                        <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
-                      ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start', flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <div className="form-group">
+                      <label style={styles.fieldLabel}>Payment Type</label>
+                      <select style={styles.bottomSelect} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                        <option value="Cash">Cash</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Online">Online</option>
+                      </select>
                     </div>
-                  )}
+                    <button type="button" style={styles.linkBtn} onClick={() => setShowPaymentTypeOptions(!showPaymentTypeOptions)}>+ Add Payment type</button>
+                    {showPaymentTypeOptions && (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {['UPI', 'Bank Transfer', 'Card', 'Credit'].map(t => (
+                          <button key={t} type="button" style={{ ...styles.linkBtn, fontSize: '11px', padding: '2px 8px', border: '1px solid #D1D5DB', borderRadius: '4px', background: paymentType === t ? 'var(--color-primary)' : 'transparent', color: paymentType === t ? '#fff' : '#4B5563' }} onClick={() => { setPaymentType(t); setShowPaymentTypeOptions(false); }}>{t}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {renderPaymentDetailsForm()}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1832,6 +2061,28 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                       <span>{selectedBill.paymentType}</span>
                     </div>
                   )}
+                  {(() => {
+                    if (!selectedBill.chequeNo) return null;
+                    try {
+                      const details = JSON.parse(selectedBill.chequeNo);
+                      return (
+                        <div style={{ padding: '8px 12px', backgroundColor: '#F3F4F6', borderRadius: '6px', margin: '4px 12px 10px 12px', fontSize: '11px', color: '#374151', border: '1px solid #E5E7EB' }}>
+                          <strong style={{ display: 'block', marginBottom: '4px', color: '#1F2937' }}>Payment Details:</strong>
+                          {details.utrNumber && <div><strong>UTR / Ref No:</strong> {details.utrNumber}</div>}
+                          {details.accountNumber && <div><strong>Account No:</strong> {details.accountNumber}</div>}
+                          {details.ifscCode && <div><strong>IFSC Code:</strong> {details.ifscCode}</div>}
+                          {details.upiId && <div><strong>UPI ID:</strong> {details.upiId}</div>}
+                          {details.transactionId && <div><strong>Txn ID:</strong> {details.transactionId}</div>}
+                          {details.cardLast4 && <div><strong>Card Last 4:</strong> {details.cardLast4}</div>}
+                          {details.creditDueDate && <div><strong>Credit Due Date:</strong> {details.creditDueDate}</div>}
+                          {details.paidAmount && <div><strong>Paid Amount:</strong> ₹{parseFloat(details.paidAmount).toFixed(2)}</div>}
+                          {details.paymentNote && <div style={{ fontStyle: 'italic', marginTop: '4px', borderTop: '1px solid #E5E7EB', paddingTop: '4px' }}><strong>Note:</strong> {details.paymentNote}</div>}
+                        </div>
+                      );
+                    } catch {
+                      return null;
+                    }
+                  })()}
                 </div>
               </div>
 
