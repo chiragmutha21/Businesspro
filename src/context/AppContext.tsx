@@ -200,6 +200,47 @@ interface AppContextProps {
   };
 }
 
+const typeUIMap: Record<string, string> = {
+  'sale': 'Sale',
+  'purchase': 'Purchase',
+  'expense': 'Expense',
+  'payment_in': 'Payment In',
+  'payment_out': 'Payment Out',
+  'estimate': 'Estimate',
+  'proforma': 'Proforma Invoice',
+  'delivery_challan': 'Delivery Challan',
+  'sale_order': 'Sale Order',
+  'sale_return': 'Sale Return',
+  'purchase_order': 'Purchase Order',
+  'debit_note': 'Debit Note'
+};
+
+const typeDBMap: Record<string, string> = {
+  'Sale': 'sale',
+  'Purchase': 'purchase',
+  'Expense': 'expense',
+  'Payment In': 'payment_in',
+  'Payment Out': 'payment_out',
+  'Estimate': 'estimate',
+  'Proforma Invoice': 'proforma',
+  'Delivery Challan': 'delivery_challan',
+  'Sale Order': 'sale_order',
+  'Sale Return': 'sale_return',
+  'Purchase Order': 'purchase_order',
+  'Debit Note': 'debit_note',
+  'Estimate/Quotation': 'estimate',
+  'Sale Return/ Credit Note': 'sale_return',
+  'Debit Note (Purchase Return)': 'debit_note'
+};
+
+const toUIDbType = (type: string): string => {
+  return typeDBMap[type] || type.toLowerCase();
+};
+
+const toUIFrontendType = (type: string): string => {
+  return typeUIMap[type] || type;
+};
+
 const toISODate = (dateStr: string | null | undefined): string | null => {
   if (!dateStr) return null;
   const str = dateStr.trim();
@@ -362,7 +403,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTransactions((txData || []).map((t) => ({
           id: t.id,
           businessId: t.business_id,
-          type: t.type,
+          type: toUIFrontendType(t.type),
           invoiceNo: t.invoice_no,
           date: t.date,
           contactName: t.contact_name,
@@ -988,7 +1029,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const newTransaction: Transaction = {
         id: txData.id,
         businessId: txData.business_id,
-        type: 'purchase',
+        type: toUIFrontendType(txData.type),
         invoiceNo: txData.invoice_no,
         date: txData.date,
         contactName: txData.contact_name,
@@ -1069,7 +1110,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .insert([{
           user_id: user.id,
           business_id: currentBusinessId,
-          type: tx.type,
+          type: toUIDbType(tx.type),
           invoice_no: tx.invoiceNo || null,
           date: toISODate(tx.date) || null,
           contact_name: tx.contactName || null,
@@ -1095,7 +1136,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const newTx: Transaction = {
         id: data.id,
         businessId: data.business_id,
-        type: data.type,
+        type: toUIFrontendType(data.type),
         invoiceNo: data.invoice_no,
         date: data.date,
         contactName: data.contact_name,
@@ -1124,7 +1165,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
     if (user) {
       const dbUpdates: any = {};
-      if (updates.type !== undefined) dbUpdates.type = updates.type;
+      if (updates.type !== undefined) dbUpdates.type = toUIDbType(updates.type);
       if (updates.invoiceNo !== undefined) dbUpdates.invoice_no = updates.invoiceNo;
       if (updates.date !== undefined) dbUpdates.date = toISODate(updates.date);
       if (updates.contactName !== undefined) dbUpdates.contact_name = updates.contactName;
