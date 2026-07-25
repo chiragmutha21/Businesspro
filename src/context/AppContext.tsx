@@ -200,6 +200,30 @@ interface AppContextProps {
   };
 }
 
+const toISODate = (dateStr: string | null | undefined): string | null => {
+  if (!dateStr) return null;
+  const str = dateStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  
+  // DD-MM-YYYY
+  let parts = str.split('-');
+  if (parts.length === 3) {
+    if (parts[2].length === 4) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  
+  // DD/MM/YYYY
+  parts = str.split('/');
+  if (parts.length === 3) {
+    if (parts[2].length === 4) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  
+  return str;
+};
+
 const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -688,7 +712,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           business_id: currentBusinessId,
           type: 'sale',
           invoice_no: invoice.invoiceNo,
-          date: invoice.date,
+          date: toISODate(invoice.date),
           contact_name: invoice.contactName,
           contact_phone: invoice.contactPhone,
           contact_gst: invoice.contactGst,
@@ -699,7 +723,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           total_amount: invoice.totalAmount,
           payment_status: invoice.paymentStatus,
           ...(invoice.paymentType ? { payment_type: invoice.paymentType } : {}),
-          ...((invoice.paymentDate || invoice.receivedAmount !== undefined) ? { payment_date: invoice.receivedAmount !== undefined ? `${invoice.paymentDate || ''}||${invoice.receivedAmount}` : invoice.paymentDate } : {}),
+          ...((invoice.paymentDate || invoice.receivedAmount !== undefined) ? { payment_date: invoice.receivedAmount !== undefined ? `${toISODate(invoice.paymentDate) || ''}||${invoice.receivedAmount}` : toISODate(invoice.paymentDate) } : {}),
           ...(invoice.chequeNo ? { cheque_no: invoice.chequeNo } : {}),
           ...(invoice.bankName ? { bank_name: invoice.bankName } : {}),
           ...(invoice.ifscCode ? { ifsc_code: invoice.ifscCode } : {})
@@ -853,7 +877,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .from('transactions')
         .update({
           invoice_no: invoice.invoiceNo,
-          date: invoice.date,
+          date: toISODate(invoice.date),
           contact_name: invoice.contactName,
           contact_phone: invoice.contactPhone,
           contact_gst: invoice.contactGst,
@@ -864,7 +888,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           total_amount: invoice.totalAmount,
           payment_status: invoice.paymentStatus,
           ...(invoice.paymentType ? { payment_type: invoice.paymentType } : {}),
-          ...((invoice.paymentDate || invoice.receivedAmount !== undefined) ? { payment_date: invoice.receivedAmount !== undefined ? `${invoice.paymentDate || ''}||${invoice.receivedAmount}` : invoice.paymentDate } : {}),
+          ...((invoice.paymentDate || invoice.receivedAmount !== undefined) ? { payment_date: invoice.receivedAmount !== undefined ? `${toISODate(invoice.paymentDate) || ''}||${invoice.receivedAmount}` : toISODate(invoice.paymentDate) } : {}),
           ...(invoice.chequeNo ? { cheque_no: invoice.chequeNo } : {}),
           ...(invoice.bankName ? { bank_name: invoice.bankName } : {}),
           ...(invoice.ifscCode ? { ifsc_code: invoice.ifscCode } : {})
@@ -908,7 +932,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           business_id: currentBusinessId,
           type: 'purchase',
           invoice_no: purchase.invoiceNo,
-          date: purchase.date,
+          date: toISODate(purchase.date),
           contact_name: purchase.contactName,
           contact_phone: purchase.contactPhone,
           contact_gst: purchase.contactGst,
@@ -919,7 +943,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           total_amount: purchase.totalAmount,
           payment_status: purchase.paymentStatus,
           payment_type: purchase.paymentType,
-          payment_date: purchase.paymentDate,
+          payment_date: toISODate(purchase.paymentDate),
           cheque_no: purchase.chequeNo,
           bank_name: purchase.bankName,
           ifsc_code: purchase.ifscCode
@@ -949,7 +973,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         product_name: p.productName,
         type: 'purchase',
         quantity_change: p.quantity,
-        date: purchase.date,
+        date: toISODate(purchase.date) || '',
         reference_no: purchase.invoiceNo
       }));
 
@@ -1047,7 +1071,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           business_id: currentBusinessId,
           type: tx.type,
           invoice_no: tx.invoiceNo || null,
-          date: tx.date || null,
+          date: toISODate(tx.date) || null,
           contact_name: tx.contactName || null,
           contact_phone: tx.contactPhone || null,
           contact_gst: tx.contactGst || null,
@@ -1058,7 +1082,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           total_amount: tx.totalAmount || 0,
           payment_status: tx.paymentStatus || null,
           payment_type: tx.paymentType || null,
-          payment_date: tx.receivedAmount !== undefined ? `${tx.paymentDate || ''}||${tx.receivedAmount}` : (tx.paymentDate || null),
+          payment_date: tx.receivedAmount !== undefined ? `${toISODate(tx.paymentDate) || ''}||${tx.receivedAmount}` : (toISODate(tx.paymentDate) || null),
           cheque_no: tx.chequeNo || null,
           bank_name: tx.bankName || null,
           ifsc_code: tx.ifscCode || null
@@ -1102,7 +1126,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const dbUpdates: any = {};
       if (updates.type !== undefined) dbUpdates.type = updates.type;
       if (updates.invoiceNo !== undefined) dbUpdates.invoice_no = updates.invoiceNo;
-      if (updates.date !== undefined) dbUpdates.date = updates.date;
+      if (updates.date !== undefined) dbUpdates.date = toISODate(updates.date);
       if (updates.contactName !== undefined) dbUpdates.contact_name = updates.contactName;
       if (updates.contactPhone !== undefined) dbUpdates.contact_phone = updates.contactPhone;
       if (updates.contactGst !== undefined) dbUpdates.contact_gst = updates.contactGst;
@@ -1116,9 +1140,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (updates.paymentDate !== undefined || updates.receivedAmount !== undefined) {
         if (updates.receivedAmount !== undefined) {
-          dbUpdates.payment_date = `${updates.paymentDate || ''}||${updates.receivedAmount}`;
+          dbUpdates.payment_date = `${toISODate(updates.paymentDate) || ''}||${updates.receivedAmount}`;
         } else {
-          dbUpdates.payment_date = updates.paymentDate;
+          dbUpdates.payment_date = toISODate(updates.paymentDate);
         }
       }
       

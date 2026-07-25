@@ -256,7 +256,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       alert(editingId ? 'Purchase Bill updated!' : 'Purchase Bill saved successfully!');
     } catch (err) {
       console.error(err);
-      alert('Error saving purchase bill');
+      alert('Error saving purchase bill: ' + ((err as any)?.message || String(err)));
     }
   };
 
@@ -287,7 +287,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       alert('Payment-Out recorded successfully!');
     } catch (err) {
       console.error(err);
-      alert('Error saving payment out');
+      alert('Error saving payment out: ' + ((err as any)?.message || String(err)));
     }
   };
 
@@ -324,7 +324,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       alert('Expense recorded successfully!');
     } catch (err) {
       console.error(err);
-      alert('Error saving expense');
+      alert('Error saving expense: ' + ((err as any)?.message || String(err)));
     }
   };
 
@@ -362,7 +362,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       alert('Purchase Order saved successfully!');
     } catch (err) {
       console.error(err);
-      alert('Error saving purchase order');
+      alert('Error saving purchase order: ' + ((err as any)?.message || String(err)));
     }
   };
 
@@ -400,7 +400,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
       alert('Debit Note (Purchase Return) saved successfully!');
     } catch (err) {
       console.error(err);
-      alert('Error saving debit note');
+      alert('Error saving debit note: ' + ((err as any)?.message || String(err)));
     }
   };
 
