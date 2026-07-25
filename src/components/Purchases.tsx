@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   ShoppingCart, 
@@ -14,7 +14,8 @@ import {
   Search,
   FileSpreadsheet,
   Printer,
-  Eye
+  Eye,
+  Download
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 
@@ -93,6 +94,107 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const debitNotes = transactions.filter(t => t.type === 'Debit Note');
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [isAutoPrint, setIsAutoPrint] = useState(false);
+  const [isAutoDownload, setIsAutoDownload] = useState(false);
+  const [viewingUploaded, setViewingUploaded] = useState(false);
+
+  const prepareBillSelection = (b: any, type: string) => {
+    let mapped = { ...b, type };
+    if (type === 'Payment-Out' || type === 'Expense' || type === 'Purchase Order' || type === 'Debit Note') {
+      mapped.total = b.totalAmount;
+      mapped.billNumber = b.invoiceNo;
+    }
+    return mapped;
+  };
+
+  const handlePrintRow = (b: any, type: string) => {
+    setSelectedBill(prepareBillSelection(b, type));
+    setIsAutoPrint(true);
+    setShowPreviewModal(true);
+  };
+
+  const handleDownloadRow = (b: any, type: string) => {
+    setSelectedBill(prepareBillSelection(b, type));
+    setIsAutoDownload(true);
+    setShowPreviewModal(true);
+  };
+
+  const downloadUploadedFile = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const extension = url.split('.').pop()?.split('?')[0] || 'jpg';
+      link.download = `Uploaded-Bill-${selectedBill?.invoiceNo || selectedBill?.id || 'file'}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      window.open(url, '_blank');
+    }
+  };
+
+  const printUploadedFile = (url: string) => {
+    const win = window.open();
+    if (win) {
+      win.document.write(`<img src="${url}" style="max-width: 100%;" onload="window.print();window.close()"/>`);
+      win.document.close();
+    }
+  };
+
+  useEffect(() => {
+    if (showPreviewModal && selectedBill) {
+      if (isAutoPrint) {
+        const timer = setTimeout(() => {
+          window.print();
+          setIsAutoPrint(false);
+          setShowPreviewModal(false);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+      if (isAutoDownload) {
+        const timer = setTimeout(() => {
+          const element = document.getElementById('print-area');
+          if (!element) {
+            setIsAutoDownload(false);
+            setShowPreviewModal(false);
+            return;
+          }
+          
+          const runDownload = () => {
+            const opt = {
+              margin: 10,
+              filename: `${selectedBill.type || 'Bill'}-${selectedBill.invoiceNo || selectedBill.id}.pdf`,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            // @ts-ignore
+            window.html2pdf().set(opt).from(element).save().then(() => {
+              setIsAutoDownload(false);
+              setShowPreviewModal(false);
+            });
+          };
+
+          // @ts-ignore
+          if (window.html2pdf) {
+            runDownload();
+          } else {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            script.onload = () => {
+              runDownload();
+            };
+            document.body.appendChild(script);
+          }
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [showPreviewModal, selectedBill, isAutoPrint, isAutoDownload]);
 
   React.useEffect(() => { localStorage.setItem('paymentsOut', JSON.stringify(paymentsOut)); }, [paymentsOut]);
   React.useEffect(() => { localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses]);
@@ -665,10 +767,26 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                             <button 
                               className="btn btn-secondary" 
                               style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                              onClick={() => { setSelectedBill({ ...b, type: 'Purchase Bill' }); setShowPreviewModal(true); }}
+                              onClick={() => { setSelectedBill({ ...b, type: 'Purchase Bill' }); setShowPreviewModal(true); setViewingUploaded(false); }}
                             >
                               <Eye size={12} />
                               <span>View</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
+                              onClick={() => handleDownloadRow(b, 'Purchase Bill')}
+                            >
+                              <Download size={12} />
+                              <span>Download</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10B981' }}
+                              onClick={() => handlePrintRow(b, 'Purchase Bill')}
+                            >
+                              <Printer size={12} />
+                              <span>Print</span>
                             </button>
                             <button 
                               className="btn btn-secondary" 
@@ -744,21 +862,49 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                           } catch {
                             return null;
                           }
-                        })()}
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>₹{p.totalAmount.toFixed(2)}</td>
-                    <td>{p.contactAddress || '-'}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button 
-                        className="btn btn-secondary" 
-                        style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        onClick={() => { setSelectedBill({ ...p, total: p.totalAmount, billNumber: p.invoiceNo, type: 'Payment-Out' }); setShowPreviewModal(true); }}
-                      >
-                        <Eye size={12} />
-                        <span>Preview</span>
-                      </button>
-                    </td>
+
+                            })()}
+                          </div>
+                        </td>
+                        <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>₹{p.totalAmount.toFixed(2)}</td>
+                        <td>{p.contactAddress || '-'}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => { setSelectedBill({ ...p, total: p.totalAmount, billNumber: p.invoiceNo, type: 'Payment-Out' }); setShowPreviewModal(true); setViewingUploaded(false); }}
+                            >
+                              <Eye size={12} />
+                              <span>View</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
+                              onClick={() => handleDownloadRow(p, 'Payment-Out')}
+                            >
+                              <Download size={12} />
+                              <span>Download</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10B981' }}
+                              onClick={() => handlePrintRow(p, 'Payment-Out')}
+                            >
+                              <Printer size={12} />
+                              <span>Print</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-danger)' }}
+                              onClick={() => { if (window.confirm('Delete this payment out?')) deleteTransaction(p.id); }}
+                            >
+                              <Trash2 size={12} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+
                   </tr>
                 ))}
                 {paymentsOut.filter(p => p.businessId === activeBusiness?.id).length === 0 && (
@@ -840,14 +986,40 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                         </td>
                         <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{e.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => { setSelectedBill({ ...e, billNumber: e.invoiceNo, partyName: e.contactName, type: 'Expense' }); setShowPreviewModal(true); }}
-                          >
-                            <Eye size={12} />
-                            <span>Preview</span>
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => { setSelectedBill({ ...e, billNumber: e.invoiceNo, partyName: e.contactName, type: 'Expense' }); setShowPreviewModal(true); setViewingUploaded(false); }}
+                            >
+                              <Eye size={12} />
+                              <span>View</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
+                              onClick={() => handleDownloadRow(e, 'Expense')}
+                            >
+                              <Download size={12} />
+                              <span>Download</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10B981' }}
+                              onClick={() => handlePrintRow(e, 'Expense')}
+                            >
+                              <Printer size={12} />
+                              <span>Print</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-danger)' }}
+                              onClick={() => { if (window.confirm('Delete this expense?')) deleteTransaction(e.id); }}
+                            >
+                              <Trash2 size={12} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -928,14 +1100,40 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     </td>
                         <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>₹{p.totalAmount.toFixed(2)}</td>
                         <td style={{ textAlign: 'right' }}>
-                          <button 
-                            className="btn btn-secondary" 
-                            style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                            onClick={() => { setSelectedBill({ ...p, billNumber: p.invoiceNo, type: 'Purchase Order' }); setShowPreviewModal(true); }}
-                          >
-                            <Eye size={12} />
-                            <span>Preview</span>
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              onClick={() => { setSelectedBill({ ...p, billNumber: p.invoiceNo, type: 'Purchase Order' }); setShowPreviewModal(true); setViewingUploaded(false); }}
+                            >
+                              <Eye size={12} />
+                              <span>View</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
+                              onClick={() => handleDownloadRow(p, 'Purchase Order')}
+                            >
+                              <Download size={12} />
+                              <span>Download</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10B981' }}
+                              onClick={() => handlePrintRow(p, 'Purchase Order')}
+                            >
+                              <Printer size={12} />
+                              <span>Print</span>
+                            </button>
+                            <button 
+                              className="btn btn-secondary" 
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-danger)' }}
+                              onClick={() => { if (window.confirm('Delete this purchase order?')) deleteTransaction(p.id); }}
+                            >
+                              <Trash2 size={12} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1026,17 +1224,38 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     <td>₹{d.totalAmount.toFixed(2)}</td>
                     <td>₹0.00</td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         <button 
                           className="btn btn-secondary" 
                           style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          onClick={() => { setSelectedBill({ ...d, billNumber: d.invoiceNo, type: 'Debit Note' }); setShowPreviewModal(true); }}
+                          onClick={() => { setSelectedBill({ ...d, billNumber: d.invoiceNo, type: 'Debit Note' }); setShowPreviewModal(true); setViewingUploaded(false); }}
                         >
                           <Eye size={12} />
-                          <span>Preview</span>
+                          <span>View</span>
                         </button>
-                        <button style={styles.actionBtn} onClick={() => alert('Sharing...')}>
-                          <Share2 size={12} />
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-primary)' }}
+                          onClick={() => handleDownloadRow(d, 'Debit Note')}
+                        >
+                          <Download size={12} />
+                          <span>Download</span>
+                        </button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10B981' }}
+                          onClick={() => handlePrintRow(d, 'Debit Note')}
+                        >
+                          <Printer size={12} />
+                          <span>Print</span>
+                        </button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-danger)' }}
+                          onClick={() => { if (window.confirm('Delete this debit note?')) deleteTransaction(d.id); }}
+                        >
+                          <Trash2 size={12} />
+                          <span>Delete</span>
                         </button>
                       </div>
                     </td>
@@ -1941,46 +2160,57 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
             {/* Action Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F9FAFB', padding: '12px 20px', borderBottom: '1px solid #E5E7EB' }}>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
-                  onClick={() => window.print()}
-                >
-                  Download / Print
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-danger" 
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#EF4444', color: '#FFFFFF', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px' }}
-                  onClick={() => {
-                    if (confirm(`Are you sure you want to delete this ${selectedBill.type}?`)) {
-                      const id = selectedBill.id;
-                      const type = selectedBill.type;
-                      if (type === 'Purchase Bill') {
-                        deleteTransaction(id);
-                      } else if (type === 'Payment-Out') {
-                        deleteTransaction(id);
-                      } else if (type === 'Expense') {
-                        deleteTransaction(id);
-                      } else if (type === 'Purchase Order') {
-                        deleteTransaction(id);
-                      } else if (type === 'Debit Note') {
-                        deleteTransaction(id);
-                      }
-                      setShowPreviewModal(false);
-                      alert('Record deleted successfully!');
-                    }
-                  }}
-                >
-                  Delete
-                </button>
+                {selectedBill.contactAddress && selectedBill.contactAddress.startsWith('http') && (
+                  <>
+                    {!viewingUploaded ? (
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary" 
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                        onClick={() => setViewingUploaded(true)}
+                      >
+                        <Eye size={12} />
+                        <span>View Uploaded Bill</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                          onClick={() => setViewingUploaded(false)}
+                        >
+                          <Eye size={12} />
+                          <span>View Invoice Slip</span>
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn btn-primary" 
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                          onClick={() => downloadUploadedFile(selectedBill.contactAddress)}
+                        >
+                          <Download size={12} />
+                          <span>Download Uploaded Bill</span>
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#10B981', borderColor: '#10B981' }}
+                          onClick={() => printUploadedFile(selectedBill.contactAddress)}
+                        >
+                          <Printer size={12} />
+                          <span>Print Uploaded Bill</span>
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
               <X size={18} style={{ cursor: 'pointer', color: '#9CA3AF' }} onClick={() => setShowPreviewModal(false)} />
             </div>
 
             {/* Premium Invoice Layout */}
-            <div id="print-area" className="print-section" style={{ padding: '30px', backgroundColor: '#FFFFFF', color: '#1F2937', fontFamily: "'Inter', sans-serif" }}>
+            <div id="print-area" className="print-section" style={{ padding: '30px', backgroundColor: '#FFFFFF', color: '#1F2937', fontFamily: "'Inter', sans-serif", display: viewingUploaded ? 'none' : 'block' }}>
               
               {/* Header Badging */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
@@ -2119,6 +2349,17 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
             </div>
+
+            {viewingUploaded && selectedBill.contactAddress && (
+              <div style={{ padding: '30px', backgroundColor: '#FFFFFF', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                <img 
+                  src={selectedBill.contactAddress} 
+                  alt="Uploaded Bill" 
+                  style={{ maxWidth: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #E5E7EB' }} 
+                />
+              </div>
+            )}
+
           </div>
         </div>
       )}
