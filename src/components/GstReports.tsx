@@ -48,9 +48,9 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
   // Filter transactions of appropriate type within date range
   const filteredItems = useMemo(() => {
     const targetType = activeSection === 'gst-purchase' ? 'purchase' : 'sale';
-    const parsedFrom = new Date(fromDate);
+    const parsedFrom = parseDateStr(fromDate) || new Date(0);
     parsedFrom.setHours(0, 0, 0, 0);
-    const parsedTo = new Date(toDate);
+    const parsedTo = parseDateStr(toDate) || new Date();
     parsedTo.setHours(23, 59, 59, 999);
 
     const matchBiz = transactions.filter(t => t.businessId === activeBusiness?.id);
