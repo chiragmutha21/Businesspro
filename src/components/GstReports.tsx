@@ -62,64 +62,44 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
       return parsedTxDate >= parsedFrom && parsedTxDate <= parsedTo;
     });
 
-    // Sort transactions primarily by invoice number alphanumeric ascending, then by date ascending
+    // Sort transactions first by date ascending and invoiceNo ascending
     const sortedTx = [...inRange].sort((a, b) => {
-      const invA = a.invoiceNo || '';
-      const invB = b.invoiceNo || '';
-      if (invA !== invB) {
-        return invA.localeCompare(invB, undefined, { numeric: true, sensitivity: 'base' });
-      }
       const dateA = parseDateStr(a.date) || new Date(0);
       const dateB = parseDateStr(b.date) || new Date(0);
-      return dateA.getTime() - dateB.getTime();
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    // Flatten transactions to product-level lines
-    const lines: any[] = [];
-    let counter = 1;
-
-    sortedTx.forEach(t => {
+    // Map sorted transactions to invoice-level lines
+    const lines = sortedTx.map((t, index) => {
       const productsList = t.products || [];
-      if (productsList.length === 0) {
-        // Fallback for transactions without products (e.g. general expense or manual logs)
-        const gstPct = t.gstAmount && t.totalAmount ? Math.round((t.gstAmount / (t.totalAmount - t.gstAmount)) * 100) : 0;
-        const taxableVal = (t.totalAmount || 0) - (t.gstAmount || 0);
-        lines.push({
-          srNo: counter++,
-          date: t.date,
-          invoiceNo: t.invoiceNo || '-',
-          partyName: t.contactName || '-',
-          gstNo: t.contactGst || '-',
-          itemName: 'General Payment / Bill',
-          gstPct: gstPct > 0 ? `${gstPct}%` : '-',
-          taxableValue: taxableVal,
-          cgst: (t.gstAmount || 0) / 2,
-          sgst: (t.gstAmount || 0) / 2,
-          taxAmount: t.gstAmount || 0,
-          totalAmount: t.totalAmount || 0
-        });
-      } else {
-        productsList.forEach((p: any) => {
-          const gstPct = p.gst || 0;
-          const taxableVal = p.total || 0; // p.total holds base taxable value exclusive of tax in our mapping
-          const taxAmt = gstPct > 0 ? (taxableVal * (gstPct / 100)) : 0;
-          lines.push({
-            srNo: counter++,
-            // Repeated details as requested
-            date: t.date,
-            invoiceNo: t.invoiceNo || '-',
-            partyName: t.contactName || '-',
-            gstNo: t.contactGst || '-',
-            itemName: p.productName || '-',
-            gstPct: gstPct > 0 ? `${gstPct}%` : '-',
-            taxableValue: taxableVal,
-            cgst: taxAmt / 2,
-            sgst: taxAmt / 2,
-            taxAmount: taxAmt,
-            totalAmount: taxableVal + taxAmt
-          });
-        });
-      }
+      const gstPercentages = Array.from(
+        new Set(productsList.map((p: any) => p.gst).filter((gst: any) => gst !== undefined && gst > 0))
+      );
+
+      const gstPctStr = gstPercentages.length > 0
+        ? gstPercentages.map(pct => `${pct}%`).join(', ')
+        : (t.gstAmount && t.totalAmount ? `${Math.round((t.gstAmount / (t.totalAmount - t.gstAmount)) * 100)}%` : '-');
+
+      const taxAmount = t.gstAmount || 0;
+      const totalAmount = t.totalAmount || 0;
+      const taxableValue = totalAmount - taxAmount;
+
+      return {
+        srNo: index + 1,
+        date: t.date,
+        invoiceNo: t.invoiceNo || '-',
+        partyName: t.contactName || '-',
+        gstNo: t.contactGst || '-',
+        gstPct: gstPctStr,
+        taxableValue: taxableValue,
+        cgst: taxAmount / 2,
+        sgst: taxAmount / 2,
+        taxAmount: taxAmount,
+        totalAmount: totalAmount
+      };
     });
 
     return lines;
@@ -272,7 +252,6 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
                 <th>Invoice No</th>
                 <th>Party Name</th>
                 <th>GSTIN</th>
-                <th>Item Details</th>
                 <th style={{ textAlign: 'center' }}>GST %</th>
                 <th style={{ textAlign: 'right' }}>Taxable Value</th>
                 <th style={{ textAlign: 'right' }}>CGST</th>
@@ -289,7 +268,6 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
                   <td style={{ fontWeight: '600' }}>{item.invoiceNo}</td>
                   <td>{item.partyName}</td>
                   <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>{item.gstNo}</td>
-                  <td style={{ fontSize: '12px' }}>{item.itemName}</td>
                   <td style={{ textAlign: 'center', fontWeight: '600' }}>{item.gstPct}</td>
                   <td style={{ textAlign: 'right' }}>
                     ₹{(item.taxableValue || 0).toFixed(2)}
@@ -310,7 +288,7 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
               ))}
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={12} style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--color-text-muted)' }}>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--color-text-muted)' }}>
                     No GST transactions found for the selected tenure.
                   </td>
                 </tr>
@@ -319,7 +297,7 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
             {filteredItems.length > 0 && (
               <tfoot>
                 <tr style={{ backgroundColor: '#FAF8F5', fontWeight: '700', borderTop: '2px solid #E2E8F0' }}>
-                  <td colSpan={7} style={{ textAlign: 'right', padding: '12px 10px' }}>Total Amount:</td>
+                  <td colSpan={6} style={{ textAlign: 'right', padding: '12px 10px' }}>Total Amount:</td>
                   <td style={{ textAlign: 'right' }}>
                     ₹{totals.taxableValue.toFixed(2)}
                   </td>
