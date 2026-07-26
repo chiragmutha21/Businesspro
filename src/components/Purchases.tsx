@@ -2377,7 +2377,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                 <div>
                   <h4 style={{ margin: '0 0 6px 0', color: '#8F5B1E', textTransform: 'uppercase' }}>Terms & Conditions</h4>
                   <ul style={{ paddingLeft: '14px', margin: 0, lineHeight: '1.5' }}>
-                    <li>Subject to local jurisdiction.</li>
+                    <li>Subject to Nashik jurisdiction.</li>
                     <li>This is a computer-generated slip.</li>
                   </ul>
                 </div>

@@ -1765,7 +1765,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                   <h4 style={{ margin: '0 0 6px 0', color: '#8F5B1E', textTransform: 'uppercase' }}>Terms & Conditions</h4>
                   <ul style={{ paddingLeft: '14px', margin: 0, lineHeight: '1.5' }}>
                     <li>Goods once sold will not be taken back without prior approval.</li>
-                    <li>Subject to local jurisdiction.</li>
+                    <li>Subject to Nashik jurisdiction.</li>
                     <li>This is a computer-generated invoice and requires no physical signature.</li>
                   </ul>
                 </div>
