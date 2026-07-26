@@ -62,11 +62,21 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
       return parsedTxDate >= parsedFrom && parsedTxDate <= parsedTo;
     });
 
+    // Sort transactions first by date ascending and invoiceNo ascending
+    const sortedTx = [...inRange].sort((a, b) => {
+      const dateA = parseDateStr(a.date) || new Date(0);
+      const dateB = parseDateStr(b.date) || new Date(0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
+
     // Flatten transactions to product-level lines
     const lines: any[] = [];
     let counter = 1;
 
-    inRange.forEach(t => {
+    sortedTx.forEach(t => {
       const productsList = t.products || [];
       if (productsList.length === 0) {
         // Fallback for transactions without products (e.g. general expense or manual logs)
@@ -87,16 +97,17 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
           totalAmount: t.totalAmount || 0
         });
       } else {
-        productsList.forEach((p: any) => {
+        productsList.forEach((p: any, idx: number) => {
           const gstPct = p.gst || 0;
           const taxableVal = p.total || 0; // p.total holds base taxable value exclusive of tax in our mapping
           const taxAmt = gstPct > 0 ? (taxableVal * (gstPct / 100)) : 0;
           lines.push({
             srNo: counter++,
-            date: t.date,
-            invoiceNo: t.invoiceNo || '-',
-            partyName: t.contactName || '-',
-            gstNo: t.contactGst || '-',
+            // Only show date, invoiceNo, partyName, gstNo on the first row of each invoice
+            date: idx === 0 ? t.date : '',
+            invoiceNo: idx === 0 ? (t.invoiceNo || '-') : '',
+            partyName: idx === 0 ? (t.contactName || '-') : '',
+            gstNo: idx === 0 ? (t.contactGst || '-') : '',
             itemName: p.productName || '-',
             gstPct: gstPct > 0 ? `${gstPct}%` : '-',
             taxableValue: taxableVal,
@@ -107,21 +118,6 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
           });
         });
       }
-    });
-
-    // Sort lines by date ascending, and then by invoice number alphanumeric ascending
-    lines.sort((a, b) => {
-      const dateA = parseDateStr(a.date) || new Date(0);
-      const dateB = parseDateStr(b.date) || new Date(0);
-      if (dateA.getTime() !== dateB.getTime()) {
-        return dateA.getTime() - dateB.getTime();
-      }
-      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
-    });
-
-    // Re-assign Sr. No. sequentially after sorting
-    lines.forEach((line, index) => {
-      line.srNo = index + 1;
     });
 
     return lines;
