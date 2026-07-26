@@ -161,7 +161,34 @@ export const Dashboard: React.FC = () => {
   );
   const totalPurchase = purchaseTxList.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0);
 
-  // Total balance represents the combined cash and online collections
+  // Load main payments in and out lists
+  const mainPaymentsInList = mergeAndDeduplicate(
+    bizTransactions.filter(t => t.type === 'payment_in' || t.type === 'Payment In'),
+    localPaymentsInRaw.filter((t: any) => isWithinTimeFilter(t.date))
+  );
+
+  const mainPaymentsOutList = bizTransactions.filter(t => t.type === 'payment_out' || t.type === 'Payment Out');
+
+  const totalInflow = salesTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0)
+                    + mainPaymentsInList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0);
+
+  const totalOutflow = purchaseTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0)
+                     + expenseTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0)
+                     + mainPaymentsOutList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0);
+
+  const totalBalance = totalInflow - totalOutflow;
+
+  const balanceDetailsList = [
+    ...salesTxList.map(t => ({ ...t, flowType: 'inflow', displayName: 'Sale' })),
+    ...mainPaymentsInList.map(t => ({ ...t, flowType: 'inflow', displayName: 'Payment-In' })),
+    ...purchaseTxList.map(t => ({ ...t, flowType: 'outflow', displayName: 'Purchase' })),
+    ...expenseTxList.map(t => ({ ...t, flowType: 'outflow', displayName: 'Expense' })),
+    ...mainPaymentsOutList.map(t => ({ ...t, flowType: 'outflow', displayName: 'Payment-Out' }))
+  ].sort((a, b) => {
+    const dateA = parseDateStr(a.date) || new Date(0);
+    const dateB = parseDateStr(b.date) || new Date(0);
+    return dateB.getTime() - dateA.getTime();
+  });
 
   // Profit calculation (revenue - cost of goods sold/purchased for simplicity)
   // Let's calculate based on sales: (sellingPrice - purchasePrice) * qty
@@ -216,8 +243,7 @@ export const Dashboard: React.FC = () => {
     return sum + (t.receivedAmount || t.totalAmount || 0);
   }, 0);
 
-  // Redefine totalBalance to match the sum of cash and online payments
-  const totalBalance = paidInCash + paidOnline;
+  // (Redefined totalBalance has been moved to main metrics calculation)
 
   const stockValue = bizProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.purchasePrice || 0)), 0);
   const lowStockCount = bizProducts.filter((p) => (p.stock || 0) <= (p.minStock || 0)).length;
@@ -447,7 +473,7 @@ export const Dashboard: React.FC = () => {
           <span style={styles.metricValue}>₹{totalPurchase.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
         </div>
 
-        <div className="card" style={styles.metricCard}>
+        <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('balance')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL BALANCE</span>
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
@@ -671,6 +697,7 @@ export const Dashboard: React.FC = () => {
                  : activeModal === 'expenses' ? 'Expenses'
                  : activeModal === 'purchases' ? 'Purchase Transactions'
                  : activeModal === 'stock' ? 'Stock Value & Inventory'
+                 : activeModal === 'balance' ? 'Total Balance Ledger'
                  : 'Pending Transactions'}
               </h3>
               <X size={20} style={{ cursor: 'pointer' }} onClick={() => setActiveModal(null)} />
@@ -709,6 +736,66 @@ export const Dashboard: React.FC = () => {
                     )}
                   </tbody>
                 </table>
+              ) : activeModal === 'balance' ? (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-around', backgroundColor: '#FAF8F5', padding: '14px', borderRadius: '8px', marginBottom: '16px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '600' }}>TOTAL PLUS (+)</span>
+                      <strong style={{ display: 'block', fontSize: '15px', color: '#10B981', marginTop: '4px' }}>
+                        +₹{totalInflow.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </strong>
+                    </div>
+                    <div style={{ borderRight: '1px solid var(--color-border)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '600' }}>TOTAL MINUS (-)</span>
+                      <strong style={{ display: 'block', fontSize: '15px', color: '#EF4444', marginTop: '4px' }}>
+                        -₹{totalOutflow.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </strong>
+                    </div>
+                    <div style={{ borderRight: '1px solid var(--color-border)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '600' }}>NET BALANCE</span>
+                      <strong style={{ display: 'block', fontSize: '15px', color: totalBalance >= 0 ? 'var(--color-primary)' : '#EF4444', marginTop: '4px' }}>
+                        ₹{totalBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </strong>
+                    </div>
+                  </div>
+                  <table className="custom-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Ref / Invoice No</th>
+                        <th>Party Name</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {balanceDetailsList.map((t, i) => {
+                        const amt = t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0);
+                        const isPlus = t.flowType === 'inflow';
+                        return (
+                          <tr key={i}>
+                            <td>{t.date}</td>
+                            <td style={{ fontWeight: '600' }}>{t.displayName}</td>
+                            <td>{t.invoiceNo || t.referenceNo || t.id?.substring(0,6) || '-'}</td>
+                            <td>{t.contactName || t.partyName || t.vendorName || '-'}</td>
+                            <td style={{ textAlign: 'right', fontWeight: '700', color: isPlus ? '#10B981' : '#EF4444' }}>
+                              {isPlus ? '+' : '-'} ₹{amt.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {balanceDetailsList.length === 0 && (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
+                            No transactions found for the selected time filter.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <table className="custom-table">
                   <thead>
