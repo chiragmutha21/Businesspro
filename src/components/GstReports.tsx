@@ -109,6 +109,21 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
       }
     });
 
+    // Sort lines by date ascending, and then by invoice number alphanumeric ascending
+    lines.sort((a, b) => {
+      const dateA = parseDateStr(a.date) || new Date(0);
+      const dateB = parseDateStr(b.date) || new Date(0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    // Re-assign Sr. No. sequentially after sorting
+    lines.forEach((line, index) => {
+      line.srNo = index + 1;
+    });
+
     return lines;
   }, [transactions, activeBusiness, fromDate, toDate, activeSection]);
 
