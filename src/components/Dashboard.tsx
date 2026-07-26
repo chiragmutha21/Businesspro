@@ -30,6 +30,19 @@ export const Dashboard: React.FC = () => {
   const [customDateStr, setCustomDateStr] = useState('');
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
+  const mergeAndDeduplicate = (supaList: any[], localList: any[]) => {
+    const mergedMap = new Map();
+    supaList.forEach(t => {
+      if (t.id) mergedMap.set(t.id, t);
+    });
+    localList.forEach(t => {
+      if (t.id && !mergedMap.has(t.id)) {
+        mergedMap.set(t.id, t);
+      }
+    });
+    return Array.from(mergedMap.values());
+  };
+
   const parseDateStr = (dateStr: string): Date | null => {
     if (!dateStr) return null;
     const normalized = dateStr.replace(/\//g, '-').trim();
@@ -128,24 +141,24 @@ export const Dashboard: React.FC = () => {
 
 
   // Metrics calculation
-  const salesTxList = [
-    ...bizTransactions.filter((t) => t.type === 'sale'),
-    ...localSaleOrders
-  ];
+  const salesTxList = mergeAndDeduplicate(
+    bizTransactions.filter((t) => t.type === 'sale'),
+    localSaleOrders
+  );
   const totalSales = salesTxList.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
 
   // Total Expenses (ONLY actual expenses!)
-  const expenseTxList = [
-    ...bizTransactions.filter(t => t.type === 'Expense' || t.type === 'expense'),
-    ...localExpenses
-  ];
+  const expenseTxList = mergeAndDeduplicate(
+    bizTransactions.filter(t => t.type === 'Expense' || t.type === 'expense'),
+    localExpenses
+  );
   const totalExpense = expenseTxList.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0);
 
   // Total Purchases
-  const purchaseTxList = [
-    ...bizTransactions.filter(t => t.type === 'Purchase' || t.type === 'purchase'),
-    ...localPurchaseBills
-  ];
+  const purchaseTxList = mergeAndDeduplicate(
+    bizTransactions.filter(t => t.type === 'Purchase' || t.type === 'purchase'),
+    localPurchaseBills
+  );
   const totalPurchase = purchaseTxList.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0);
 
   // Calculate dynamic Cash Balance (overall for the active business, mirroring Cash & Bank)
@@ -202,32 +215,36 @@ export const Dashboard: React.FC = () => {
   });
 
   // Calculate pending, cash, online combining Supabase and Local Storage (using independent paymentTimeFilter)
-  const pendingTxList = [
-    ...paymentBizTransactions.filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid'),
-    ...paymentLocalSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
-  ];
+  const pendingTxList = mergeAndDeduplicate(
+    paymentBizTransactions.filter((t) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid'),
+    paymentLocalSaleOrders.filter((t: any) => t.paymentStatus === 'Pending' || t.paymentStatus === 'Unpaid')
+  );
   const pendingPayments = pendingTxList.reduce((sum, t) => sum + ((t.totalAmount || 0) - (t.receivedAmount || 0)), 0);
 
-  const cashTxList = [
-    ...paymentBizTransactions.filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash' || t.paymentType?.startsWith('Split:'))),
-    ...paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash' || t.paymentType?.startsWith('Split:')),
-    ...paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash' || t.paymentType?.startsWith('Split:'))
-  ];
+  const cashTxList = mergeAndDeduplicate(
+    paymentBizTransactions.filter((t) => t.type === 'sale' && (t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash' || t.paymentType?.startsWith('Split:'))),
+    [
+      ...paymentLocalPaymentsIn.filter((t: any) => t.paymentType === 'Cash' || t.paymentType?.startsWith('Split:')),
+      ...paymentLocalSaleOrders.filter((t: any) => t.paymentType === 'Cash' || t.paymentStatus === 'Paid by Cash' || t.paymentType?.startsWith('Split:'))
+    ]
+  );
   const paidInCash = cashTxList.reduce((sum, t) => {
     if (t.paymentType?.startsWith('Split:')) return sum + (Number(t.paymentType.split(':')[1]) || 0);
     return sum + (t.receivedAmount || t.totalAmount || 0);
   }, 0);
 
-  const onlineTxList = [
-    ...paymentBizTransactions.filter((t) => t.type === 'sale' && (
+  const onlineTxList = mergeAndDeduplicate(
+    paymentBizTransactions.filter((t) => t.type === 'sale' && (
       (['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType || '')) ||
       (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash' && !t.paymentType?.startsWith('Split:')) || 
       (t.paymentStatus === 'Paid by Cheque') ||
       t.paymentType?.startsWith('Split:')
     )),
-    ...paymentLocalPaymentsIn.filter((t: any) => (t.paymentType !== 'Cash' && t.paymentType) || t.paymentType?.startsWith('Split:')),
-    ...paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash' && !t.paymentType?.startsWith('Split:')) || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType) || t.paymentType?.startsWith('Split:'))
-  ];
+    [
+      ...paymentLocalPaymentsIn.filter((t: any) => (t.paymentType !== 'Cash' && t.paymentType) || t.paymentType?.startsWith('Split:')),
+      ...paymentLocalSaleOrders.filter((t: any) => (t.paymentStatus === 'Paid' && t.paymentType !== 'Cash' && !t.paymentType?.startsWith('Split:')) || ['Online', 'UPI', 'Bank Transfer', 'Card', 'Cheque'].includes(t.paymentType) || t.paymentType?.startsWith('Split:'))
+    ]
+  );
   const paidOnline = onlineTxList.reduce((sum, t) => {
     if (t.paymentType?.startsWith('Split:')) return sum + (Number(t.paymentType.split(':')[2]) || 0);
     return sum + (t.receivedAmount || t.totalAmount || 0);
