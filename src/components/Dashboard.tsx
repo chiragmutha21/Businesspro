@@ -167,10 +167,20 @@ export const Dashboard: React.FC = () => {
     localPaymentsInRaw.filter((t: any) => isWithinTimeFilter(t.date))
   );
 
-  const totalInflow = salesTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0)
-                    + mainPaymentsInList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0);
+  const getPaidAmount = (t: any) => {
+    if (t.type === 'Expense' || t.type === 'expense') {
+      return t.total || t.totalAmount || 0;
+    }
+    if (t.paymentStatus === 'Paid' || t.paymentStatus === 'Paid by Cash' || t.paymentStatus === 'Paid by Cheque') {
+      return t.totalAmount || t.total || 0;
+    }
+    return t.receivedAmount || 0;
+  };
 
-  const totalOutflow = expenseTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0);
+  const totalInflow = salesTxList.reduce((sum, t) => sum + getPaidAmount(t), 0)
+                    + mainPaymentsInList.reduce((sum, t) => sum + getPaidAmount(t), 0);
+
+  const totalOutflow = expenseTxList.reduce((sum, t) => sum + getPaidAmount(t), 0);
 
   const totalBalance = totalInflow - totalOutflow;
 
@@ -766,7 +776,7 @@ export const Dashboard: React.FC = () => {
                     </thead>
                     <tbody>
                       {balanceDetailsList.map((t, i) => {
-                        const amt = t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0);
+                        const amt = getPaidAmount(t);
                         const isPlus = t.flowType === 'inflow';
                         return (
                           <tr key={i}>
