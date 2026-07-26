@@ -126,7 +126,7 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
       case 'sale-order': return saleOrders;
       case 'delivery-challan': return deliveryChallans;
       case 'sale-return': return saleReturns;
-      default: return activeTransactions;
+      default: return activeTransactions.filter(t => t.type === 'sale');
     }
   };
 

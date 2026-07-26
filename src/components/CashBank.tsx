@@ -99,7 +99,7 @@ interface BankAccount {
 export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const { 
     customers, activeBusiness, 
-    bankAccounts, loanAccounts, cheques, cashLogs,
+    bankAccounts, loanAccounts, cheques, cashLogs, transactions,
     addBankAccount, updateBankAccount,
     addLoanAccount, deleteLoanAccount,
     addCheque, deleteCheque,
@@ -122,7 +122,34 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [cashAmount, setCashAmount] = useState('');
   const [adjustDate, setAdjustDate] = useState('12/07/2026');
   const [cashDescription, setCashDescription] = useState('');
-  const [cashBalance, setCashBalance] = useState<number>(0);
+  const cashBalance = React.useMemo(() => {
+    const activeCashLogs = cashLogs.filter(l => l.businessId === activeBusiness?.id);
+    const manualCash = activeCashLogs.reduce((sum, log) => {
+      return log.type === 'Add' ? sum + log.amount : sum - log.amount;
+    }, 0);
+
+    const activeTransactions = transactions.filter(t => t.businessId === activeBusiness?.id);
+    const transCash = activeTransactions.reduce((sum, t) => {
+      const pType = t.paymentType || '';
+      const isCash = pType === 'Cash' || t.paymentStatus === 'Paid by Cash';
+      const isSplit = pType.startsWith('Split:');
+      const cashSplitVal = isSplit ? (Number(pType.split(':')[1]) || 0) : 0;
+      const amt = t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || 0);
+
+      if (t.type === 'sale' || t.type === 'payment_in' || t.type === 'sale_return') {
+        if (isCash) return sum + amt;
+        if (isSplit) return sum + cashSplitVal;
+      }
+      if (t.type === 'purchase' || t.type === 'Purchase' || t.type === 'expense' || t.type === 'Expense' || t.type === 'payment_out' || t.type === 'purchase_return') {
+        const expenseAmt = (t as any).total || t.totalAmount || 0;
+        if (isCash) return sum - expenseAmt;
+        if (isSplit) return sum - cashSplitVal;
+      }
+      return sum;
+    }, 0);
+
+    return manualCash + transCash;
+  }, [cashLogs, transactions, activeBusiness]);
 
 
   // Cheque Form States
@@ -212,7 +239,6 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
     };
 
     addCashLog(log as any);
-    setCashBalance(prev => adjustType === 'Add' ? prev + amt : prev - amt);
     setShowCashModal(false);
     setCashAmount('');
     setCashDescription('');
@@ -426,7 +452,12 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
           transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Bank to Cash', name: bankTxDescription || 'Bank to Cash Transfer', date: bankTxDate, amount: -amt }]
         });
       }
-      setCashBalance(c => c + amt);
+      addCashLog({
+        type: 'Add',
+        amount: amt,
+        date: bankTxDate,
+        description: bankTxDescription || 'Bank to Cash Transfer'
+      } as any);
     } 
     else if (bankTxType === 'Cash to Bank') {
       if (!bankTxToAcc) {
@@ -440,7 +471,12 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
           transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Cash to Bank', name: bankTxDescription || 'Cash to Bank Transfer', date: bankTxDate, amount: amt }]
         });
       }
-      setCashBalance(c => c - amt);
+      addCashLog({
+        type: 'Reduce',
+        amount: amt,
+        date: bankTxDate,
+        description: bankTxDescription || 'Cash to Bank Transfer'
+      } as any);
     }
     else if (bankTxType === 'Bank to Bank') {
       if (!bankTxFromAcc || !bankTxToAcc || bankTxFromAcc === bankTxToAcc) {
