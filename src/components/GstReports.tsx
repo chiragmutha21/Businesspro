@@ -14,7 +14,7 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}-01`;
+    return `01-${m}-${y}`;
   };
 
   const getTodayStr = () => {
@@ -22,7 +22,7 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    return `${day}-${m}-${y}`;
   };
 
   const [fromDate, setFromDate] = useState(getStartOfMonthStr());
@@ -153,7 +153,8 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
             <div style={styles.dateField}>
               <Calendar size={14} color="#9CA3AF" />
               <input
-                type="date"
+                type="text"
+                placeholder="DD-MM-YYYY"
                 style={styles.dateInput}
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
@@ -163,7 +164,8 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
             <div style={styles.dateField}>
               <Calendar size={14} color="#9CA3AF" />
               <input
-                type="date"
+                type="text"
+                placeholder="DD-MM-YYYY"
                 style={styles.dateInput}
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
@@ -374,8 +376,9 @@ const styles = {
     outline: 'none',
     fontSize: '12px',
     color: 'var(--color-text-main)',
-    cursor: 'pointer',
-    fontFamily: 'inherit'
+    cursor: 'text',
+    fontFamily: 'inherit',
+    width: '90px'
   },
   dateSeparator: {
     fontSize: '12px',
