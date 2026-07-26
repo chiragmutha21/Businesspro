@@ -16,7 +16,8 @@ import {
   Edit2,
   LogOut,
   X,
-  LayoutDashboard
+  LayoutDashboard,
+  Percent
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,6 +36,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
   const [showPurchaseSubmenu, setShowPurchaseSubmenu] = useState(false);
   const [showBankSubmenu, setShowBankSubmenu] = useState(false);
   const [showSaleSubmenu, setShowSaleSubmenu] = useState(false);
+  const [showGstSubmenu, setShowGstSubmenu] = useState(false);
+
+  const gstSubItems = [
+    { id: 'gst-purchase', label: 'GST Purchase' },
+    { id: 'gst-sale', label: 'GST Sale' }
+  ];
 
   const saleSubItems = [
     { id: 'sale-invoices', label: 'Sale Invoices' },
@@ -69,6 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
     { id: 'transactions', label: 'Sale', icon: Receipt, hasDropdown: true, action: 'dropdown' },
     { id: 'purchases', label: 'Purchase & Expense', icon: ShoppingCart, hasDropdown: true, action: 'dropdown' },
     { id: 'bank', label: 'Cash & Bank', icon: Landmark, hasDropdown: true, action: 'dropdown' },
+    { id: 'gst-required', label: 'GST Required', icon: Percent, hasDropdown: true, action: 'dropdown' },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'sync', label: 'Sync & Backup', icon: RefreshCw },
   ];
@@ -80,6 +88,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
       setShowBankSubmenu(!showBankSubmenu);
     } else if (id === 'transactions') {
       setShowSaleSubmenu(!showSaleSubmenu);
+    } else if (id === 'gst-required') {
+      setShowGstSubmenu(!showGstSubmenu);
     } else {
       setCurrentTab(id);
       if (onClose) onClose();
@@ -130,14 +140,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
           const isPurchasesActive = ['purchase-bills', 'payment-out', 'expenses', 'purchase-order', 'purchase-return'].includes(currentTab);
           const isBankActive = ['bank-accounts', 'cash-in-hand', 'cheques', 'loan-accounts'].includes(currentTab);
           const isSaleActive = ['sale-invoices', 'estimate-quotation', 'proforma-invoice', 'payment-in', 'sale-order', 'delivery-challan', 'sale-return'].includes(currentTab);
+          const isGstActive = ['gst-purchase', 'gst-sale'].includes(currentTab);
           const isActive = currentTab === item.id || 
             (item.id === 'purchases' && isPurchasesActive) ||
             (item.id === 'bank' && isBankActive) ||
-            (item.id === 'transactions' && isSaleActive);
+            (item.id === 'transactions' && isSaleActive) ||
+            (item.id === 'gst-required' && isGstActive);
 
           const isDropdownRotated = (item.id === 'purchases' && showPurchaseSubmenu) || 
                                     (item.id === 'bank' && showBankSubmenu) ||
-                                    (item.id === 'transactions' && showSaleSubmenu);
+                                    (item.id === 'transactions' && showSaleSubmenu) ||
+                                    (item.id === 'gst-required' && showGstSubmenu);
 
           return (
             <div key={item.id} style={styles.navItemWrapper}>
@@ -239,6 +252,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
                       >
                         <span>{sub.label}</span>
                         <Plus size={12} color="#9CA3AF" style={styles.submenuPlus} />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {item.id === 'gst-required' && (showGstSubmenu || isGstActive) && (
+                <div style={styles.submenuContainer}>
+                  {gstSubItems.map((sub) => {
+                    const isSubActive = currentTab === sub.id;
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => {
+                          setCurrentTab(sub.id);
+                          if (onClose) onClose();
+                        }}
+                        style={{
+                          ...styles.submenuItem,
+                          backgroundColor: isSubActive ? '#2B3454' : 'transparent',
+                          color: isSubActive ? '#FFFFFF' : '#9CA3AF',
+                        }}
+                      >
+                        <span>{sub.label}</span>
                       </button>
                     );
                   })}

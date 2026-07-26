@@ -14,6 +14,7 @@ import { CalculatorWidget } from './components/CalculatorWidget';
 import { CashBank } from './components/CashBank';
 import { Backup } from './components/Backup';
 import { Login } from './components/Login';
+import { GstReports } from './components/GstReports';
 
 function AppContent() {
   const { businesses, user, authLoading, dataLoading } = useApp();
@@ -124,6 +125,9 @@ function AppContent() {
           )}
           {['bank-accounts', 'cash-in-hand', 'cheques', 'loan-accounts'].includes(currentTab) && (
             <CashBank activeSection={currentTab} />
+          )}
+          {['gst-purchase', 'gst-sale'].includes(currentTab) && (
+            <GstReports activeSection={currentTab as any} />
           )}
           {currentTab === 'reports' && <Reports />}
           {currentTab === 'sync' && <Backup />}
