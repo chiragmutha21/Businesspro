@@ -23,7 +23,7 @@ import {
 } from 'recharts';
 
 export const Dashboard: React.FC = () => {
-  const { activeBusiness, businesses, products, transactions, cashLogs, bankAccounts } = useApp();
+  const { activeBusiness, businesses, products, transactions } = useApp();
   const [viewScope, setViewScope] = useState<'current' | 'overall'>('current');
   const [timeFilter, setTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'>('all');
   const [paymentTimeFilter, setPaymentTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('all');
@@ -161,41 +161,7 @@ export const Dashboard: React.FC = () => {
   );
   const totalPurchase = purchaseTxList.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0);
 
-  // Calculate dynamic Cash Balance (overall for the active business, mirroring Cash & Bank)
-  const currentCashBalance = React.useMemo(() => {
-    const bizCashLogs = cashLogs.filter(l => viewScope === 'overall' || l.businessId === activeBusiness?.id);
-    const manualCash = bizCashLogs.reduce((sum, log) => log.type === 'Add' ? sum + log.amount : sum - log.amount, 0);
-
-    const bizTransactionsAll = transactions.filter(t => viewScope === 'overall' || t.businessId === activeBusiness?.id);
-    const transCash = bizTransactionsAll.reduce((sum, t) => {
-      const pType = t.paymentType || '';
-      const isCash = pType === 'Cash' || t.paymentStatus === 'Paid by Cash';
-      const isSplit = pType.startsWith('Split:');
-      const cashSplitVal = isSplit ? (Number(pType.split(':')[1]) || 0) : 0;
-      const amt = t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || 0);
-
-      if (t.type === 'sale' || t.type === 'payment_in' || t.type === 'sale_return') {
-        if (isCash) return sum + amt;
-        if (isSplit) return sum + cashSplitVal;
-      }
-      if (t.type === 'purchase' || t.type === 'Purchase' || t.type === 'expense' || t.type === 'Expense' || t.type === 'payment_out' || t.type === 'purchase_return') {
-        const expenseAmt = (t as any).total || t.totalAmount || 0;
-        if (isCash) return sum - expenseAmt;
-        if (isSplit) return sum - cashSplitVal;
-      }
-      return sum;
-    }, 0);
-
-    return manualCash + transCash;
-  }, [cashLogs, transactions, activeBusiness, viewScope]);
-
-  // Calculate dynamic Bank/Online Balance (overall for the active business, mirroring Cash & Bank)
-  const currentBankBalance = React.useMemo(() => {
-    const bizBankAccounts = bankAccounts.filter(b => viewScope === 'overall' || b.businessId === activeBusiness?.id);
-    return bizBankAccounts.reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
-  }, [bankAccounts, activeBusiness, viewScope]);
-
-  const totalBalance = currentCashBalance + currentBankBalance;
+  // Total balance represents the combined cash and online collections
 
   // Profit calculation (revenue - cost of goods sold/purchased for simplicity)
   // Let's calculate based on sales: (sellingPrice - purchasePrice) * qty
@@ -249,6 +215,9 @@ export const Dashboard: React.FC = () => {
     if (t.paymentType?.startsWith('Split:')) return sum + (Number(t.paymentType.split(':')[2]) || 0);
     return sum + (t.receivedAmount || t.totalAmount || 0);
   }, 0);
+
+  // Redefine totalBalance to match the sum of cash and online payments
+  const totalBalance = paidInCash + paidOnline;
 
   const stockValue = bizProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.purchasePrice || 0)), 0);
   const lowStockCount = bizProducts.filter((p) => (p.stock || 0) <= (p.minStock || 0)).length;
