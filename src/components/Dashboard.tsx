@@ -167,23 +167,17 @@ export const Dashboard: React.FC = () => {
     localPaymentsInRaw.filter((t: any) => isWithinTimeFilter(t.date))
   );
 
-  const mainPaymentsOutList = bizTransactions.filter(t => t.type === 'payment_out' || t.type === 'Payment Out');
-
   const totalInflow = salesTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0)
                     + mainPaymentsInList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0);
 
-  const totalOutflow = purchaseTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0)
-                     + expenseTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0)
-                     + mainPaymentsOutList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0);
+  const totalOutflow = expenseTxList.reduce((sum, t) => sum + (t.receivedAmount !== undefined ? t.receivedAmount : (t.totalAmount || (t as any).total || 0)), 0);
 
   const totalBalance = totalInflow - totalOutflow;
 
   const balanceDetailsList = [
     ...salesTxList.map(t => ({ ...t, flowType: 'inflow', displayName: 'Sale' })),
     ...mainPaymentsInList.map(t => ({ ...t, flowType: 'inflow', displayName: 'Payment-In' })),
-    ...purchaseTxList.map(t => ({ ...t, flowType: 'outflow', displayName: 'Purchase' })),
-    ...expenseTxList.map(t => ({ ...t, flowType: 'outflow', displayName: 'Expense' })),
-    ...mainPaymentsOutList.map(t => ({ ...t, flowType: 'outflow', displayName: 'Payment-Out' }))
+    ...expenseTxList.map(t => ({ ...t, flowType: 'outflow', displayName: 'Expense' }))
   ].sort((a, b) => {
     const dateA = parseDateStr(a.date) || new Date(0);
     const dateB = parseDateStr(b.date) || new Date(0);
