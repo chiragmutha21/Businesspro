@@ -35,6 +35,23 @@ interface PurchaseItem {
   amount: number;
 }
 
+const parseDateStr = (dateStr: string): Date | null => {
+  if (!dateStr) return null;
+  const normalized = dateStr.replace(/\//g, '-').trim();
+  const parts = normalized.split('-');
+  if (parts.length !== 3) return null;
+  let y, m, d;
+  if (parts[0].length === 4) {
+    [y, m, d] = parts;
+  } else {
+    [d, m, y] = parts;
+  }
+  const parsed = new Date(Number(y), Number(m) - 1, Number(d));
+  if (isNaN(parsed.getTime())) return null;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+};
+
 export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const { customers, activeBusiness, transactions, deleteTransaction, addTransaction, updateTransaction } = useApp();
 
@@ -87,11 +104,81 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const [origBillDate, setOrigBillDate] = useState('12/07/2026');
 
   // List arrays saved in memory
-  const purchaseBills = transactions.filter(t => t.type === 'Purchase');
-  const paymentsOut = transactions.filter(t => t.type === 'Payment Out');
-  const expenses = transactions.filter(t => t.type === 'Expense');
-  const purchaseOrders = transactions.filter(t => t.type === 'Purchase Order');
-  const debitNotes = transactions.filter(t => t.type === 'Debit Note');
+  const purchaseBills = transactions
+    .filter(t => t.type === 'Purchase')
+    .sort((a, b) => {
+      const dateA = parseDateStr(a.date) || new Date(0);
+      const dateB = parseDateStr(b.date) || new Date(0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
+  const paymentsOut = transactions
+    .filter(t => t.type === 'Payment Out')
+    .sort((a, b) => {
+      const dateA = parseDateStr(a.date) || new Date(0);
+      const dateB = parseDateStr(b.date) || new Date(0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
+  const expenses = transactions
+    .filter(t => t.type === 'Expense')
+    .sort((a, b) => {
+      const dateA = parseDateStr(a.date) || new Date(0);
+      const dateB = parseDateStr(b.date) || new Date(0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
+  const purchaseOrders = transactions
+    .filter(t => t.type === 'Purchase Order')
+    .sort((a, b) => {
+      const dateA = parseDateStr(a.date) || new Date(0);
+      const dateB = parseDateStr(b.date) || new Date(0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
+  const debitNotes = transactions
+    .filter(t => t.type === 'Debit Note')
+    .sort((a, b) => {
+      const dateA = parseDateStr(a.date) || new Date(0);
+      const dateB = parseDateStr(b.date) || new Date(0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      return (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [isAutoPrint, setIsAutoPrint] = useState(false);

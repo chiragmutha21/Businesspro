@@ -82,6 +82,7 @@ export interface Transaction {
   ifscCode?: string;
   receivedAmount?: number;
   balanceAmount?: number;
+  createdAt?: string;
 }
 
 export interface StockHistory {
@@ -420,7 +421,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           receivedAmount: (t.payment_date || '').includes('||') ? Number((t.payment_date || '').split('||')[1]) : undefined,
           chequeNo: t.cheque_no || '',
           bankName: t.bank_name || '',
-          ifscCode: t.ifsc_code || ''
+          ifscCode: t.ifsc_code || '',
+          createdAt: t.created_at
         })));
 
         // Fetch stock history
@@ -1153,11 +1155,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         receivedAmount: (data.payment_date || '').includes('||') ? Number((data.payment_date || '').split('||')[1]) : undefined,
         chequeNo: data.cheque_no,
         bankName: data.bank_name,
-        ifscCode: data.ifsc_code
+        ifscCode: data.ifsc_code,
+        createdAt: data.created_at
       };
       setTransactions(prev => [newTx, ...prev]);
     } else {
-      const newTx: Transaction = { ...tx, id: Date.now().toString(), businessId: activeBusiness?.id } as Transaction;
+      const newTx: Transaction = { ...tx, id: Date.now().toString(), businessId: activeBusiness?.id, createdAt: new Date().toISOString() } as Transaction;
       setTransactions(prev => [newTx, ...prev]);
     }
   };
