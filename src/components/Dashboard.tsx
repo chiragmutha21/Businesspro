@@ -7,6 +7,7 @@ import {
   CreditCard,
   X
 } from 'lucide-react';
+import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 import { 
   AreaChart, 
   Area, 
@@ -780,7 +781,7 @@ export const Dashboard: React.FC = () => {
                         const isPlus = t.flowType === 'inflow';
                         return (
                           <tr key={i}>
-                            <td>{t.date}</td>
+                            <td>{formatDateDDMMYYYY(t.date)}</td>
                             <td style={{ fontWeight: '600' }}>{t.displayName}</td>
                             <td>{t.invoiceNo || t.referenceNo || t.id?.substring(0,6) || '-'}</td>
                             <td>{t.contactName || t.partyName || t.vendorName || '-'}</td>
@@ -820,7 +821,7 @@ export const Dashboard: React.FC = () => {
                       pendingTxList
                     ).map((t, i) => (
                       <tr key={i}>
-                        <td>{t.date}</td>
+                        <td>{formatDateDDMMYYYY(t.date)}</td>
                         <td>{t.invoiceNo || t.referenceNo || t.id?.substring(0,6) || '-'}</td>
                         <td>{t.contactName || t.partyName || t.vendorName || '-'}</td>
                         <td style={{ fontWeight: '600' }}>
@@ -988,7 +989,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '12px',
     padding: '24px',
     width: '90%',
-    maxWidth: '700px',
+    maxWidth: '850px',
     boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
   },
   modalHeader: {
