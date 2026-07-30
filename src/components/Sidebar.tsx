@@ -397,11 +397,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
 
       {/* Footer brand info */}
       <div style={styles.footerWrapper}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-          <img src="/logo.jpg" alt="Logo" style={{ width: '24px', height: '24px', borderRadius: '5px', objectFit: 'cover' }} />
-          <span style={{ fontSize: '14px', fontWeight: '800', color: '#3B82F6', letterSpacing: '0.5px' }}>BusinessPro</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '6px 0' }}>
+          <img src="/logo.jpg" alt="Logo" style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }} />
+          <span style={{ fontSize: '20px', fontWeight: '800', color: '#3B82F6', letterSpacing: '0.8px' }}>BusinessPro</span>
         </div>
-        <span style={{ fontSize: '10px', color: '#475569', fontWeight: '600', display: 'block' }}>AURORA SUITE v2.0.4</span>
       </div>
     </aside>
   );

@@ -6,7 +6,6 @@ import {
   Package, 
   CreditCard,
   Calendar,
-  Crown,
   ChevronDown,
   X,
   ArrowUpRight,
@@ -486,21 +485,8 @@ export const Dashboard: React.FC = () => {
     { name: 'Out of Stock', value: outOfStockCount || 0, color: '#EF4444' }
   ];
 
-  // Top Customers calculations
-  const customerSalesMap: Record<string, number> = {};
-  bizTransactions.filter(t => t.type === 'sale').forEach(t => {
-    if (t.contactName) {
-      customerSalesMap[t.contactName] = (customerSalesMap[t.contactName] || 0) + (t.totalAmount || 0);
-    }
-  });
-
-  const computedCustomers = Object.keys(customerSalesMap).map(name => ({
-    name,
-    amount: customerSalesMap[name]
-  })).sort((a, b) => b.amount - a.amount).slice(0, 5);
-
-  // Low Stock Alerts items
-  const computedLowStockAlerts = bizProducts.filter(p => (p.stock || 0) <= (p.minStock || 0)).slice(0, 3);
+  // Top Customers calculations (unused in layout, omitted)
+  // Low Stock Alerts items (unused in layout, omitted)
 
   // Donut chart logic for Payment Collection
   const totalPayment = paidInCash + paidOnline + pendingPayments;
@@ -1059,17 +1045,15 @@ export const Dashboard: React.FC = () => {
             <h3 style={styles.chartTitle}>Stock Status Overview</h3>
           </div>
           <div style={styles.radialGaugeContainer}>
-            <div style={styles.radialGaugeWrapper}>
-              <ResponsiveContainer width="100%" height={160}>
+            <div style={{ ...styles.radialGaugeWrapper, height: '120px', marginTop: '0', position: 'relative' }}>
+              <ResponsiveContainer width="100%" height={120}>
                 <PieChart>
                   <Pie
                     data={stockGaugeData}
                     cx="50%"
-                    cy="80%"
-                    startAngle={180}
-                    endAngle={0}
-                    innerRadius={50}
-                    outerRadius={68}
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={55}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -1079,9 +1063,18 @@ export const Dashboard: React.FC = () => {
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
-              <div style={styles.gaugeCenterLabel}>
-                <strong style={{ fontSize: '20px', color: 'var(--color-primary)' }}>{totalProducts}</strong>
-                <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Total Products</span>
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                pointerEvents: 'none',
+              }}>
+                <strong style={{ fontSize: '22px', fontWeight: '800', color: 'var(--color-primary)', lineHeight: '1' }}>{totalProducts}</strong>
+                <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.5px' }}>Total Products</span>
               </div>
             </div>
             <div style={styles.gaugeLegend}>
@@ -1102,10 +1095,10 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Grid: Recent Transactions, Top Customers, Low Stock Alerts */}
-      <div className="dashboard-bottom-grid">
+      {/* Bottom Grid: Recent Transactions */}
+      <div style={{ marginBottom: '20px' }}>
         {/* Recent Transactions */}
-        <div className="card" style={styles.bottomCard}>
+        <div className="card" style={{ ...styles.bottomCard, width: '100%', minHeight: 'auto' }}>
           <div style={styles.bottomCardHeader}>
             <h3 style={styles.chartTitle}>Recent Transactions</h3>
             <button style={styles.viewAllBtn} onClick={() => setActiveModal('sales')}>View All</button>
@@ -1152,62 +1145,6 @@ export const Dashboard: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Top Customers */}
-        <div className="card" style={styles.bottomCard}>
-          <div style={styles.bottomCardHeader}>
-            <h3 style={styles.chartTitle}>
-              Top Customers <span style={{ fontSize: '12px', fontWeight: '400', color: 'var(--color-text-muted)' }}>({activeMonthDate.toLocaleDateString('en-US', { month: 'long' })})</span>
-            </h3>
-            <button style={styles.viewAllBtn}>View All</button>
-          </div>
-          <div style={styles.customerList}>
-            {computedCustomers.length > 0 ? computedCustomers.map((c, idx) => (
-              <div key={idx} style={styles.customerItem}>
-                <div style={styles.customerRankWrapper}>
-                  {idx === 0 ? <Crown size={15} color="#F59E0B" /> :
-                   idx === 1 ? <Crown size={15} color="#9CA3AF" /> :
-                   idx === 2 ? <Crown size={15} color="#B45309" /> : 
-                   <span style={styles.rankNum}>{idx + 1}</span>}
-                </div>
-                <span style={styles.customerName}>{c.name}</span>
-                <span style={styles.customerAmount}>₹{c.amount.toLocaleString('en-IN')}</span>
-              </div>
-            )) : (
-              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px', padding: '20px 0' }}>
-                No customer data available
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Low Stock Alerts */}
-        <div className="card" style={{ ...styles.bottomCard, backgroundColor: '#FFF5F5', borderColor: '#FEE2E2' }}>
-          <div style={styles.bottomCardHeader}>
-            <h3 style={{ ...styles.chartTitle, color: '#991B1B' }}>Low Stock Alerts</h3>
-            <button style={{ ...styles.viewAllBtn, color: '#991B1B' }} onClick={() => setActiveModal('stock')}>View All</button>
-          </div>
-          <div style={styles.lowStockList}>
-            {computedLowStockAlerts.length > 0 ? computedLowStockAlerts.map((item, idx) => (
-              <div key={idx} style={styles.lowStockItem}>
-                <div style={{ ...styles.productInitialBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>
-                  {item.name.substring(0, 2).toUpperCase()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ ...styles.bestSellerName, color: '#991B1B' }}>{item.name}</div>
-                  <div style={styles.lowStockStatusLine}>
-                    Current Stock: <span style={{ color: '#EF4444', fontWeight: '700', marginLeft: '3px' }}>{item.stock}</span>
-                  </div>
-                </div>
-                <span style={styles.minStockLabel}>Min. Stock: {item.minStock}</span>
-              </div>
-            )) : (
-              <div style={{ textAlign: 'center', color: '#991B1B', fontSize: '12px', padding: '20px 0' }}>
-                No low stock alerts
-              </div>
-            )}
           </div>
         </div>
       </div>
