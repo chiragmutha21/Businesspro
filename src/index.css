@@ -579,7 +579,26 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Mobile responsive styles for the main header action bar */
+.mobile-burger-btn {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .mobile-header {
+    display: none !important;
+  }
+
+  .mobile-burger-btn {
+    display: flex !important;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+  }
+
   .app-header {
     height: auto !important;
     min-height: 56px;
@@ -601,5 +620,6 @@ h1, h2, h3, h4, h5, h6 {
     display: none !important;
   }
 }
+
 
 

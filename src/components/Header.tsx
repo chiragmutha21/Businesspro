@@ -5,14 +5,16 @@ import {
   Bell, 
   DollarSign, 
   AlertTriangle, 
-  X
+  X,
+  Menu
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 interface HeaderProps {
   onSearchSelect: (tab: string, detail?: any) => void;
+  onMenuClick?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
+export const Header: React.FC<HeaderProps> = ({ onSearchSelect, onMenuClick }) => {
   const { activeBusiness, products, transactions, globalSearch } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ products: any[]; customers: any[]; transactions: any[] }>({
@@ -155,6 +157,11 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
 
   return (
     <header className="app-header">
+      {onMenuClick && (
+        <button className="mobile-burger-btn" onClick={onMenuClick}>
+          <Menu size={22} color="var(--color-primary)" />
+        </button>
+      )}
       {/* Global Search */}
       <div className="header-search-wrapper" ref={searchRef}>
         <div style={styles.searchBar}>
