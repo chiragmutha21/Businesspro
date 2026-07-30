@@ -129,6 +129,7 @@ export const Dashboard: React.FC = () => {
   
   const localSaleOrders = localSaleOrdersRaw.filter((t: any) => isWithinTimeFilter(t.date));
   const localExpenses = getLocal('expenses').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
+  const localPurchaseBills = getLocal('purchaseBills').filter((t: any) => (viewScope === 'overall' || t.businessId === activeBusiness?.id) && isWithinTimeFilter(t.date));
 
   // Helper payment amounts
   const getPaidAmount = (t: any) => {
@@ -153,6 +154,12 @@ export const Dashboard: React.FC = () => {
     localExpenses
   );
   const totalExpense = expenseTxList.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0);
+
+  const purchaseTxList = mergeAndDeduplicate(
+    bizTransactions.filter(t => t.type === 'Purchase' || t.type === 'purchase'),
+    localPurchaseBills
+  );
+  const totalPurchase = purchaseTxList.reduce((sum: number, t: any) => sum + (t.total || t.totalAmount || 0), 0);
 
   const mainPaymentsInList = mergeAndDeduplicate(
     bizTransactions.filter(t => t.type === 'payment_in' || t.type === 'Payment In'),
@@ -239,12 +246,19 @@ export const Dashboard: React.FC = () => {
       const d = parseDateStr(t.date);
       return d && d.getMonth() === targetMonth && d.getFullYear() === targetYear && (viewScope === 'overall' || t.businessId === activeBusiness?.id);
     });
+    const localPurch = getLocal('purchaseBills').filter((t: any) => {
+      const d = parseDateStr(t.date);
+      return d && d.getMonth() === targetMonth && d.getFullYear() === targetYear && (viewScope === 'overall' || t.businessId === activeBusiness?.id);
+    });
 
     const salesTx = mergeAndDeduplicate(supaFiltered.filter(t => t.type === 'sale'), localSales);
     const sales = salesTx.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
 
     const expensesTx = mergeAndDeduplicate(supaFiltered.filter(t => t.type === 'expense' || t.type === 'Expense'), localExp);
     const expenses = expensesTx.reduce((sum, t) => sum + (t.total || t.totalAmount || 0), 0);
+
+    const purchasesTx = mergeAndDeduplicate(supaFiltered.filter(t => t.type === 'purchase' || t.type === 'Purchase'), localPurch);
+    const purchases = purchasesTx.reduce((sum, t) => sum + (t.total || t.totalAmount || 0), 0);
 
     const inflow = salesTx.reduce((sum, t) => sum + getPaidAmount(t), 0);
     const outflow = expensesTx.reduce((sum, t) => sum + getPaidAmount(t), 0);
@@ -263,7 +277,7 @@ export const Dashboard: React.FC = () => {
       profit -= t.discount || 0;
     });
 
-    return { sales, expenses, balance, profit };
+    return { sales, expenses, balance, profit, purchases };
   };
 
   const currStats = getMonthlyStats(0);
@@ -276,11 +290,13 @@ export const Dashboard: React.FC = () => {
 
   const salesGrowth = calcGrowth(currStats.sales, prevStats.sales);
   const expensesGrowth = calcGrowth(currStats.expenses, prevStats.expenses);
+  const purchasesGrowth = calcGrowth(currStats.purchases, prevStats.purchases);
   const balanceGrowth = calcGrowth(currStats.balance, prevStats.balance);
   const profitGrowth = calcGrowth(currStats.profit, prevStats.profit);
 
   const salesLastMonth = prevStats.sales;
   const expensesLastMonth = prevStats.expenses;
+  const purchasesLastMonth = prevStats.purchases;
   const balanceLastMonth = prevStats.balance;
   const profitLastMonth = prevStats.profit;
 
@@ -314,7 +330,7 @@ export const Dashboard: React.FC = () => {
     return { linePath: path, fillPath };
   };
 
-  const getSparklineData = (type: 'sale' | 'expense' | 'balance' | 'profit') => {
+  const getSparklineData = (type: 'sale' | 'expense' | 'balance' | 'profit' | 'purchase') => {
     const today = new Date();
     const vals: number[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -328,6 +344,9 @@ export const Dashboard: React.FC = () => {
         val = txs.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
       } else if (type === 'expense') {
         const txs = bizTransactions.filter(t => (t.type === 'expense' || t.type === 'Expense') && t.date === dateStr);
+        val = txs.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+      } else if (type === 'purchase') {
+        const txs = bizTransactions.filter(t => (t.type === 'purchase' || t.type === 'Purchase') && t.date === dateStr);
         val = txs.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
       } else if (type === 'balance') {
         const inflowTxs = bizTransactions.filter(t => (t.type === 'sale' || t.type === 'payment_in' || t.type === 'Payment In') && t.date === dateStr);
@@ -506,6 +525,7 @@ export const Dashboard: React.FC = () => {
   // Sparkline elements
   const salesSparkline = generateSparklinePath(getSparklineData('sale'));
   const expensesSparkline = generateSparklinePath(getSparklineData('expense'));
+  const purchasesSparkline = generateSparklinePath(getSparklineData('purchase'));
   const balanceSparkline = generateSparklinePath(getSparklineData('balance'));
   const profitSparkline = generateSparklinePath(getSparklineData('profit'));
 
@@ -653,6 +673,36 @@ export const Dashboard: React.FC = () => {
           </svg>
         </div>
 
+        {/* TOTAL PURCHASES */}
+        <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('purchases')}>
+          <div style={styles.cardHeader}>
+            <span style={styles.cardLabel}>TOTAL PURCHASES</span>
+            <div style={{ ...styles.badgeWrapper, backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B' }}>
+              <ArrowUpRight size={12} style={{ marginRight: '2px' }} />
+              {purchasesGrowth > 0 ? `+${purchasesGrowth}%` : `${purchasesGrowth}%`}
+            </div>
+          </div>
+          <div style={styles.cardMain}>
+            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(245, 158, 11, 0.12)' }}>
+              <TrendingUp size={18} color="#F59E0B" />
+            </div>
+            <span style={styles.metricValue}>₹{totalPurchase.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+          </div>
+          <span style={styles.cardFooterText}>vs last month ₹{purchasesLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+
+          {/* Sparkline */}
+          <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
+            <defs>
+              <linearGradient id="gradient-purchases" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {purchasesSparkline.fillPath && <path d={purchasesSparkline.fillPath} fill="url(#gradient-purchases)" />}
+            {purchasesSparkline.linePath && <path d={purchasesSparkline.linePath} fill="none" stroke="#F59E0B" strokeWidth="1.5" />}
+          </svg>
+        </div>
+
         {/* TOTAL BALANCE */}
         <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('balance')}>
           <div style={styles.cardHeader}>
@@ -740,7 +790,7 @@ export const Dashboard: React.FC = () => {
         <h3 style={styles.sectionTitle}>Payment Collection</h3>
         <div style={styles.paymentRowGrid}>
           {/* Card: PAID IN CASH */}
-          <div className="card" style={styles.paymentCard}>
+          <div className="card" style={{ ...styles.paymentCard, cursor: 'pointer' }} onClick={() => setActiveModal('cash')}>
             <div style={styles.paymentCardHeader}>
               <div style={{ ...styles.paymentIconBadge, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
                 <DollarSign size={20} color="#10B981" />
@@ -754,7 +804,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Card: PAID ONLINE */}
-          <div className="card" style={styles.paymentCard}>
+          <div className="card" style={{ ...styles.paymentCard, cursor: 'pointer' }} onClick={() => setActiveModal('online')}>
             <div style={styles.paymentCardHeader}>
               <div style={{ ...styles.paymentIconBadge, backgroundColor: 'rgba(74, 222, 128, 0.1)' }}>
                 <CreditCard size={20} color="#4ADE80" />
@@ -768,7 +818,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Card: PENDING RECEIVABLES */}
-          <div className="card" style={styles.paymentCard}>
+          <div className="card" style={{ ...styles.paymentCard, cursor: 'pointer' }} onClick={() => setActiveModal('pending')}>
             <div style={styles.paymentCardHeader}>
               <div style={{ ...styles.paymentIconBadge, backgroundColor: 'rgba(245, 158, 11, 0.1)' }}>
                 <CreditCard size={20} color="#F59E0B" />
@@ -778,7 +828,7 @@ export const Dashboard: React.FC = () => {
                 <div style={{ ...styles.paymentVal, color: '#F59E0B' }}>₹{pendingPayments.toLocaleString('en-IN')}</div>
               </div>
             </div>
-            <div style={styles.paymentFooter}>Awaiting client clearance</div>
+            <div style={styles.paymentFooter}>{pendingPercent}% of total</div>
           </div>
 
           {/* Donut Chart Block */}
@@ -1071,6 +1121,10 @@ export const Dashboard: React.FC = () => {
               <h3 style={styles.modalTitle}>
                 {activeModal === 'sales' ? 'Sales Transactions'
                  : activeModal === 'expenses' ? 'Expenses'
+                 : activeModal === 'purchases' ? 'Purchases'
+                 : activeModal === 'cash' ? 'Paid in Cash Transactions'
+                 : activeModal === 'online' ? 'Paid Online Transactions'
+                 : activeModal === 'pending' ? 'Pending Receivables'
                  : activeModal === 'stock' ? 'Stock Value & Inventory'
                  : activeModal === 'balance' ? 'Total Balance Ledger'
                  : 'Transactions'}
@@ -1178,17 +1232,39 @@ export const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(activeModal === 'sales' ? salesTxList : expenseTxList).map((t, i) => (
+                    {(
+                      activeModal === 'cash' ? cashTxList : 
+                      activeModal === 'online' ? onlineTxList : 
+                      activeModal === 'sales' ? salesTxList :
+                      activeModal === 'expenses' ? expenseTxList :
+                      activeModal === 'purchases' ? purchaseTxList :
+                      pendingTxList
+                    ).map((t, i) => (
                       <tr key={i}>
                         <td>{formatDateDDMMYYYY(t.date)}</td>
                         <td>{t.invoiceNo || t.referenceNo || t.id?.substring(0,6) || '-'}</td>
                         <td>{t.contactName || t.partyName || t.vendorName || '-'}</td>
                         <td style={{ fontWeight: '600' }}>
-                          ₹{(t.total || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          ₹{activeModal === 'pending' 
+                             ? ((t.totalAmount || 0) - (t.receivedAmount || 0)).toLocaleString('en-IN', { maximumFractionDigits: 2 }) 
+                             : (activeModal === 'expenses' || activeModal === 'purchases')
+                             ? (t.total || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                             : activeModal === 'cash' && t.paymentType?.startsWith('Split:')
+                             ? (Number(t.paymentType.split(':')[1]) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                             : activeModal === 'online' && t.paymentType?.startsWith('Split:')
+                             ? (Number(t.paymentType.split(':')[2]) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+                             : (t.receivedAmount || t.totalAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </td>
                       </tr>
                     ))}
-                    {(activeModal === 'sales' ? salesTxList : expenseTxList).length === 0 && (
+                    {(
+                      activeModal === 'cash' ? cashTxList : 
+                      activeModal === 'online' ? onlineTxList : 
+                      activeModal === 'sales' ? salesTxList :
+                      activeModal === 'expenses' ? expenseTxList :
+                      activeModal === 'purchases' ? purchaseTxList :
+                      pendingTxList
+                    ).length === 0 && (
                       <tr>
                         <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
                           No transactions found.
