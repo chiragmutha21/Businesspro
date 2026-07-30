@@ -274,15 +274,15 @@ export const Dashboard: React.FC = () => {
     return parseFloat((((curr - prev) / Math.abs(prev)) * 100).toFixed(1));
   };
 
-  const salesGrowth = calcGrowth(currStats.sales, prevStats.sales) || 18.6;
-  const expensesGrowth = calcGrowth(currStats.expenses, prevStats.expenses) || 12.4;
-  const balanceGrowth = calcGrowth(currStats.balance, prevStats.balance) || 24.3;
-  const profitGrowth = calcGrowth(currStats.profit, prevStats.profit) || 8.7;
+  const salesGrowth = calcGrowth(currStats.sales, prevStats.sales);
+  const expensesGrowth = calcGrowth(currStats.expenses, prevStats.expenses);
+  const balanceGrowth = calcGrowth(currStats.balance, prevStats.balance);
+  const profitGrowth = calcGrowth(currStats.profit, prevStats.profit);
 
-  const salesLastMonth = prevStats.sales || 32110;
-  const expensesLastMonth = prevStats.expenses || 91452.10;
-  const balanceLastMonth = prevStats.balance || -85450.20;
-  const profitLastMonth = prevStats.profit || 4920;
+  const salesLastMonth = prevStats.sales;
+  const expensesLastMonth = prevStats.expenses;
+  const balanceLastMonth = prevStats.balance;
+  const profitLastMonth = prevStats.profit;
 
   // Dynamic Sparkline Generator
   const generateSparklinePath = (values: number[]) => {
@@ -352,10 +352,7 @@ export const Dashboard: React.FC = () => {
 
     const allZero = vals.every(v => v === 0);
     if (allZero) {
-      if (type === 'sale') return [5, 12, 8, 15, 10, 22, 18];
-      if (type === 'expense') return [4, 6, 12, 5, 8, 14, 11];
-      if (type === 'balance') return [10, 15, 12, 18, 14, 25, 22];
-      if (type === 'profit') return [2, 6, 4, 8, 5, 12, 9];
+      return [0, 0, 0, 0, 0, 0, 0];
     }
     return vals;
   };
@@ -439,18 +436,6 @@ export const Dashboard: React.FC = () => {
     }
   }
 
-  // Ensure mock data for clean visual representation if empty
-  const isAllZeroSales = dailyChartData.every(d => d.Sales === 0);
-  if (isAllZeroSales && timeFilter === 'monthly') {
-    const dummyDates = ['01 May', '05 May', '09 May', '13 May', '17 May', '21 May', '25 May', '29 May', '31 May'];
-    const dummyValues = [12000, 15000, 8000, 24000, 18000, 11000, 46230, 16000, 21000];
-    dailyChartData = dummyDates.map((d, i) => ({
-      date: d,
-      fullDate: `${d} 2025`,
-      Sales: dummyValues[i]
-    }));
-  }
-
   // Best Selling Products calculations
   const productSalesMap: Record<string, number> = {};
   bizTransactions.filter((t) => t.type === 'sale').forEach((t) => {
@@ -464,15 +449,7 @@ export const Dashboard: React.FC = () => {
     Sales: productSalesMap[name],
   })).sort((a, b) => b.Sales - a.Sales).slice(0, 5);
 
-  const displayProducts = computedProducts.length > 0 ? computedProducts : [
-    { name: 'Santoor Soap 4 x 100g', Sales: 280 },
-    { name: 'Surf Excel Matic 1kg', Sales: 152 },
-    { name: 'Parle-G Biscuit 800g', Sales: 98 },
-    { name: 'Colgate Strong Teeth 200g', Sales: 72 },
-    { name: 'Harpic Toilet Cleaner 1L', Sales: 34 }
-  ];
-
-  const maxBestSeller = Math.max(...displayProducts.map(p => p.Sales), 1);
+  const maxBestSeller = Math.max(...computedProducts.map(p => p.Sales), 1);
 
   // Stock gauge calculations
   const inStockCount = bizProducts.filter(p => (p.stock || 0) > (p.minStock || 0)).length;
@@ -481,7 +458,7 @@ export const Dashboard: React.FC = () => {
   const totalProducts = bizProducts.length;
 
   const stockGaugeData = [
-    { name: 'In Stock', value: inStockCount || 1, color: '#10B981' },
+    { name: 'In Stock', value: inStockCount || 0, color: '#10B981' },
     { name: 'Low Stock', value: lowStockCount || 0, color: '#F59E0B' },
     { name: 'Out of Stock', value: outOfStockCount || 0, color: '#EF4444' }
   ];
@@ -499,33 +476,20 @@ export const Dashboard: React.FC = () => {
     amount: customerSalesMap[name]
   })).sort((a, b) => b.amount - a.amount).slice(0, 5);
 
-  const displayCustomers = computedCustomers.length > 0 ? computedCustomers : [
-    { name: 'Sagar Traders', amount: 6450 },
-    { name: 'Shree Enterprises', amount: 4980 },
-    { name: 'Patel Retail Store', amount: 3860 },
-    { name: 'Riddhi Stores', amount: 2350 },
-    { name: 'Om Provision', amount: 1980 }
-  ];
-
   // Low Stock Alerts items
   const computedLowStockAlerts = bizProducts.filter(p => (p.stock || 0) <= (p.minStock || 0)).slice(0, 3);
-  const displayLowStockAlerts = computedLowStockAlerts.length > 0 ? computedLowStockAlerts : [
-    { name: 'Lays Classic Salted 52g', stock: 2, minStock: 12, unit: 'pcs' },
-    { name: 'Maggi 2-Minute Noodles 70g', stock: 1, minStock: 8, unit: 'pcs' },
-    { name: 'Ariel Matic Detergent 1kg', stock: 0, minStock: 10, unit: 'pcs' }
-  ];
 
   // Donut chart logic for Payment Collection
   const totalPayment = paidInCash + paidOnline + pendingPayments;
-  const cashPercent = totalPayment > 0 ? Math.round((paidInCash / totalPayment) * 100) : 62;
-  const onlinePercent = totalPayment > 0 ? Math.round((paidOnline / totalPayment) * 100) : 31;
-  const pendingPercent = totalPayment > 0 ? Math.max(0, 100 - cashPercent - onlinePercent) : 7;
-  const displayPaymentTotal = totalPayment > 0 ? totalPayment : 37385;
+  const cashPercent = totalPayment > 0 ? Math.round((paidInCash / totalPayment) * 100) : 0;
+  const onlinePercent = totalPayment > 0 ? Math.round((paidOnline / totalPayment) * 100) : 0;
+  const pendingPercent = totalPayment > 0 ? Math.max(0, 100 - cashPercent - onlinePercent) : 0;
+  const displayPaymentTotal = totalPayment;
 
   const paymentPieData = [
-    { name: 'Cash', value: paidInCash || 8865, color: '#10B981' },
-    { name: 'Online', value: paidOnline || 4510, color: '#4ADE80' },
-    { name: 'Pending', value: pendingPayments || 24685, color: '#F59E0B' }
+    { name: 'Cash', value: paidInCash, color: '#10B981' },
+    { name: 'Online', value: paidOnline, color: '#4ADE80' },
+    { name: 'Pending', value: pendingPayments, color: '#F59E0B' }
   ];
 
   // Date range label
@@ -642,9 +606,9 @@ export const Dashboard: React.FC = () => {
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(16, 185, 129, 0.12)' }}>
               <ShoppingBag size={18} color="#10B981" />
             </div>
-            <span style={styles.metricValue}>₹{(totalSales || 38060).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+            <span style={styles.metricValue}>₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{(salesLastMonth).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span style={styles.cardFooterText}>vs last month ₹{salesLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -672,9 +636,9 @@ export const Dashboard: React.FC = () => {
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
               <DollarSign size={18} color="#EF4444" />
             </div>
-            <span style={styles.metricValue}>₹{(totalExpense || 102905.24).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+            <span style={styles.metricValue}>₹{totalExpense.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{(expensesLastMonth).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span style={styles.cardFooterText}>vs last month ₹{expensesLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
 
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -703,10 +667,10 @@ export const Dashboard: React.FC = () => {
               <CreditCard size={18} color="#3B82F6" />
             </div>
             <span style={styles.metricValue}>
-              {totalBalance < 0 ? '-' : ''}₹{Math.abs(totalBalance || -64845.24).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              {totalBalance < 0 ? '-' : ''}₹{Math.abs(totalBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             </span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{(balanceLastMonth).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span style={styles.cardFooterText}>vs last month ₹{balanceLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
 
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -734,9 +698,9 @@ export const Dashboard: React.FC = () => {
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
               <TrendingUp size={18} color="#8B5CF6" />
             </div>
-            <span style={styles.metricValue}>₹{(totalProfit || 5346).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+            <span style={styles.metricValue}>₹{totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{(profitLastMonth).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span style={styles.cardFooterText}>vs last month ₹{profitLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
 
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -760,7 +724,7 @@ export const Dashboard: React.FC = () => {
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(245, 158, 11, 0.1)' }}>
               <Package size={18} color="#F59E0B" />
             </div>
-            <span style={styles.metricValue}>₹{(stockValue || 203276).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+            <span style={styles.metricValue}>₹{stockValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
           <div style={styles.cardFooterStock}>
             <span style={{ color: lowStockCount > 0 ? '#EF4444' : '#10B981', fontWeight: '700', marginRight: '4px' }}>
@@ -783,7 +747,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <div>
                 <span style={styles.paymentLabel}>PAID IN CASH</span>
-                <div style={styles.paymentVal}>₹{paidInCash ? paidInCash.toLocaleString('en-IN') : '8,865'}</div>
+                <div style={styles.paymentVal}>₹{paidInCash.toLocaleString('en-IN')}</div>
               </div>
             </div>
             <div style={styles.paymentFooter}>{cashPercent}% of total</div>
@@ -797,7 +761,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <div>
                 <span style={styles.paymentLabel}>PAID ONLINE</span>
-                <div style={styles.paymentVal}>₹{paidOnline ? paidOnline.toLocaleString('en-IN') : '4,510'}</div>
+                <div style={styles.paymentVal}>₹{paidOnline.toLocaleString('en-IN')}</div>
               </div>
             </div>
             <div style={styles.paymentFooter}>{onlinePercent}% of total</div>
@@ -811,7 +775,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <div>
                 <span style={styles.paymentLabel}>PENDING RECEIVABLES</span>
-                <div style={{ ...styles.paymentVal, color: '#F59E0B' }}>₹{pendingPayments ? pendingPayments.toLocaleString('en-IN') : '24,685'}</div>
+                <div style={{ ...styles.paymentVal, color: '#F59E0B' }}>₹{pendingPayments.toLocaleString('en-IN')}</div>
               </div>
             </div>
             <div style={styles.paymentFooter}>Awaiting client clearance</div>
@@ -917,7 +881,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div style={styles.bestSellersList}>
-            {displayProducts.map((p, idx) => {
+            {computedProducts.length > 0 ? computedProducts.map((p, idx) => {
               const barWidth = (p.Sales / maxBestSeller) * 100;
               const barColor = idx < 3 ? '#10B981' : '#F59E0B';
               return (
@@ -934,7 +898,11 @@ export const Dashboard: React.FC = () => {
                   <div style={styles.bestSellerCount}>{p.Sales}</div>
                 </div>
               );
-            })}
+            }) : (
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px', padding: '20px 0' }}>
+                No sales data available
+              </div>
+            )}
           </div>
         </div>
 
@@ -965,22 +933,22 @@ export const Dashboard: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
               <div style={styles.gaugeCenterLabel}>
-                <strong style={{ fontSize: '20px', color: 'var(--color-primary)' }}>{totalProducts || 256}</strong>
+                <strong style={{ fontSize: '20px', color: 'var(--color-primary)' }}>{totalProducts}</strong>
                 <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Total Products</span>
               </div>
             </div>
             <div style={styles.gaugeLegend}>
               <div style={styles.gaugeLegendItem}>
                 <span style={{ ...styles.legendColorDot, backgroundColor: '#10B981' }} />
-                <span style={styles.legendLabelText}>In Stock ({inStockCount || 198})</span>
+                <span style={styles.legendLabelText}>In Stock ({inStockCount})</span>
               </div>
               <div style={styles.gaugeLegendItem}>
                 <span style={{ ...styles.legendColorDot, backgroundColor: '#F59E0B' }} />
-                <span style={styles.legendLabelText}>Low Stock ({lowStockCount || 5})</span>
+                <span style={styles.legendLabelText}>Low Stock ({lowStockCount})</span>
               </div>
               <div style={styles.gaugeLegendItem}>
                 <span style={{ ...styles.legendColorDot, backgroundColor: '#EF4444' }} />
-                <span style={styles.legendLabelText}>Out of Stock ({outOfStockCount || 53})</span>
+                <span style={styles.legendLabelText}>Out of Stock ({outOfStockCount})</span>
               </div>
             </div>
           </div>
@@ -1013,9 +981,9 @@ export const Dashboard: React.FC = () => {
                     <td style={{ ...styles.denseTd, fontWeight: '600', color: 'var(--color-primary)' }}>
                       {t.invoiceNo || `INV-${String(idx + 544).padStart(5, '0')}`}
                     </td>
-                    <td style={styles.denseTd}>{formatDateDDMMYYYY(t.date || '31-05-2025')}</td>
+                    <td style={styles.denseTd}>{formatDateDDMMYYYY(t.date || '')}</td>
                     <td style={styles.denseTd}>{t.contactName || 'Walking Customer'}</td>
-                    <td style={{ ...styles.denseTd, fontWeight: '600' }}>₹{t.totalAmount ? t.totalAmount.toLocaleString('en-IN') : '2,450'}</td>
+                    <td style={{ ...styles.denseTd, fontWeight: '600' }}>₹{t.totalAmount ? t.totalAmount.toLocaleString('en-IN') : '0'}</td>
                     <td style={styles.denseTd}>{t.paymentType || 'Online'}</td>
                     <td style={styles.denseTd}>
                       <span style={{
@@ -1029,25 +997,11 @@ export const Dashboard: React.FC = () => {
                   </tr>
                 ))}
                 {salesTxList.length === 0 && (
-                  // Fallbacks for mockup display if database is clean
-                  [
-                    { inv: 'INV-00548', date: '31 May 2025', cust: 'Sagar Traders', amt: 2450, method: 'Online', status: 'Paid' },
-                    { inv: 'INV-00547', date: '31 May 2025', cust: 'Patel Retail Store', amt: 1890, method: 'Cash', status: 'Paid' },
-                    { inv: 'INV-00546', date: '30 May 2025', cust: 'Shree Enterprises', amt: 3125, method: 'Online', status: 'Paid' },
-                    { inv: 'INV-00545', date: '30 May 2025', cust: 'Riddhi Stores', amt: 980, method: 'Cash', status: 'Paid' },
-                    { inv: 'INV-00544', date: '29 May 2025', cust: 'Om Provision', amt: 1760, method: 'Online', status: 'Paid' }
-                  ].map((row, idx) => (
-                    <tr key={idx}>
-                      <td style={{ ...styles.denseTd, fontWeight: '600', color: 'var(--color-primary)' }}>{row.inv}</td>
-                      <td style={styles.denseTd}>{row.date}</td>
-                      <td style={styles.denseTd}>{row.cust}</td>
-                      <td style={{ ...styles.denseTd, fontWeight: '600' }}>₹{row.amt.toLocaleString('en-IN')}</td>
-                      <td style={styles.denseTd}>{row.method}</td>
-                      <td style={styles.denseTd}>
-                        <span style={{ ...styles.statusBadge, backgroundColor: '#E6FDF4', color: '#10B981' }}>{row.status}</span>
-                      </td>
-                    </tr>
-                  ))
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                      No recent transactions
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -1061,7 +1015,7 @@ export const Dashboard: React.FC = () => {
             <button style={styles.viewAllBtn}>View All</button>
           </div>
           <div style={styles.customerList}>
-            {displayCustomers.map((c, idx) => (
+            {computedCustomers.length > 0 ? computedCustomers.map((c, idx) => (
               <div key={idx} style={styles.customerItem}>
                 <div style={styles.customerRankWrapper}>
                   {idx === 0 ? <Crown size={15} color="#F59E0B" /> :
@@ -1072,7 +1026,11 @@ export const Dashboard: React.FC = () => {
                 <span style={styles.customerName}>{c.name}</span>
                 <span style={styles.customerAmount}>₹{c.amount.toLocaleString('en-IN')}</span>
               </div>
-            ))}
+            )) : (
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px', padding: '20px 0' }}>
+                No customer data available
+              </div>
+            )}
           </div>
         </div>
 
@@ -1083,7 +1041,7 @@ export const Dashboard: React.FC = () => {
             <button style={{ ...styles.viewAllBtn, color: '#991B1B' }} onClick={() => setActiveModal('stock')}>View All</button>
           </div>
           <div style={styles.lowStockList}>
-            {displayLowStockAlerts.map((item, idx) => (
+            {computedLowStockAlerts.length > 0 ? computedLowStockAlerts.map((item, idx) => (
               <div key={idx} style={styles.lowStockItem}>
                 <div style={{ ...styles.productInitialBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>
                   {item.name.substring(0, 2).toUpperCase()}
@@ -1096,7 +1054,11 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <span style={styles.minStockLabel}>Min. Stock: {item.minStock}</span>
               </div>
-            ))}
+            )) : (
+              <div style={{ textAlign: 'center', color: '#991B1B', fontSize: '12px', padding: '20px 0' }}>
+                No low stock alerts
+              </div>
+            )}
           </div>
         </div>
       </div>
