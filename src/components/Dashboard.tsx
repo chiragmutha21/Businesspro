@@ -458,11 +458,14 @@ export const Dashboard: React.FC = () => {
     }
   }
 
-  // Best Selling Products calculations
+  // Best Selling Products calculations (only items added to active inventory)
   const productSalesMap: Record<string, number> = {};
   bizTransactions.filter((t) => t.type === 'sale').forEach((t) => {
-    t.products?.forEach((p: any) => {
-      productSalesMap[p.productName] = (productSalesMap[p.productName] || 0) + p.quantity;
+    t.products?.forEach((tp: any) => {
+      const exists = bizProducts.some((p) => p.name === tp.productName || p.id === tp.productId);
+      if (exists) {
+        productSalesMap[tp.productName] = (productSalesMap[tp.productName] || 0) + tp.quantity;
+      }
     });
   });
 
@@ -1069,13 +1072,13 @@ export const Dashboard: React.FC = () => {
                 top: '50%',
                 transform: 'translate(-50%, -50%)',
                 textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
                 pointerEvents: 'none',
               }}>
-                <strong style={{ fontSize: '22px', fontWeight: '800', color: 'var(--color-primary)', lineHeight: '1' }}>{totalProducts}</strong>
-                <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '4px', letterSpacing: '0.5px' }}>Total Products</span>
+                <strong style={{ fontSize: '28px', fontWeight: '800', color: 'var(--color-primary)', lineHeight: '1' }}>{totalProducts}</strong>
               </div>
+            </div>
+            <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)', marginTop: '4px', marginBottom: '8px' }}>
+              Total Products: {totalProducts}
             </div>
             <div style={styles.gaugeLegend}>
               <div style={styles.gaugeLegendItem}>
