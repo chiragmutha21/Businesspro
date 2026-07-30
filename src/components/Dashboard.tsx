@@ -577,7 +577,7 @@ export const Dashboard: React.FC = () => {
   return (
     <div style={styles.container}>
       {/* Upper Panel */}
-      <div style={styles.topRow}>
+      <div className="dashboard-top-row">
         <div>
           <h1 style={styles.title}>Aura Dashboard 👋</h1>
           <p style={styles.subtitle}>Real-time overview of your business performance</p>
@@ -657,7 +657,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Cards Metrics Grid */}
-      <div style={styles.metricsGrid}>
+      <div className="dashboard-metrics-grid">
         {/* TOTAL SALES */}
         <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('sales')}>
           <div style={styles.cardHeader}>
@@ -833,7 +833,7 @@ export const Dashboard: React.FC = () => {
       {/* Payment Collection Section */}
       <div style={{ marginBottom: '24px' }}>
         <h3 style={styles.sectionTitle}>Payment Collection</h3>
-        <div style={styles.paymentRowGrid}>
+        <div className="dashboard-payment-grid">
           {/* Card: PAID IN CASH */}
           <div className="card" style={{ ...styles.paymentCard, cursor: 'pointer' }} onClick={() => setActiveModal('cash')}>
             <div style={styles.paymentCardHeader}>
@@ -923,7 +923,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Analytics Charts & Details Row */}
-      <div style={styles.analyticsRowGrid}>
+      <div className="dashboard-analytics-grid">
         {/* Daily Sales Volume */}
         <div className="card" style={styles.chartCard}>
           <div style={styles.chartHeader}>
@@ -1103,7 +1103,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Bottom Grid: Recent Transactions, Top Customers, Low Stock Alerts */}
-      <div style={styles.bottomGrid}>
+      <div className="dashboard-bottom-grid">
         {/* Recent Transactions */}
         <div className="card" style={styles.bottomCard}>
           <div style={styles.bottomCardHeader}>
