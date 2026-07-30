@@ -154,14 +154,14 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
   };
 
   return (
-    <header style={styles.header}>
+    <header className="app-header">
       {/* Global Search */}
-      <div style={styles.searchWrapper} ref={searchRef}>
+      <div className="header-search-wrapper" ref={searchRef}>
         <div style={styles.searchBar}>
           <Search size={18} color="var(--color-text-muted)" style={styles.searchIcon} />
           <input
             type="text"
-            placeholder={`Search invoices, products, customers in ${activeBusiness?.name || 'current business'}...`}
+            placeholder="Search invoices, products, customers..."
             style={styles.searchInput}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -250,9 +250,9 @@ export const Header: React.FC<HeaderProps> = ({ onSearchSelect }) => {
       </div>
 
       {/* Right Controls */}
-      <div style={styles.controls}>
+      <div className="header-controls">
         {/* Business Title display */}
-        <div style={styles.businessIndicator}>
+        <div className="header-biz-indicator" style={styles.businessIndicator}>
           <span style={styles.bizDot}></span>
           <span style={styles.bizName}>{activeBusiness?.name}</span>
         </div>

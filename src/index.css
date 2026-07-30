@@ -554,3 +554,52 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Header Grid & Layouts */
+.app-header {
+  height: 70px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  z-index: 99;
+}
+
+.header-search-wrapper {
+  position: relative;
+  width: 450px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Mobile responsive styles for the main header action bar */
+@media (max-width: 768px) {
+  .app-header {
+    height: auto !important;
+    min-height: 56px;
+    padding: 8px 16px !important;
+    gap: 10px;
+  }
+
+  .header-search-wrapper {
+    width: 100% !important;
+    flex: 1;
+  }
+
+  .header-controls {
+    gap: 10px !important;
+  }
+
+  /* Hide the business indicator tag in the main header action bar on mobile */
+  .app-header .header-biz-indicator {
+    display: none !important;
+  }
+}
+
+
