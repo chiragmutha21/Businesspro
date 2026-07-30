@@ -17,7 +17,8 @@ import {
   LogOut,
   X,
   LayoutDashboard,
-  Percent
+  Percent,
+  ChevronRight
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -68,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
     { id: 'loan-accounts', label: 'Loan Accounts' }
   ];
 
-  // Define sidebar menu options
+  // Define sidebar menu options exactly matching original list fields & names
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'customers', label: 'Parties', icon: Users, hasDropdown: true, action: 'dropdown' },
@@ -106,190 +107,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
     onAddBusiness();
   };
 
+  const getBusinessNameParts = () => {
+    const name = activeBusiness?.name || 'NEW MAHAVIR ENTERPRISES';
+    const parts = name.split(' ');
+    if (parts.length === 1) return { first: name, second: '' };
+    return {
+      first: parts.slice(0, -1).join(' '),
+      second: parts[parts.length - 1]
+    };
+  };
+
+  const nameParts = getBusinessNameParts();
+
   return (
     <aside className={isOpen ? 'open' : ''} style={styles.sidebar}>
       {/* Brand Header */}
-      <div style={{ ...styles.brandHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src="/logo.jpg" alt="Logo" style={{ width: '32px', height: '32px', marginRight: '10px', borderRadius: '6px', objectFit: 'cover' }} />
-          <span style={styles.brandName}>BusinessPro</span>
+      <div style={styles.brandHeader}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={styles.logoContainer}>
+            <Building size={20} color="#10B981" />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+            <span style={styles.brandFirst}>{nameParts.first}</span>
+            <span style={styles.brandSecond}>{nameParts.second}</span>
+          </div>
         </div>
         {onClose && (
-          <button className="mobile-menu-close" onClick={onClose}>
-            <X size={18} />
+          <button className="mobile-menu-close" onClick={onClose} style={styles.closeBtn}>
+            <X size={18} color="#94A3B8" />
           </button>
         )}
       </div>
 
-      {/* Search bar inside Sidebar */}
-      <div style={styles.searchContainer}>
-        <Search size={14} color="#9CA3AF" style={styles.searchIcon} />
-        <input
-          type="text"
-          placeholder="Open Anything (Ctrl+F)"
-          style={styles.searchInput}
-          value={searchSidebar}
-          onChange={(e) => setSearchSidebar(e.target.value)}
-        />
-      </div>
+      {/* Active Business Switcher Dropdown */}
+      <div style={{ position: 'relative', marginBottom: '20px' }}>
+        <button
+          onClick={() => setShowBusinessSelect(!showBusinessSelect)}
+          style={styles.businessSelectBtn}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={styles.activeDot} />
+            <span style={styles.activeBusinessText}>Active Business</span>
+          </div>
+          <ChevronDown size={14} color="#94A3B8" />
+        </button>
 
-      {/* Navigation menu list */}
-      <nav style={styles.nav}>
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isPurchasesActive = ['purchase-bills', 'payment-out', 'expenses', 'purchase-order', 'purchase-return'].includes(currentTab);
-          const isBankActive = ['bank-accounts', 'cash-in-hand', 'cheques', 'loan-accounts'].includes(currentTab);
-          const isSaleActive = ['sale-invoices', 'estimate-quotation', 'proforma-invoice', 'payment-in', 'sale-order', 'delivery-challan', 'sale-return'].includes(currentTab);
-          const isGstActive = ['gst-purchase', 'gst-sale'].includes(currentTab);
-          const isActive = currentTab === item.id || 
-            (item.id === 'purchases' && isPurchasesActive) ||
-            (item.id === 'bank' && isBankActive) ||
-            (item.id === 'transactions' && isSaleActive) ||
-            (item.id === 'gst-required' && isGstActive);
-
-          const isDropdownRotated = (item.id === 'purchases' && showPurchaseSubmenu) || 
-                                    (item.id === 'bank' && showBankSubmenu) ||
-                                    (item.id === 'transactions' && showSaleSubmenu) ||
-                                    (item.id === 'gst-required' && showGstSubmenu);
-
-          return (
-            <div key={item.id} style={styles.navItemWrapper}>
-              <button
-                onClick={() => handleItemClick(item.id)}
-                style={{
-                  ...styles.navItem,
-                  backgroundColor: isActive ? '#242B45' : 'transparent',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Icon size={18} color="#9CA3AF" />
-                  <span style={styles.itemLabel}>{item.label}</span>
-                </div>
-
-                {item.hasDropdown && (
-                  <ChevronDown size={14} color="#9CA3AF" style={{ transform: isDropdownRotated ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                )}
-                {item.hasPlus && (
-                  <Plus size={14} color="#9CA3AF" />
-                )}
-              </button>
-
-              {item.id === 'transactions' && (showSaleSubmenu || isSaleActive) && (
-                <div style={styles.submenuContainer}>
-                  {saleSubItems.map((sub) => {
-                    const isSubActive = currentTab === sub.id;
-                    return (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          setCurrentTab(sub.id);
-                          if (onClose) onClose();
-                        }}
-                        style={{
-                          ...styles.submenuItem,
-                          backgroundColor: isSubActive ? '#2B3454' : 'transparent',
-                          color: isSubActive ? '#FFFFFF' : '#9CA3AF',
-                        }}
-                      >
-                        <span>{sub.label}</span>
-                        <div 
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', cursor: 'pointer' }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            localStorage.setItem('open_sale_form_direct', sub.id);
-                            setCurrentTab(sub.id);
-                          }}
-                        >
-                          <Plus size={12} color="#9CA3AF" style={styles.submenuPlus} />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {item.id === 'purchases' && (showPurchaseSubmenu || isPurchasesActive) && (
-                <div style={styles.submenuContainer}>
-                  {purchaseSubItems.map((sub) => {
-                    const isSubActive = currentTab === sub.id;
-                    return (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          setCurrentTab(sub.id);
-                          if (onClose) onClose();
-                        }}
-                        style={{
-                          ...styles.submenuItem,
-                          backgroundColor: isSubActive ? '#2B3454' : 'transparent',
-                          color: isSubActive ? '#FFFFFF' : '#9CA3AF',
-                        }}
-                      >
-                        <span>{sub.label}</span>
-                        <Plus size={12} color="#9CA3AF" style={styles.submenuPlus} />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {item.id === 'bank' && (showBankSubmenu || isBankActive) && (
-                <div style={styles.submenuContainer}>
-                  {bankSubItems.map((sub) => {
-                    const isSubActive = currentTab === sub.id;
-                    return (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          setCurrentTab(sub.id);
-                          if (onClose) onClose();
-                        }}
-                        style={{
-                          ...styles.submenuItem,
-                          backgroundColor: isSubActive ? '#2B3454' : 'transparent',
-                          color: isSubActive ? '#FFFFFF' : '#9CA3AF',
-                        }}
-                      >
-                        <span>{sub.label}</span>
-                        <Plus size={12} color="#9CA3AF" style={styles.submenuPlus} />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {item.id === 'gst-required' && (showGstSubmenu || isGstActive) && (
-                <div style={styles.submenuContainer}>
-                  {gstSubItems.map((sub) => {
-                    const isSubActive = currentTab === sub.id;
-                    return (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          setCurrentTab(sub.id);
-                          if (onClose) onClose();
-                        }}
-                        style={{
-                          ...styles.submenuItem,
-                          backgroundColor: isSubActive ? '#2B3454' : 'transparent',
-                          color: isSubActive ? '#FFFFFF' : '#9CA3AF',
-                        }}
-                      >
-                        <span>{sub.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* Footer Profile status with floating Business Switcher popover */}
-      <div style={styles.footerWrapper}>
-
-        {/* Floating Business Select Popover */}
+        {/* Popover */}
         {showBusinessSelect && (
           <div style={styles.businessPopover}>
             <div style={styles.popoverHeader}>
@@ -304,13 +167,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
                     key={biz.id} 
                     style={{
                       ...styles.businessSelectItemContainer,
-                      backgroundColor: isCurrent ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                      backgroundColor: isCurrent ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
                     }}
                   >
                     <button 
                       style={{
                         ...styles.businessSelectItem,
-                        color: isCurrent ? '#3B82F6' : '#E5E7EB',
+                        color: isCurrent ? '#10B981' : '#E2E8F0',
                         flex: 1
                       }}
                       onClick={() => handleBusinessSwitch(biz.id)}
@@ -331,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
                       }}
                       title="Edit business details"
                     >
-                      <Edit2 size={12} color="#9CA3AF" />
+                      <Edit2 size={12} color="#94A3B8" />
                     </button>
                   </div>
                 );
@@ -352,18 +215,181 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
             </button>
           </div>
         )}
+      </div>
 
-        <button
-          className="sidebar-footer-btn"
-          style={styles.footerBtn}
-          onClick={() => setShowBusinessSelect(!showBusinessSelect)}
-        >
-          <div style={styles.profileInfo}>
-            <span style={styles.profileName}>{activeBusiness?.name || 'Create Business'}</span>
-            <span style={styles.profileRole}>Owner Account ▾</span>
-          </div>
-        </button>
+      {/* Search bar inside Sidebar */}
+      <div style={styles.searchContainer}>
+        <Search size={14} color="#64748B" style={styles.searchIcon} />
+        <input
+          type="text"
+          placeholder="Search items..."
+          style={styles.searchInput}
+          value={searchSidebar}
+          onChange={(e) => setSearchSidebar(e.target.value)}
+        />
+      </div>
 
+      {/* Navigation menu list */}
+      <nav style={styles.nav}>
+        {menuItems
+          .filter(item => item.label.toLowerCase().includes(searchSidebar.toLowerCase()))
+          .map((item) => {
+            const Icon = item.icon;
+            const isPurchasesActive = ['purchase-bills', 'payment-out', 'expenses', 'purchase-order', 'purchase-return'].includes(currentTab);
+            const isBankActive = ['bank-accounts', 'cash-in-hand', 'cheques', 'loan-accounts'].includes(currentTab);
+            const isSaleActive = ['sale-invoices', 'estimate-quotation', 'proforma-invoice', 'payment-in', 'sale-order', 'delivery-challan', 'sale-return'].includes(currentTab);
+            const isGstActive = ['gst-purchase', 'gst-sale'].includes(currentTab);
+            const isActive = currentTab === item.id || 
+              (item.id === 'purchases' && isPurchasesActive) ||
+              (item.id === 'bank' && isBankActive) ||
+              (item.id === 'transactions' && isSaleActive) ||
+              (item.id === 'gst-required' && isGstActive);
+
+            const isDropdownRotated = (item.id === 'purchases' && showPurchaseSubmenu) || 
+                                      (item.id === 'bank' && showBankSubmenu) ||
+                                      (item.id === 'transactions' && showSaleSubmenu) ||
+                                      (item.id === 'gst-required' && showGstSubmenu);
+
+            return (
+              <div key={item.id} style={styles.navItemWrapper}>
+                <button
+                  onClick={() => handleItemClick(item.id)}
+                  style={{
+                    ...styles.navItem,
+                    backgroundColor: isActive ? '#047857' : 'transparent',
+                    color: isActive ? '#FFFFFF' : '#94A3B8',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Icon size={18} color={isActive ? '#FFFFFF' : '#94A3B8'} />
+                    <span style={{
+                      ...styles.itemLabel,
+                      fontWeight: isActive ? '600' : '500'
+                    }}>{item.label}</span>
+                  </div>
+
+                  {item.hasDropdown ? (
+                    <ChevronDown size={14} color={isActive ? '#FFFFFF' : '#64748B'} style={{ transform: isDropdownRotated ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  ) : item.id !== 'sync' ? (
+                    <ChevronRight size={14} color={isActive ? '#FFFFFF' : '#64748B'} />
+                  ) : null}
+                </button>
+
+                {item.id === 'transactions' && (showSaleSubmenu || isSaleActive) && (
+                  <div style={styles.submenuContainer}>
+                    {saleSubItems.map((sub) => {
+                      const isSubActive = currentTab === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setCurrentTab(sub.id);
+                            if (onClose) onClose();
+                          }}
+                          style={{
+                            ...styles.submenuItem,
+                            backgroundColor: isSubActive ? 'rgba(4, 120, 87, 0.15)' : 'transparent',
+                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                          }}
+                        >
+                          <span>{sub.label}</span>
+                          <div 
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              localStorage.setItem('open_sale_form_direct', sub.id);
+                              setCurrentTab(sub.id);
+                            }}
+                          >
+                            <Plus size={12} color="#94A3B8" style={styles.submenuPlus} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {item.id === 'purchases' && (showPurchaseSubmenu || isPurchasesActive) && (
+                  <div style={styles.submenuContainer}>
+                    {purchaseSubItems.map((sub) => {
+                      const isSubActive = currentTab === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setCurrentTab(sub.id);
+                            if (onClose) onClose();
+                          }}
+                          style={{
+                            ...styles.submenuItem,
+                            backgroundColor: isSubActive ? 'rgba(4, 120, 87, 0.15)' : 'transparent',
+                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                          }}
+                        >
+                          <span>{sub.label}</span>
+                          <Plus size={12} color="#94A3B8" style={styles.submenuPlus} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {item.id === 'bank' && (showBankSubmenu || isBankActive) && (
+                  <div style={styles.submenuContainer}>
+                    {bankSubItems.map((sub) => {
+                      const isSubActive = currentTab === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setCurrentTab(sub.id);
+                            if (onClose) onClose();
+                          }}
+                          style={{
+                            ...styles.submenuItem,
+                            backgroundColor: isSubActive ? 'rgba(4, 120, 87, 0.15)' : 'transparent',
+                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                          }}
+                        >
+                          <span>{sub.label}</span>
+                          <Plus size={12} color="#94A3B8" style={styles.submenuPlus} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {item.id === 'gst-required' && (showGstSubmenu || isGstActive) && (
+                  <div style={styles.submenuContainer}>
+                    {gstSubItems.map((sub) => {
+                      const isSubActive = currentTab === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => {
+                            setCurrentTab(sub.id);
+                            if (onClose) onClose();
+                          }}
+                          style={{
+                            ...styles.submenuItem,
+                            backgroundColor: isSubActive ? 'rgba(4, 120, 87, 0.15)' : 'transparent',
+                            color: isSubActive ? '#FFFFFF' : '#94A3B8',
+                          }}
+                        >
+                          <span>{sub.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+      </nav>
+
+      {/* Footer minimal info */}
+      <div style={styles.footerWrapper}>
+        <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600' }}>AURORA SUITE v2.0.4</span>
       </div>
     </aside>
   );
@@ -371,35 +397,86 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
 
 const styles: Record<string, React.CSSProperties> = {
   sidebar: {
-    width: '280px',
-    backgroundColor: '#111625', // Dark charcoal/navy sidebar matching screenshot
+    width: '260px',
+    backgroundColor: '#090D1A', // Slate-black sidebar matching screenshot
     display: 'flex',
     flexDirection: 'column',
-    padding: '20px 14px',
+    padding: '24px 16px',
     height: '100vh',
-    flexShrink: 0
+    flexShrink: 0,
+    borderRight: '1px solid #1E293B',
+    fontFamily: 'var(--font-sans, "Inter", sans-serif)',
   },
   brandHeader: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: '0 4px',
-    marginBottom: '16px',
+    marginBottom: '20px',
   },
-  brandName: {
-    fontSize: '22px',
+  logoContainer: {
+    width: '38px',
+    height: '38px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid rgba(16, 185, 129, 0.2)'
+  },
+  brandFirst: {
+    fontSize: '13px',
     fontWeight: '800',
-    color: '#3B82F6', // Sleek blue color matching standard brand color
-    fontFamily: 'var(--font-sans)',
-    letterSpacing: '0.5px',
+    color: '#10B981',
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+  },
+  brandSecond: {
+    fontSize: '15px',
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: '1.2px',
+    marginTop: '2px',
+  },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+  },
+  businessSelectBtn: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0F172A',
+    border: '1px solid #1E293B',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    cursor: 'pointer',
+    outline: 'none',
+    transition: 'all 0.2s',
+  },
+  activeDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: '50%',
+    backgroundColor: '#10B981',
+    display: 'inline-block',
+  },
+  activeBusinessText: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#E2E8F0',
   },
   searchContainer: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: '#202639', // Dark search block
-    borderRadius: '18px',
+    backgroundColor: '#0F172A',
+    borderRadius: '10px',
     padding: '8px 12px',
     marginBottom: '20px',
-    border: '1px solid transparent',
+    border: '1px solid #1E293B',
   },
   searchIcon: {
     marginRight: '8px',
@@ -408,17 +485,17 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     backgroundColor: 'transparent',
     outline: 'none',
-    color: '#E5E7EB',
+    color: '#E2E8F0',
     fontSize: '12px',
-    fontFamily: 'var(--font-sans)',
     width: '100%',
   },
   nav: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '6px',
     flex: 1,
     overflowY: 'auto',
+    paddingRight: '2px',
   },
   navItemWrapper: {
     width: '100%',
@@ -428,63 +505,33 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '10px 14px',
+    padding: '10px 12px',
     borderRadius: '8px',
     border: 'none',
     cursor: 'pointer',
-    color: '#E5E7EB',
-    transition: 'all 0.2s',
+    transition: 'all 0.2s ease',
     textAlign: 'left',
+    outline: 'none',
   },
   itemLabel: {
-    fontSize: '13.5px',
-    fontWeight: '500',
-    fontFamily: 'var(--font-sans)',
+    fontSize: '13px',
+    letterSpacing: '0.2px',
   },
   footerWrapper: {
-    borderTop: '1px solid #202639',
+    borderTop: '1px solid #1E293B',
     paddingTop: '12px',
     marginTop: 'auto',
-    position: 'relative' as const,
-  },
-  footerBtn: {
-    width: '100%',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    textAlign: 'left' as const,
-    padding: '4px 6px',
-    borderRadius: '8px',
-    transition: 'background 0.2s',
-    display: 'block',
-  },
-  profileInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  profileName: {
-    fontSize: '13.5px',
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textOverflow: 'ellipsis',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    fontFamily: 'var(--font-sans)',
-  },
-  profileRole: {
-    fontSize: '11px',
-    color: '#9CA3AF',
-    marginTop: '2px',
+    textAlign: 'center',
   },
   businessPopover: {
-    position: 'absolute' as const,
-    bottom: '65px',
+    position: 'absolute',
+    top: '46px',
     left: '0',
     right: '0',
-    backgroundColor: '#1E2538',
-    border: '1px solid #2D3748',
+    backgroundColor: '#0F172A',
+    border: '1px solid #1E293B',
     borderRadius: '12px',
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.4)',
     zIndex: 9999,
     padding: '8px',
     display: 'flex',
@@ -493,18 +540,28 @@ const styles: Record<string, React.CSSProperties> = {
   },
   popoverHeader: {
     fontSize: '11px',
-    fontWeight: '600',
-    color: '#9CA3AF',
+    fontWeight: '700',
+    color: '#64748B',
     padding: '6px 8px',
-    borderBottom: '1px solid #2D3748',
+    borderBottom: '1px solid #1E293B',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
   businessList: {
     maxHeight: '180px',
-    overflowY: 'auto' as const,
+    overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
     padding: '4px 0',
+  },
+  businessSelectItemContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: '6px',
+    paddingRight: '6px',
+    transition: 'background 0.2s',
   },
   businessSelectItem: {
     display: 'flex',
@@ -514,57 +571,11 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     borderRadius: '6px',
     cursor: 'pointer',
-    textAlign: 'left' as const,
+    textAlign: 'left',
     fontSize: '12px',
     width: '100%',
-    transition: 'all 0.2s',
     backgroundColor: 'transparent',
-  },
-  noBusinessHint: {
-    padding: '12px',
-    fontSize: '11px',
-    color: '#9CA3AF',
-    textAlign: 'center' as const,
-  },
-  popoverAddBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '6px',
-    padding: '8px 12px',
-    backgroundColor: '#3B82F6',
-    color: '#FFFFFF',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '11.5px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '4px',
-    transition: 'background 0.2s',
-  },
-  popoverSignOutBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '6px',
-    padding: '8px 12px',
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    color: '#F87171',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    borderRadius: '6px',
-    fontSize: '11.5px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    marginTop: '6px',
-    transition: 'background 0.2s',
-  },
-  businessSelectItemContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: '6px',
-    paddingRight: '6px',
-    transition: 'background 0.2s',
+    outline: 'none',
   },
   popoverEditBtn: {
     background: 'none',
@@ -575,6 +586,43 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  noBusinessHint: {
+    padding: '12px',
+    fontSize: '11px',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  popoverAddBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    backgroundColor: '#10B981',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '11.5px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    marginTop: '4px',
+    transition: 'background 0.2s',
+  },
+  popoverSignOutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    color: '#F87171',
+    border: '1px solid rgba(239, 68, 68, 0.2)',
+    borderRadius: '8px',
+    fontSize: '11.5px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    marginTop: '6px',
     transition: 'background 0.2s',
   },
   submenuContainer: {
@@ -592,10 +640,11 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '6px',
     border: 'none',
     cursor: 'pointer',
-    textAlign: 'left' as const,
-    fontSize: '12.5px',
+    textAlign: 'left',
+    fontSize: '12px',
     width: '100%',
     transition: 'all 0.2s',
+    outline: 'none',
   },
   submenuPlus: {
     opacity: 0.6,
