@@ -32,6 +32,10 @@ export const Dashboard: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'>('monthly');
   const [customDateStr, setCustomDateStr] = useState('');
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  
+  // Dynamic month selection state
+  const [activeMonthDate, setActiveMonthDate] = useState<Date>(new Date());
+  const [openDropdown, setOpenDropdown] = useState<'sales' | 'products' | null>(null);
 
   // Load local data for complete metrics
   const getLocal = (key: string) => {
@@ -96,7 +100,7 @@ export const Dashboard: React.FC = () => {
       return tDate >= start && tDate <= end;
     }
     if (filter === 'monthly') {
-      return tDate.getMonth() === today.getMonth() && tDate.getFullYear() === today.getFullYear();
+      return tDate.getMonth() === activeMonthDate.getMonth() && tDate.getFullYear() === activeMonthDate.getFullYear();
     }
     if (filter === 'yearly') {
       return tDate.getFullYear() === today.getFullYear();
@@ -414,8 +418,8 @@ export const Dashboard: React.FC = () => {
       dates.push(formatDateStr(d));
     }
   } else if (timeFilter === 'monthly') {
-    const y = today.getFullYear();
-    const m = today.getMonth();
+    const y = activeMonthDate.getFullYear();
+    const m = activeMonthDate.getMonth();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
     for (let i = 1; i <= daysInMonth; i++) {
       const d = new Date(y, m, i);
@@ -429,7 +433,7 @@ export const Dashboard: React.FC = () => {
       let salesSum = 0;
       bizTransactions.filter(t => t.type === 'sale').forEach(t => {
         const d = parseDateStr(t.date);
-        if (d && d.getMonth() === idx && d.getFullYear() === today.getFullYear()) {
+        if (d && d.getMonth() === idx && d.getFullYear() === activeMonthDate.getFullYear()) {
           salesSum += t.totalAmount;
         }
       });
@@ -511,15 +515,56 @@ export const Dashboard: React.FC = () => {
     { name: 'Pending', value: pendingPayments, color: '#F59E0B' }
   ];
 
+  // Last 6 months dropdown items helper
+  const getDropdownMonths = () => {
+    const monthsList: Date[] = [];
+    const today = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthsList.push(d);
+    }
+    return monthsList;
+  };
+
   // Date range label
   const getDateRangeStr = () => {
-    const today = new Date();
     const formatMonth = (d: Date) => {
       return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     };
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return `${formatMonth(startOfMonth)} - ${formatMonth(endOfMonth)}`;
+    if (timeFilter === 'monthly') {
+      const startOfMonth = new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth(), 1);
+      const endOfMonth = new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth() + 1, 0);
+      return `${formatMonth(startOfMonth)} - ${formatMonth(endOfMonth)}`;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (timeFilter === 'daily') {
+      return formatMonth(today);
+    }
+    if (timeFilter === 'weekly') {
+      const day = today.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const start = new Date(today);
+      start.setDate(today.getDate() + diffToMonday);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return `${formatMonth(start)} - ${formatMonth(end)}`;
+    }
+    if (timeFilter === 'yearly') {
+      return `01 Jan ${today.getFullYear()} - 31 Dec ${today.getFullYear()}`;
+    }
+    if (timeFilter === 'custom') {
+      if (customDateStr.length === 8) {
+        const cd = Number(customDateStr.substring(0, 2));
+        const cm = Number(customDateStr.substring(2, 4));
+        const cy = Number(customDateStr.substring(4, 8));
+        const customDate = new Date(cy, cm - 1, cd);
+        return formatMonth(customDate);
+      }
+      return 'Enter Custom Date';
+    }
+    return 'All Time Data';
   };
 
   // Sparkline elements
@@ -883,9 +928,35 @@ export const Dashboard: React.FC = () => {
         <div className="card" style={styles.chartCard}>
           <div style={styles.chartHeader}>
             <h3 style={styles.chartTitle}>Daily Sales Volume</h3>
-            <div style={styles.dropdownSelector}>
-              <span>This Month</span>
-              <ChevronDown size={14} color="var(--color-text-muted)" style={{ marginLeft: '4px' }} />
+            <div style={{ position: 'relative' }}>
+              <div 
+                style={styles.dropdownSelector}
+                onClick={() => setOpenDropdown(openDropdown === 'sales' ? null : 'sales')}
+              >
+                <span>{activeMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                <ChevronDown size={14} color="var(--color-text-muted)" style={{ marginLeft: '4px' }} />
+              </div>
+              
+              {openDropdown === 'sales' && (
+                <div style={styles.monthDropdownMenu}>
+                  {getDropdownMonths().map((m, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        ...styles.monthDropdownItem,
+                        backgroundColor: activeMonthDate.getMonth() === m.getMonth() && activeMonthDate.getFullYear() === m.getFullYear() ? '#F1F5F9' : 'transparent'
+                      }}
+                      onClick={() => {
+                        setActiveMonthDate(m);
+                        setTimeFilter('monthly');
+                        setOpenDropdown(null);
+                      }}
+                    >
+                      {m.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
@@ -925,9 +996,35 @@ export const Dashboard: React.FC = () => {
         <div className="card" style={styles.chartCard}>
           <div style={styles.chartHeader}>
             <h3 style={styles.chartTitle}>Best Selling Products</h3>
-            <div style={styles.dropdownSelector}>
-              <span>This Month</span>
-              <ChevronDown size={14} color="var(--color-text-muted)" style={{ marginLeft: '4px' }} />
+            <div style={{ position: 'relative' }}>
+              <div 
+                style={styles.dropdownSelector}
+                onClick={() => setOpenDropdown(openDropdown === 'products' ? null : 'products')}
+              >
+                <span>{activeMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                <ChevronDown size={14} color="var(--color-text-muted)" style={{ marginLeft: '4px' }} />
+              </div>
+              
+              {openDropdown === 'products' && (
+                <div style={styles.monthDropdownMenu}>
+                  {getDropdownMonths().map((m, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        ...styles.monthDropdownItem,
+                        backgroundColor: activeMonthDate.getMonth() === m.getMonth() && activeMonthDate.getFullYear() === m.getFullYear() ? '#F1F5F9' : 'transparent'
+                      }}
+                      onClick={() => {
+                        setActiveMonthDate(m);
+                        setTimeFilter('monthly');
+                        setOpenDropdown(null);
+                      }}
+                    >
+                      {m.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div style={styles.bestSellersList}>
@@ -1061,7 +1158,9 @@ export const Dashboard: React.FC = () => {
         {/* Top Customers */}
         <div className="card" style={styles.bottomCard}>
           <div style={styles.bottomCardHeader}>
-            <h3 style={styles.chartTitle}>Top Customers <span style={{ fontSize: '12px', fontWeight: '400', color: 'var(--color-text-muted)' }}>(This Month)</span></h3>
+            <h3 style={styles.chartTitle}>
+              Top Customers <span style={{ fontSize: '12px', fontWeight: '400', color: 'var(--color-text-muted)' }}>({activeMonthDate.toLocaleDateString('en-US', { month: 'long' })})</span>
+            </h3>
             <button style={styles.viewAllBtn}>View All</button>
           </div>
           <div style={styles.customerList}>
@@ -1561,7 +1660,28 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     color: 'var(--color-primary)',
     fontWeight: '600',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    userSelect: 'none'
+  },
+  monthDropdownMenu: {
+    position: 'absolute',
+    top: '28px',
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    zIndex: 100,
+    width: '145px',
+    padding: '4px 0'
+  },
+  monthDropdownItem: {
+    padding: '8px 12px',
+    fontSize: '12px',
+    color: 'var(--color-primary)',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+    fontWeight: '500',
   },
   customTooltip: {
     backgroundColor: '#FFFFFF',
