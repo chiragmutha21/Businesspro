@@ -122,26 +122,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
   return (
     <aside className={isOpen ? 'open' : ''} style={styles.sidebar}>
       {/* Brand Header */}
-      <div style={styles.brandHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {activeBusiness?.logo ? (
-            <img 
-              src={activeBusiness.logo} 
-              alt="Logo" 
-              style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(16, 185, 129, 0.2)', flexShrink: 0 }} 
-            />
-          ) : (
-            <div style={styles.logoContainer}>
-              <Building size={20} color="#10B981" />
-            </div>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
-            <span style={styles.brandFirst}>{nameParts.first}</span>
-            <span style={styles.brandSecond}>{nameParts.second}</span>
+      <div style={{ ...styles.brandHeader, flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '12px', position: 'relative', width: '100%', padding: '16px 0 8px 0' }}>
+        {activeBusiness?.logo ? (
+          <img 
+            src={activeBusiness.logo} 
+            alt="Logo" 
+            style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(16, 185, 129, 0.3)', flexShrink: 0 }} 
+          />
+        ) : (
+          <div style={{ ...styles.logoContainer, width: '48px', height: '48px' }}>
+            <Building size={24} color="#10B981" />
           </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', lineHeight: '1.2' }}>
+          <span style={styles.brandFirst}>{nameParts.first}</span>
+          <span style={styles.brandSecond}>{nameParts.second}</span>
         </div>
         {onClose && (
-          <button className="mobile-menu-close" onClick={onClose} style={styles.closeBtn}>
+          <button className="mobile-menu-close" onClick={onClose} style={{ ...styles.closeBtn, position: 'absolute', top: '0', right: '0', padding: '4px' }}>
             <X size={18} color="#94A3B8" />
           </button>
         )}
@@ -396,11 +394,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
       </nav>
 
       {/* Footer brand info */}
-      <div style={styles.footerWrapper}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '6px 0' }}>
-          <img src="/logo.jpg" alt="Logo" style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }} />
-          <span style={{ fontSize: '20px', fontWeight: '800', color: '#3B82F6', letterSpacing: '0.8px' }}>BusinessPro</span>
-        </div>
+      <div style={{ ...styles.footerWrapper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 0 0 0' }}>
+        <img src="/logo.jpg" alt="Logo" style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }} />
+        <span style={{ fontSize: '18px', fontWeight: '800', color: '#3B82F6', letterSpacing: '0.8px', textAlign: 'center' }}>BusinessPro</span>
       </div>
     </aside>
   );
