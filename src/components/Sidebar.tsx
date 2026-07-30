@@ -124,9 +124,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
       {/* Brand Header */}
       <div style={styles.brandHeader}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={styles.logoContainer}>
-            <Building size={20} color="#10B981" />
-          </div>
+          {activeBusiness?.logo ? (
+            <img 
+              src={activeBusiness.logo} 
+              alt="Logo" 
+              style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(16, 185, 129, 0.2)', flexShrink: 0 }} 
+            />
+          ) : (
+            <div style={styles.logoContainer}>
+              <Building size={20} color="#10B981" />
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
             <span style={styles.brandFirst}>{nameParts.first}</span>
             <span style={styles.brandSecond}>{nameParts.second}</span>
