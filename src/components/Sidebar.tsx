@@ -122,15 +122,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
   return (
     <aside className={isOpen ? 'open' : ''} style={styles.sidebar}>
       {/* Brand Header */}
-      <div style={{ ...styles.brandHeader, flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '12px', position: 'relative', width: '100%', padding: '16px 0 8px 0' }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        position: 'relative',
+        width: '100%',
+        padding: '16px 0 8px 0',
+        marginBottom: '20px'
+      }}>
         {activeBusiness?.logo ? (
           <img 
             src={activeBusiness.logo} 
             alt="Logo" 
-            style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(16, 185, 129, 0.3)', flexShrink: 0 }} 
+            style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(16, 185, 129, 0.3)', flexShrink: 0, display: 'block', margin: '0 auto' }} 
           />
         ) : (
-          <div style={{ ...styles.logoContainer, width: '48px', height: '48px' }}>
+          <div style={{ ...styles.logoContainer, width: '48px', height: '48px', margin: '0 auto' }}>
             <Building size={24} color="#10B981" />
           </div>
         )}
@@ -394,8 +404,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onA
       </nav>
 
       {/* Footer brand info */}
-      <div style={{ ...styles.footerWrapper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 0 0 0' }}>
-        <img src="/logo.jpg" alt="Logo" style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }} />
+      <div style={{
+        borderTop: '1px solid #1E293B',
+        paddingTop: '16px',
+        marginTop: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        width: '100%'
+      }}>
+        <img src="/logo.jpg" alt="Logo" style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', display: 'block', margin: '0 auto' }} />
         <span style={{ fontSize: '18px', fontWeight: '800', color: '#3B82F6', letterSpacing: '0.8px', textAlign: 'center' }}>BusinessPro</span>
       </div>
     </aside>
