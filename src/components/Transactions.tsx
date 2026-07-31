@@ -1752,6 +1752,20 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                     <span style={{ color: '#6B7280' }}>SGST (₹)</span>
                     <span>₹{(selectedInvoice.gstAmount / 2).toFixed(2)}</span>
                   </div>
+                  {(() => {
+                    const subtotal = (selectedInvoice.products || []).reduce((acc: number, p: any) => acc + p.total, 0);
+                    const totalWithGst = subtotal + (selectedInvoice.gstAmount || 0);
+                    const roundOffVal = selectedInvoice.totalAmount - totalWithGst;
+                    if (Math.abs(roundOffVal) >= 0.01) {
+                      return (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '4px' }}>
+                          <span style={{ color: '#6B7280' }}>Round Off</span>
+                          <span>{roundOffVal > 0 ? '+' : ''}{roundOffVal.toFixed(2)}</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 4px', borderTop: '1.5px solid #000000', borderBottom: '3px double #000000', color: '#000000', fontSize: '16px', fontWeight: '900', marginTop: '10px' }}>
                     <span>GRAND TOTAL (₹)</span>
                     <span>₹{selectedInvoice.totalAmount.toFixed(2)}</span>
