@@ -108,16 +108,18 @@ export const Backup: React.FC = () => {
       jsPDF:        { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
     };
 
-    html2pdf().set(opt).from(element).save().then(() => {
-      // Revert style positions back to hidden state
-      element.style.position = originalPos;
-      element.style.left = originalLeft;
-      element.style.top = originalTop;
-    }).catch(() => {
-      element.style.position = originalPos;
-      element.style.left = originalLeft;
-      element.style.top = originalTop;
-    });
+    setTimeout(() => {
+      html2pdf().set(opt).from(element).save().then(() => {
+        // Revert style positions back to hidden state
+        element.style.position = originalPos;
+        element.style.left = originalLeft;
+        element.style.top = originalTop;
+      }).catch(() => {
+        element.style.position = originalPos;
+        element.style.left = originalLeft;
+        element.style.top = originalTop;
+      });
+    }, 200);
   };
 
   const handlePrintPDF = () => {
