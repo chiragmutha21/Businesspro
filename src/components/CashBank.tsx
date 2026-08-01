@@ -413,8 +413,11 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       transactions: [initialTx]
     };
 
-    addBankAccount(newBank as any);
-    setSelectedBankId(newBank.id);
+    (addBankAccount(newBank as any) as Promise<any>).then((inserted) => {
+      if (inserted) {
+        setSelectedBankId(inserted.id);
+      }
+    });
     setShowAddBankModal(false);
 
     // Reset states
@@ -520,15 +523,15 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
     alert('Bank Transaction completed!');
   };
 
-  const selectedLoan = loanAccounts.find(l => l.id === selectedLoanId);
-  const selectedBank = bankAccounts.find(b => b.id === selectedBankId);
+  const selectedBank = bankAccounts.find(b => b.id === selectedBankId) || activeBankAccounts[0];
+  const selectedLoan = loanAccounts.find(l => l.id === selectedLoanId) || activeLoanAccounts[0];
 
-  const filteredLoanAccounts = loanAccounts.filter(l => 
+  const filteredLoanAccounts = activeLoanAccounts.filter(l => 
     l.name.toLowerCase().includes(searchLoanQuery.toLowerCase()) || 
     l.currentBalance.toString().includes(searchLoanQuery)
   );
 
-  const filteredBankAccounts = bankAccounts.filter(b => 
+  const filteredBankAccounts = activeBankAccounts.filter(b => 
     b.displayName.toLowerCase().includes(searchBankQuery.toLowerCase()) || 
     b.currentBalance.toString().includes(searchBankQuery)
   );
@@ -617,7 +620,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                           key={acc.id} 
                           style={{
                             ...styles.loanLeftRow,
-                            backgroundColor: acc.id === selectedBankId ? 'rgba(59, 130, 246, 0.08)' : 'transparent'
+                            backgroundColor: acc.id === selectedBank?.id ? 'rgba(59, 130, 246, 0.08)' : 'transparent'
                           }}
                           onClick={() => {
                             setSelectedBankId(acc.id);

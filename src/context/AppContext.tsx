@@ -163,7 +163,7 @@ interface AppContextProps {
   loanAccounts: LoanAccount[];
   cheques: Cheque[];
   cashLogs: CashLog[];
-  addBankAccount: (bank: Omit<BankAccount, 'id' | 'businessId'>) => Promise<void>;
+  addBankAccount: (bank: Omit<BankAccount, 'id' | 'businessId'>) => Promise<any>;
   updateBankAccount: (id: string, bank: Partial<BankAccount>) => Promise<void>;
   deleteBankAccount: (id: string) => Promise<void>;
   addLoanAccount: (loan: Omit<LoanAccount, 'id' | 'businessId'>) => Promise<void>;
@@ -1304,7 +1304,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   
   const addBankAccount = async (bank: Omit<BankAccount, 'id' | 'businessId'>) => {
-    if (!user || !activeBusiness) return;
+    if (!user || !activeBusiness) return null;
     const { data, error } = await supabase.from('bank_accounts').insert([{
       user_id: user.id, business_id: activeBusiness.id, display_name: bank.displayName, opening_balance: bank.openingBalance,
       balance_date: bank.balanceDate, account_number: bank.accountNumber, ifsc_code: bank.ifscCode, upi_id: bank.upiId,
@@ -1312,7 +1312,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       accept_online: bank.acceptOnline, current_balance: bank.currentBalance
     }]).select().single();
     if (error) throw error;
-    setBankAccounts([...bankAccounts, { ...bank, id: data.id, businessId: activeBusiness.id }]);
+    const inserted = { ...bank, id: data.id, businessId: activeBusiness.id };
+    setBankAccounts([...bankAccounts, inserted]);
+    return inserted;
   };
 
   const updateBankAccount = async (id: string, updates: Partial<BankAccount>) => {
