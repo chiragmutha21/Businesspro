@@ -8,8 +8,8 @@ import {
   Calendar,
   ChevronDown,
   X,
-  ArrowUpRight,
-  ShoppingBag
+  ShoppingBag,
+  Percent
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 import { 
@@ -151,6 +151,7 @@ export const Dashboard: React.FC = () => {
     localSaleOrders
   );
   const totalSales = salesTxList.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+  const totalGstSales = salesTxList.reduce((sum, t) => sum + (t.gstAmount || 0), 0);
 
   const expenseTxList = mergeAndDeduplicate(
     bizTransactions.filter(t => t.type === 'Expense' || t.type === 'expense'),
@@ -230,81 +231,11 @@ export const Dashboard: React.FC = () => {
     return sum + (t.receivedAmount || t.totalAmount || 0);
   }, 0);
 
-  // Month-over-month comparisons (simulated / calculated)
-  const getMonthlyStats = (monthOffset: number) => {
-    const targetDate = new Date();
-    targetDate.setMonth(targetDate.getMonth() - monthOffset);
-    const targetMonth = targetDate.getMonth();
-    const targetYear = targetDate.getFullYear();
 
-    const supaFiltered = transactions.filter(t => {
-      const d = parseDateStr(t.date);
-      if (!d) return false;
-      const matchBiz = viewScope === 'overall' || t.businessId === activeBusiness?.id;
-      return matchBiz && d.getMonth() === targetMonth && d.getFullYear() === targetYear;
-    });
 
-    const localExp = getLocal('expenses').filter((t: any) => {
-      const d = parseDateStr(t.date);
-      return d && d.getMonth() === targetMonth && d.getFullYear() === targetYear && (viewScope === 'overall' || t.businessId === activeBusiness?.id);
-    });
-    const localSales = getLocal('saleOrders').filter((t: any) => {
-      const d = parseDateStr(t.date);
-      return d && d.getMonth() === targetMonth && d.getFullYear() === targetYear && (viewScope === 'overall' || t.businessId === activeBusiness?.id);
-    });
-    const localPurch = getLocal('purchaseBills').filter((t: any) => {
-      const d = parseDateStr(t.date);
-      return d && d.getMonth() === targetMonth && d.getFullYear() === targetYear && (viewScope === 'overall' || t.businessId === activeBusiness?.id);
-    });
 
-    const salesTx = mergeAndDeduplicate(supaFiltered.filter(t => t.type === 'sale'), localSales);
-    const sales = salesTx.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
 
-    const expensesTx = mergeAndDeduplicate(supaFiltered.filter(t => t.type === 'expense' || t.type === 'Expense'), localExp);
-    const expenses = expensesTx.reduce((sum, t) => sum + (t.total || t.totalAmount || 0), 0);
 
-    const purchasesTx = mergeAndDeduplicate(supaFiltered.filter(t => t.type === 'purchase' || t.type === 'Purchase'), localPurch);
-    const purchases = purchasesTx.reduce((sum, t) => sum + (t.total || t.totalAmount || 0), 0);
-
-    const inflow = salesTx.reduce((sum, t) => sum + getPaidAmount(t), 0);
-    const outflow = expensesTx.reduce((sum, t) => sum + getPaidAmount(t), 0);
-    const balance = inflow - outflow;
-
-    let profit = 0;
-    supaFiltered.filter((t) => t.type === 'sale').forEach((t) => {
-      t.products?.forEach((tp: any) => {
-        const prod = products.find((p) => p.id === tp.productId);
-        if (prod) {
-          profit += (prod.sellingPrice - prod.purchasePrice) * tp.quantity;
-        } else {
-          profit += tp.total * 0.3;
-        }
-      });
-      profit -= t.discount || 0;
-    });
-
-    return { sales, expenses, balance, profit, purchases };
-  };
-
-  const currStats = getMonthlyStats(0);
-  const prevStats = getMonthlyStats(1);
-
-  const calcGrowth = (curr: number, prev: number) => {
-    if (prev === 0) return curr > 0 ? 100 : 0;
-    return parseFloat((((curr - prev) / Math.abs(prev)) * 100).toFixed(1));
-  };
-
-  const salesGrowth = calcGrowth(currStats.sales, prevStats.sales);
-  const expensesGrowth = calcGrowth(currStats.expenses, prevStats.expenses);
-  const purchasesGrowth = calcGrowth(currStats.purchases, prevStats.purchases);
-  const balanceGrowth = calcGrowth(currStats.balance, prevStats.balance);
-  const profitGrowth = calcGrowth(currStats.profit, prevStats.profit);
-
-  const salesLastMonth = prevStats.sales;
-  const expensesLastMonth = prevStats.expenses;
-  const purchasesLastMonth = prevStats.purchases;
-  const balanceLastMonth = prevStats.balance;
-  const profitLastMonth = prevStats.profit;
 
   // Dynamic Sparkline Generator
   const generateSparklinePath = (values: number[]) => {
@@ -733,10 +664,6 @@ export const Dashboard: React.FC = () => {
         <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('sales')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL SALES</span>
-            <div style={{ ...styles.badgeWrapper, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>
-              <ArrowUpRight size={12} style={{ marginRight: '2px' }} />
-              {salesGrowth > 0 ? `+${salesGrowth}%` : `${salesGrowth}%`}
-            </div>
           </div>
           <div style={styles.cardMain}>
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(16, 185, 129, 0.12)' }}>
@@ -744,7 +671,6 @@ export const Dashboard: React.FC = () => {
             </div>
             <span style={styles.metricValue}>₹{totalSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{salesLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -763,10 +689,6 @@ export const Dashboard: React.FC = () => {
         <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('expenses')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL EXPENSES</span>
-            <div style={{ ...styles.badgeWrapper, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>
-              <ArrowUpRight size={12} style={{ marginRight: '2px' }} />
-              {expensesGrowth > 0 ? `+${expensesGrowth}%` : `${expensesGrowth}%`}
-            </div>
           </div>
           <div style={styles.cardMain}>
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
@@ -774,7 +696,6 @@ export const Dashboard: React.FC = () => {
             </div>
             <span style={styles.metricValue}>₹{totalExpense.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{expensesLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
 
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -793,10 +714,6 @@ export const Dashboard: React.FC = () => {
         <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('purchases')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL PURCHASES</span>
-            <div style={{ ...styles.badgeWrapper, backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B' }}>
-              <ArrowUpRight size={12} style={{ marginRight: '2px' }} />
-              {purchasesGrowth > 0 ? `+${purchasesGrowth}%` : `${purchasesGrowth}%`}
-            </div>
           </div>
           <div style={styles.cardMain}>
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(245, 158, 11, 0.12)' }}>
@@ -804,7 +721,6 @@ export const Dashboard: React.FC = () => {
             </div>
             <span style={styles.metricValue}>₹{totalPurchase.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{purchasesLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
 
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -823,10 +739,6 @@ export const Dashboard: React.FC = () => {
         <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('balance')}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>TOTAL BALANCE</span>
-            <div style={{ ...styles.badgeWrapper, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>
-              <ArrowUpRight size={12} style={{ marginRight: '2px' }} />
-              {balanceGrowth > 0 ? `+${balanceGrowth}%` : `${balanceGrowth}%`}
-            </div>
           </div>
           <div style={styles.cardMain}>
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
@@ -836,7 +748,6 @@ export const Dashboard: React.FC = () => {
               {totalBalance < 0 ? '-' : ''}₹{Math.abs(totalBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             </span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{balanceLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
 
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -855,10 +766,6 @@ export const Dashboard: React.FC = () => {
         <div className="card" style={{ ...styles.metricCard }}>
           <div style={styles.cardHeader}>
             <span style={styles.cardLabel}>NET ESTIMATED PROFIT</span>
-            <div style={{ ...styles.badgeWrapper, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>
-              <ArrowUpRight size={12} style={{ marginRight: '2px' }} />
-              {profitGrowth > 0 ? `+${profitGrowth}%` : `${profitGrowth}%`}
-            </div>
           </div>
           <div style={styles.cardMain}>
             <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(139, 92, 246, 0.1)' }}>
@@ -866,7 +773,6 @@ export const Dashboard: React.FC = () => {
             </div>
             <span style={styles.metricValue}>₹{totalProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
           </div>
-          <span style={styles.cardFooterText}>vs last month ₹{profitLastMonth.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
 
           {/* Sparkline */}
           <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={styles.sparklineSvg}>
@@ -879,6 +785,19 @@ export const Dashboard: React.FC = () => {
             {profitSparkline.fillPath && <path d={profitSparkline.fillPath} fill="url(#gradient-profit)" />}
             {profitSparkline.linePath && <path d={profitSparkline.linePath} fill="none" stroke="#8B5CF6" strokeWidth="1.5" />}
           </svg>
+        </div>
+
+        {/* TOTAL GST AMOUNT */}
+        <div className="card" style={{ ...styles.metricCard, cursor: 'pointer' }} onClick={() => setActiveModal('gst')}>
+          <div style={styles.cardHeader}>
+            <span style={styles.cardLabel}>TOTAL GST AMOUNT</span>
+          </div>
+          <div style={styles.cardMain}>
+            <div style={{ ...styles.iconBadge, backgroundColor: 'rgba(16, 185, 129, 0.12)' }}>
+              <Percent size={18} color="#10B981" />
+            </div>
+            <span style={styles.metricValue}>₹{totalGstSales.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+          </div>
         </div>
 
         {/* STOCK VALUE (COST) */}
@@ -1248,6 +1167,7 @@ export const Dashboard: React.FC = () => {
                  : activeModal === 'pending' ? 'Pending Receivables'
                  : activeModal === 'stock' ? 'Stock Value & Inventory'
                  : activeModal === 'balance' ? 'Total Balance Ledger'
+                 : activeModal === 'gst' ? 'GST Details Ledger'
                  : 'Transactions'}
               </h3>
               <X size={20} style={{ cursor: 'pointer' }} onClick={() => setActiveModal(null)} />
@@ -1281,6 +1201,43 @@ export const Dashboard: React.FC = () => {
                       <tr>
                         <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
                           No products found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              ) : activeModal === 'gst' ? (
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Ref / Invoice No</th>
+                      <th>Party Name</th>
+                      <th style={{ textAlign: 'right' }}>CGST Amount</th>
+                      <th style={{ textAlign: 'right' }}>SGST Amount</th>
+                      <th style={{ textAlign: 'right' }}>Total GST Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesTxList.map((t, i) => {
+                      const totalGst = t.gstAmount || 0;
+                      const cgst = totalGst / 2;
+                      const sgst = totalGst / 2;
+                      return (
+                        <tr key={i}>
+                          <td>{formatDateDDMMYYYY(t.date)}</td>
+                          <td>{t.invoiceNo || t.id?.substring(0, 6) || '-'}</td>
+                          <td>{t.contactName || '-'}</td>
+                          <td style={{ textAlign: 'right' }}>₹{cgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                          <td style={{ textAlign: 'right' }}>₹{sgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                          <td style={{ textAlign: 'right', fontWeight: '700', color: '#10B981' }}>₹{totalGst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                        </tr>
+                      );
+                    })}
+                    {salesTxList.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)' }}>
+                          No transactions with GST found.
                         </td>
                       </tr>
                     )}
