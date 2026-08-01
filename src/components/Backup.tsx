@@ -1,35 +1,132 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Download, Printer, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Download, Printer, CheckCircle2, ShieldCheck, Calendar, ChevronDown } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
+function numberToWords(num: number): string {
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  if (num === 0) return 'Zero';
+
+  const makeWords = (n: number): string => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + makeWords(n % 100) : '');
+    if (n < 100000) return makeWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + makeWords(n % 1000) : '');
+    if (n < 10000000) return makeWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + makeWords(n % 100000) : '');
+    return makeWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + makeWords(n % 10000000) : '');
+  };
+
+  const integerPart = Math.floor(num);
+  const decimalPart = Math.round((num - integerPart) * 100);
+
+  let words = makeWords(integerPart) + ' Rupees';
+  if (decimalPart > 0) {
+    words += ' and ' + makeWords(decimalPart) + ' Paise';
+  }
+  return words + ' Only';
+}
+
 export const Backup: React.FC = () => {
   const { activeBusiness, customers, products, transactions } = useApp();
+  
+  // Date picker states
+  const [activeMonthDate, setActiveMonthDate] = useState<Date>(new Date());
+  const [openDropdown, setOpenDropdown] = useState<'mainDatePicker' | null>(null);
+
+  // Helper date parsing and filtering
+  const parseDateStr = (dateStr: string) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    }
+    const dmyParts = dateStr.split('/');
+    if (dmyParts.length === 3) {
+      return new Date(Number(dmyParts[2]), Number(dmyParts[1]) - 1, Number(dmyParts[0]));
+    }
+    return null;
+  };
+
+  const isWithinSelectedMonth = (dateStr: string) => {
+    if (!dateStr) return false;
+    const d = parseDateStr(dateStr);
+    return d && d.getMonth() === activeMonthDate.getMonth() && d.getFullYear() === activeMonthDate.getFullYear();
+  };
+
+  // Filtered data based on active month
   const bizCustomers = customers.filter(c => c.businessId === activeBusiness?.id);
   const bizProducts = products.filter(p => p.businessId === activeBusiness?.id);
-  const bizTransactions = transactions.filter(t => t.businessId === activeBusiness?.id);
+  const bizTransactions = transactions.filter(t => t.businessId === activeBusiness?.id && isWithinSelectedMonth(t.date));
+
+  const salesInvoices = bizTransactions.filter(t => t.type?.toLowerCase() === 'sale');
+  const purchaseInvoices = bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase');
+
+  const getDateRangeStr = () => {
+    const formatMonth = (d: Date) => {
+      return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+    const startOfMonth = new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth(), 1);
+    const endOfMonth = new Date(activeMonthDate.getFullYear(), activeMonthDate.getMonth() + 1, 0);
+    return `${formatMonth(startOfMonth)} - ${formatMonth(endOfMonth)}`;
+  };
 
   const handleDownloadPDF = () => {
     const element = document.getElementById('backup-report-pdf');
     if (!element) return;
 
     const opt = {
-      margin:       [0.5, 0.5],
-      filename:     `businesspro_report_${new Date().toISOString().slice(0, 10)}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
+      margin:       [0.4, 0.4] as [number, number],
+      filename:     `backup_report_${activeMonthDate.getFullYear()}_${activeMonthDate.getMonth() + 1}.pdf`,
+      image:        { type: 'jpeg' as const, quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      jsPDF:        { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
     };
 
-    // @ts-ignore
     html2pdf().set(opt).from(element).save();
   };
 
   const handlePrintPDF = () => {
     window.print();
   };
+
+  const renderBusinessHeader = (title: string) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', borderBottom: '2px solid #E2E8F0', paddingBottom: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {activeBusiness?.logo && (
+          <img src={activeBusiness.logo} style={{ maxHeight: '40px', maxWidth: '120px', objectFit: 'contain' }} alt="Logo" />
+        )}
+        <div>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: '18px', color: '#1E293B', fontWeight: '800' }}>
+            {activeBusiness?.name}
+          </h1>
+          <p style={{ margin: '0', fontSize: '10px', color: '#64748B' }}>
+            {activeBusiness?.address}
+          </p>
+          <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#64748B' }}>
+            Phone: {activeBusiness?.phone || '-'}
+          </p>
+        </div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <div style={{ display: 'inline-block', backgroundColor: '#0B2545', color: '#FFFFFF', padding: '4px 10px', borderRadius: '4px', fontWeight: '700', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          {title}
+        </div>
+        <p style={{ margin: '6px 0 0 0', fontSize: '10px', color: '#64748B' }}>
+          <strong>GSTIN:</strong> {activeBusiness?.gst || '-'}
+        </p>
+        <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#64748B' }}>
+          <strong>Month:</strong> {activeMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div style={styles.container} className="no-print">
@@ -39,6 +136,76 @@ export const Backup: React.FC = () => {
         <div>
           <h2 style={styles.title}>Sync, Share & Backup</h2>
           <p style={styles.subtitle}>Secure your database and export offline compliance ledger backups.</p>
+        </div>
+
+        {/* Dynamic Month Selection */}
+        <div style={{ position: 'relative' }}>
+          <div 
+            style={styles.datePickerBtn}
+            onClick={() => setOpenDropdown(openDropdown === 'mainDatePicker' ? null : 'mainDatePicker')}
+          >
+            <Calendar size={15} color="var(--color-text-muted)" style={{ marginRight: '6px' }} />
+            <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--color-primary)' }}>{getDateRangeStr()}</span>
+            <ChevronDown size={14} color="var(--color-text-muted)" style={{ marginLeft: '8px' }} />
+          </div>
+
+          {openDropdown === 'mainDatePicker' && (
+            <div style={styles.mainMonthPickerDropdown}>
+              <div style={styles.pickerYearHeader}>
+                <button 
+                  type="button" 
+                  style={styles.pickerYearBtn} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newD = new Date(activeMonthDate);
+                    newD.setFullYear(activeMonthDate.getFullYear() - 1);
+                    setActiveMonthDate(newD);
+                  }}
+                >
+                  &lt;
+                </button>
+                <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--color-primary)' }}>
+                  {activeMonthDate.getFullYear()}
+                </span>
+                <button 
+                  type="button" 
+                  style={styles.pickerYearBtn} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newD = new Date(activeMonthDate);
+                    newD.setFullYear(activeMonthDate.getFullYear() + 1);
+                    setActiveMonthDate(newD);
+                  }}
+                >
+                  &gt;
+                </button>
+              </div>
+              <div style={styles.pickerMonthsGrid}>
+                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((mName, mIdx) => {
+                  const isSelected = activeMonthDate.getMonth() === mIdx;
+                  return (
+                    <div
+                      key={mIdx}
+                      style={{
+                        ...styles.pickerMonthCell,
+                        backgroundColor: isSelected ? '#0B2545' : 'transparent',
+                        color: isSelected ? '#FFFFFF' : 'var(--color-primary)',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newD = new Date(activeMonthDate);
+                        newD.setMonth(mIdx);
+                        setActiveMonthDate(newD);
+                        setOpenDropdown(null);
+                      }}
+                    >
+                      {mName}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -68,11 +235,11 @@ export const Backup: React.FC = () => {
               </div>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Sale Transactions: <strong>{bizTransactions.filter(t => t.type?.toLowerCase() === 'sale').length} Invoices</strong></span>
+                <span>Sale Transactions: <strong>{salesInvoices.length} Invoices</strong></span>
               </div>
               <div style={styles.summaryItem}>
                 <span style={styles.summaryDot} />
-                <span>Purchase Records: <strong>{bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase').length} Invoices</strong></span>
+                <span>Purchase Records: <strong>{purchaseInvoices.length} Invoices</strong></span>
               </div>
             </div>
           </div>
@@ -84,7 +251,7 @@ export const Backup: React.FC = () => {
               onClick={handleDownloadPDF}
             >
               <Download size={18} />
-              <span>Download PDF Report</span>
+              <span>Download PDF Backup</span>
             </button>
 
             <button 
@@ -93,7 +260,7 @@ export const Backup: React.FC = () => {
               onClick={handlePrintPDF}
             >
               <Printer size={18} />
-              <span>Print PDF Report</span>
+              <span>Print PDF Backup</span>
             </button>
           </div>
           
@@ -106,114 +273,234 @@ export const Backup: React.FC = () => {
 
       {/* HIDDEN PRINT-ONLY LEDGER PREVIEW SECTION */}
       <div id="backup-report-pdf" style={styles.printOnlyContainer} className="print-section print-only">
-        <div style={{ borderBottom: '2px solid #000000', paddingBottom: '12px', marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '24px', margin: 0 }}>AURALEDGER SYSTEM BACKUP REPORT</h1>
-          <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: '#4B5563' }}>Generated on: {formatDateDDMMYYYY('2026-07-12')}</p>
-        </div>
-
-        {/* Section 1: Parties */}
+        
+        {/* Section 1: Parties - Page 1 */}
         <div style={styles.printSection}>
-          <h2 style={styles.printSectionTitle}>1. PARTIES RECORD</h2>
+          {renderBusinessHeader('PARTIES RECORD BACKUP')}
           <table style={styles.printTable}>
             <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone No.</th>
-                <th>GSTIN</th>
-                <th>Email ID</th>
-                <th>Address</th>
+              <tr style={{ backgroundColor: '#F8FAFC' }}>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Name</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Phone No.</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>GSTIN</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Email ID</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Address</th>
               </tr>
             </thead>
             <tbody>
               {bizCustomers.map((c) => (
                 <tr key={c.id}>
-                  <td>{c.name}</td>
-                  <td>{c.phone}</td>
-                  <td>{c.gst || '-'}</td>
-                  <td>{c.email || '-'}</td>
-                  <td>{c.address || '-'}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{c.name}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{c.phone}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{c.gst || '-'}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{c.email || '-'}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{c.address || '-'}</td>
                 </tr>
               ))}
               {bizCustomers.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center' }}>No Parties Data Found</td>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '16px' }}>No Parties Data Found</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Section 2: Items Stock */}
-        <div style={styles.printSection}>
-          <h2 style={styles.printSectionTitle}>2. ITEMS & STOCK INVENTORY</h2>
+        {/* Section 2: Items Stock - Page 2 */}
+        <div style={{ ...styles.printSection, pageBreakBefore: 'always' }}>
+          {renderBusinessHeader('STOCK INVENTORY BACKUP')}
           <table style={styles.printTable}>
             <thead>
-              <tr>
-                <th>Item Name</th>
-                <th>SKU</th>
-                <th>Category</th>
-                <th>Purchase Price</th>
-                <th>Selling Price</th>
-                <th>Current Stock</th>
-                <th>Unit</th>
+              <tr style={{ backgroundColor: '#F8FAFC' }}>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Item Name</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>SKU</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Category</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>Purchase Price</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>Selling Price</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'center' }}>Current Stock</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'center' }}>Unit</th>
               </tr>
             </thead>
             <tbody>
               {bizProducts.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.name}</td>
-                  <td>{p.sku || '-'}</td>
-                  <td>{p.category || '-'}</td>
-                  <td>₹ {p.purchasePrice.toFixed(2)}</td>
-                  <td>₹ {p.sellingPrice.toFixed(2)}</td>
-                  <td>{p.stock}</td>
-                  <td>{p.unit}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{p.name}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{p.sku || '-'}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{p.category || '-'}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {p.purchasePrice.toFixed(2)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {p.sellingPrice.toFixed(2)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'center' }}>{p.stock}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'center' }}>{p.unit}</td>
                 </tr>
               ))}
               {bizProducts.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center' }}>No Stock Data Found</td>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '16px' }}>No Stock Data Found</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Section 3: Transactions */}
-        <div style={styles.printSection}>
-          <h2 style={styles.printSectionTitle}>3. SALES & PURCHASE INVOICES JOURNAL</h2>
+        {/* Section 3: Transactions Journal - Page 3 */}
+        <div style={{ ...styles.printSection, pageBreakBefore: 'always' }}>
+          {renderBusinessHeader('TRANSACTIONS JOURNAL')}
           <table style={styles.printTable}>
             <thead>
-              <tr>
-                <th>Date</th>
-                <th>Invoice No.</th>
-                <th>Party Name</th>
-                <th>Type</th>
-                <th>Taxable Amt</th>
-                <th>GST Amount</th>
-                <th>Total Amount</th>
+              <tr style={{ backgroundColor: '#F8FAFC' }}>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Date</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Invoice No.</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Party Name</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0' }}>Type</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>Taxable Amt</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>GST Amount</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>Total Amount</th>
               </tr>
             </thead>
             <tbody>
               {bizTransactions.map((t) => (
                 <tr key={t.id}>
-                  <td>{formatDateDDMMYYYY(t.date)}</td>
-                  <td>{t.invoiceNo}</td>
-                  <td>{t.contactName}</td>
-                  <td>{t.type.toUpperCase()}</td>
-                  <td>₹ {(t.totalAmount - t.gstAmount).toFixed(2)}</td>
-                  <td>₹ {t.gstAmount.toFixed(2)}</td>
-                  <td>₹ {t.totalAmount.toFixed(2)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{formatDateDDMMYYYY(t.date)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{t.invoiceNo}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{t.contactName}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', fontWeight: '600' }}>{t.type.toUpperCase()}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {(t.totalAmount - (t.gstAmount || 0)).toFixed(2)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {(t.gstAmount || 0).toFixed(2)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right', fontWeight: '600' }}>₹ {t.totalAmount.toFixed(2)}</td>
                 </tr>
               ))}
-              {transactions.length === 0 && (
+              {bizTransactions.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center' }}>No Transactions Data Found</td>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '16px' }}>No Transactions Data Found</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Section 4: Individual Detailed Sale Invoices - Pages 4+ */}
+        {salesInvoices.map((inv) => {
+          const subtotal = (inv.products || []).reduce((acc: number, p: any) => acc + p.total, 0);
+          const totalWithGst = subtotal + (inv.gstAmount || 0);
+          const roundOffVal = inv.totalAmount - totalWithGst;
+
+          return (
+            <div key={inv.id} style={{ ...styles.printSection, pageBreakBefore: 'always', padding: '10px 0' }}>
+              {/* Header Badging */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                <span style={{ backgroundColor: '#0B2545', color: '#FFFFFF', padding: '6px 24px', borderRadius: '4px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px' }}>
+                  TAX INVOICE
+                </span>
+              </div>
+
+              {/* Main Company & Invoice Details Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    {activeBusiness?.logo && (
+                      <img src={activeBusiness.logo} style={{ maxHeight: '35px', maxWidth: '100px', objectFit: 'contain' }} alt="Logo" />
+                    )}
+                    <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0B2545', textTransform: 'uppercase' }}>
+                      {activeBusiness?.name}
+                    </h2>
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#4B5563', lineHeight: '1.4' }}>
+                    <div>📍 {activeBusiness?.address}</div>
+                    <div>📞 {activeBusiness?.phone}</div>
+                    {activeBusiness?.gst && <div><strong>GSTIN:</strong> {activeBusiness.gst}</div>}
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: '#FCFBF7', border: '1px solid #F3EFE0', borderRadius: '6px', padding: '10px', fontSize: '10px', minWidth: '180px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ color: '#6B7280' }}>Invoice No:</span>
+                    <strong>{inv.invoiceNo}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6B7280' }}>Invoice Date:</span>
+                    <strong>{formatDateDDMMYYYY(inv.date)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bill To */}
+              <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '10px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#000000', fontWeight: '800' }}>BILL TO</h4>
+                <div style={{ fontSize: '10px', color: '#1F2937' }}>
+                  <strong>{inv.contactName}</strong>
+                  {inv.contactPhone && <div>Phone: {inv.contactPhone}</div>}
+                  {inv.contactAddress && <div>Address: {inv.contactAddress}</div>}
+                  {inv.contactGst && <div>GSTIN: {inv.contactGst}</div>}
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <table style={{ ...styles.printTable, marginBottom: '20px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#0B2545', color: '#FFFFFF' }}>
+                    <th style={{ padding: '6px' }}>SI No.</th>
+                    <th style={{ padding: '6px' }}>Description of Goods</th>
+                    <th style={{ padding: '6px' }}>HSN/SAC</th>
+                    <th style={{ padding: '6px', textAlign: 'center' }}>Quantity</th>
+                    <th style={{ padding: '6px', textAlign: 'right' }}>Rate</th>
+                    <th style={{ padding: '6px', textAlign: 'right' }}>GST</th>
+                    <th style={{ padding: '6px', textAlign: 'right' }}>Disc. %</th>
+                    <th style={{ padding: '6px', textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(inv.products || []).map((p: any, idx: number) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                      <td style={{ padding: '6px' }}>{idx + 1}</td>
+                      <td style={{ padding: '6px', fontWeight: '600' }}>{p.productName}</td>
+                      <td style={{ padding: '6px' }}>{p.hsn || '96081019'}</td>
+                      <td style={{ padding: '6px', textAlign: 'center' }}>{p.quantity} {p.unit || 'PCS'}</td>
+                      <td style={{ padding: '6px', textAlign: 'right' }}>{p.price.toFixed(2)}</td>
+                      <td style={{ padding: '6px', textAlign: 'right' }}>{p.gst}%</td>
+                      <td style={{ padding: '6px', textAlign: 'right' }}>{p.discountPercentage || 0}%</td>
+                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: '700' }}>{p.total.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '15px', marginTop: '15px' }}>
+                <div style={{ fontSize: '10px' }}>
+                  <strong>Amount in Words:</strong>
+                  <div style={{ color: '#4B5563', fontStyle: 'italic', marginTop: '2px', textTransform: 'capitalize' }}>
+                    {numberToWords(inv.totalAmount)}
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                    <span style={{ color: '#6B7280' }}>Total Amount</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                    <span style={{ color: '#6B7280' }}>CGST (₹)</span>
+                    <span>₹{(inv.gstAmount / 2).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                    <span style={{ color: '#6B7280' }}>SGST (₹)</span>
+                    <span>₹{(inv.gstAmount / 2).toFixed(2)}</span>
+                  </div>
+                  {Math.abs(roundOffVal) >= 0.01 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                      <span style={{ color: '#6B7280' }}>Round Off</span>
+                      <span>{roundOffVal > 0 ? '+' : ''}{roundOffVal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '1.5px solid #000000', color: '#000000', fontSize: '12px', fontWeight: '800' }}>
+                    <span>GRAND TOTAL</span>
+                    <span>₹{inv.totalAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
       </div>
 
@@ -357,6 +644,59 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11.5px',
     color: '#6B7280',
     marginTop: '16px',
+  },
+  datePickerBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '8px',
+    padding: '8px 12px',
+    cursor: 'pointer',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    transition: 'all 0.2s',
+  },
+  mainMonthPickerDropdown: {
+    position: 'absolute',
+    top: '42px',
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '10px',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    zIndex: 1000,
+    width: '220px',
+    padding: '12px',
+  },
+  pickerYearHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
+  },
+  pickerYearBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    color: 'var(--color-text-muted)',
+    padding: '2px 8px',
+    borderRadius: '4px',
+  },
+  pickerMonthsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '6px',
+  },
+  pickerMonthCell: {
+    padding: '8px 0',
+    textAlign: 'center',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   // Print Only Ledger Styles
   printOnlyContainer: {
