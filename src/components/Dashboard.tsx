@@ -181,9 +181,12 @@ export const Dashboard: React.FC = () => {
     t.products?.forEach((tp: any) => {
       const prod = products.find((p) => p.id === tp.productId);
       if (prod) {
-        totalProfit += (prod.sellingPrice - prod.purchasePrice) * tp.quantity;
+        // Calculate based on actual selling price in transaction minus master purchase price
+        const actualRowTotal = tp.total || 0;
+        const purchaseCost = (prod.purchasePrice || 0) * (tp.quantity || 0);
+        totalProfit += (actualRowTotal - purchaseCost);
       } else {
-        totalProfit += tp.total * 0.3; // Default 30% margin fallback
+        totalProfit += (tp.total || 0) * 0.3; // Default 30% margin fallback
       }
     });
     totalProfit -= t.discount || 0;
