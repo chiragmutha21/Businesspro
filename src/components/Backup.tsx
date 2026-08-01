@@ -38,13 +38,14 @@ export const Backup: React.FC = () => {
   const bizProducts = products.filter(p => p.businessId === activeBusiness?.id);
   const bizTransactions = transactions.filter(t => t.businessId === activeBusiness?.id && isWithinSelectedMonth(t.date));
 
-  const salesInvoices = bizTransactions.filter(t => t.type?.toLowerCase() === 'sale');
-  const purchaseInvoices = bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase');
+  // Sort Sales & Purchase Invoices in Ascending order (Starting from Invoice 01, 02...)
+  const salesInvoices = bizTransactions
+    .filter(t => t.type?.toLowerCase() === 'sale')
+    .sort((a, b) => (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' }));
 
-  // Sort transactions in Ascending order (Starting from Invoice 01, 02...)
-  const sortedTransactionsForJournal = [...bizTransactions].sort((a, b) => 
-    (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' })
-  );
+  const purchaseInvoices = bizTransactions
+    .filter(t => t.type?.toLowerCase() === 'purchase')
+    .sort((a, b) => (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' }));
 
   const getDateRangeStr = () => {
     const formatMonth = (d: Date) => {
@@ -374,36 +375,83 @@ export const Backup: React.FC = () => {
           </table>
         </div>
 
-        {/* Section 3: Transactions Journal - Page 3 */}
+        {/* Local Styles for page-breaking and styling tr elements */}
+        <style>{`
+          #backup-report-pdf tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          #backup-report-pdf td {
+            word-break: break-word;
+          }
+        `}</style>
+
+        {/* Section 3: Sales Journal - Page 3 */}
         <div style={{ ...styles.printSection, pageBreakBefore: 'always' }}>
-          {renderBusinessHeader('TRANSACTIONS JOURNAL')}
+          {renderBusinessHeader('SALES JOURNAL BACKUP')}
           <table style={styles.printTable}>
             <thead>
               <tr style={{ backgroundColor: '#F8FAFC' }}>
-                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>Date</th>
-                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>Invoice No.</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left', width: '85px' }}>Date</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left', width: '95px' }}>Invoice No.</th>
                 <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>Party Name</th>
-                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>Type</th>
-                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>Taxable Amt</th>
-                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>GST Amount</th>
-                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right' }}>Total Amount</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left', width: '60px' }}>Type</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right', width: '90px' }}>Taxable Amt</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right', width: '85px' }}>GST Amount</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right', width: '100px' }}>Total Amount</th>
               </tr>
             </thead>
             <tbody>
-              {sortedTransactionsForJournal.map((t) => (
+              {salesInvoices.map((t) => (
                 <tr key={t.id}>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{formatDateDDMMYYYY(t.date)}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{t.invoiceNo}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{t.contactName}</td>
-                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', fontWeight: '600' }}>{t.type.toUpperCase()}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', fontWeight: '600' }}>SALE</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {(t.totalAmount - (t.gstAmount || 0)).toFixed(2)}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {(t.gstAmount || 0).toFixed(2)}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right', fontWeight: '600' }}>₹ {t.totalAmount.toFixed(2)}</td>
                 </tr>
               ))}
-              {sortedTransactionsForJournal.length === 0 && (
+              {salesInvoices.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '16px' }}>No Transactions Data Found</td>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '16px' }}>No Sales Data Found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Section 4: Purchase Journal - Page 4 */}
+        <div style={{ ...styles.printSection, pageBreakBefore: 'always' }}>
+          {renderBusinessHeader('PURCHASE JOURNAL BACKUP')}
+          <table style={styles.printTable}>
+            <thead>
+              <tr style={{ backgroundColor: '#F8FAFC' }}>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left', width: '85px' }}>Date</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left', width: '95px' }}>Bill No.</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left' }}>Party Name</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'left', width: '60px' }}>Type</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right', width: '90px' }}>Taxable Amt</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right', width: '85px' }}>GST Amount</th>
+                <th style={{ padding: '8px', borderBottom: '1px solid #E2E8F0', textAlign: 'right', width: '100px' }}>Total Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchaseInvoices.map((t) => (
+                <tr key={t.id}>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{formatDateDDMMYYYY(t.date)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{t.invoiceNo}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{t.contactName}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', fontWeight: '600' }}>PURCHASE</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {(t.totalAmount - (t.gstAmount || 0)).toFixed(2)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right' }}>₹ {(t.gstAmount || 0).toFixed(2)}</td>
+                  <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right', fontWeight: '600' }}>₹ {t.totalAmount.toFixed(2)}</td>
+                </tr>
+              ))}
+              {purchaseInvoices.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '16px' }}>No Purchase Data Found</td>
                 </tr>
               )}
             </tbody>
@@ -611,9 +659,9 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     left: '-9999px',
     top: '-9999px',
-    width: '800px',
+    width: '740px',
     backgroundColor: '#FFFFFF',
-    padding: '24px',
+    padding: '16px',
     display: 'block',
   },
   printSection: {
