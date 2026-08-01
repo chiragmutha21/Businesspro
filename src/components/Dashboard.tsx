@@ -34,7 +34,7 @@ export const Dashboard: React.FC = () => {
   
   // Dynamic month selection state
   const [activeMonthDate, setActiveMonthDate] = useState<Date>(new Date());
-  const [openDropdown, setOpenDropdown] = useState<'sales' | 'products' | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<'sales' | 'products' | 'mainDatePicker' | null>(null);
 
   // Load local data for complete metrics
   const getLocal = (key: string) => {
@@ -574,10 +574,80 @@ export const Dashboard: React.FC = () => {
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Date Picker Display */}
-          <div style={styles.datePickerBtn}>
-            <Calendar size={15} color="var(--color-text-muted)" style={{ marginRight: '6px' }} />
-            <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--color-primary)' }}>{getDateRangeStr()}</span>
-            <ChevronDown size={14} color="var(--color-text-muted)" style={{ marginLeft: '8px' }} />
+          <div style={{ position: 'relative' }}>
+            <div 
+              style={{
+                ...styles.datePickerBtn,
+                cursor: timeFilter === 'monthly' ? 'pointer' : 'default'
+              }}
+              onClick={() => {
+                if (timeFilter === 'monthly') {
+                  setOpenDropdown(openDropdown === 'mainDatePicker' ? null : 'mainDatePicker');
+                }
+              }}
+            >
+              <Calendar size={15} color="var(--color-text-muted)" style={{ marginRight: '6px' }} />
+              <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--color-primary)' }}>{getDateRangeStr()}</span>
+              <ChevronDown size={14} color="var(--color-text-muted)" style={{ marginLeft: '8px' }} />
+            </div>
+
+            {timeFilter === 'monthly' && openDropdown === 'mainDatePicker' && (
+              <div style={styles.mainMonthPickerDropdown}>
+                <div style={styles.pickerYearHeader}>
+                  <button 
+                    type="button" 
+                    style={styles.pickerYearBtn} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newD = new Date(activeMonthDate);
+                      newD.setFullYear(activeMonthDate.getFullYear() - 1);
+                      setActiveMonthDate(newD);
+                    }}
+                  >
+                    &lt;
+                  </button>
+                  <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--color-primary)' }}>
+                    {activeMonthDate.getFullYear()}
+                  </span>
+                  <button 
+                    type="button" 
+                    style={styles.pickerYearBtn} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newD = new Date(activeMonthDate);
+                      newD.setFullYear(activeMonthDate.getFullYear() + 1);
+                      setActiveMonthDate(newD);
+                    }}
+                  >
+                    &gt;
+                  </button>
+                </div>
+                <div style={styles.pickerMonthsGrid}>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((mName, mIdx) => {
+                    const isSelected = activeMonthDate.getMonth() === mIdx;
+                    return (
+                      <div
+                        key={mIdx}
+                        style={{
+                          ...styles.pickerMonthCell,
+                          backgroundColor: isSelected ? '#064E3B' : 'transparent',
+                          color: isSelected ? '#FFFFFF' : 'var(--color-primary)',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newD = new Date(activeMonthDate);
+                          newD.setMonth(mIdx);
+                          setActiveMonthDate(newD);
+                          setOpenDropdown(null);
+                        }}
+                      >
+                        {mName}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Time Filter Toggle */}
@@ -592,7 +662,16 @@ export const Dashboard: React.FC = () => {
                     color: timeFilter === filter ? '#FFFFFF' : 'var(--color-text-muted)',
                     textTransform: 'capitalize'
                   }}
-                  onClick={() => setTimeFilter(filter)}
+                  onClick={() => {
+                    setTimeFilter(filter);
+                    if (filter === 'monthly') {
+                      setOpenDropdown('mainDatePicker');
+                    } else {
+                      if (openDropdown === 'mainDatePicker') {
+                        setOpenDropdown(null);
+                      }
+                    }
+                  }}
                 >
                   {filter}
                 </button>
@@ -1358,6 +1437,48 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 12px',
     cursor: 'pointer',
     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    transition: 'all 0.2s',
+  },
+  mainMonthPickerDropdown: {
+    position: 'absolute',
+    top: '42px',
+    left: 0,
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #E2E8F0',
+    borderRadius: '10px',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    zIndex: 1000,
+    width: '220px',
+    padding: '12px',
+  },
+  pickerYearHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
+  },
+  pickerYearBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    color: 'var(--color-text-muted)',
+    padding: '2px 8px',
+    borderRadius: '4px',
+  },
+  pickerMonthsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '6px',
+  },
+  pickerMonthCell: {
+    padding: '8px 0',
+    textAlign: 'center',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
     transition: 'all 0.2s',
   },
   toggleWrapper: {
