@@ -124,6 +124,12 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
     const element = document.getElementById('gst-report-print-area');
     if (!element) return;
 
+    // Show the print header temporarily for PDF capture
+    const printHeaderDiv = element.querySelector('.pdf-print-only') as HTMLElement;
+    if (printHeaderDiv) {
+      printHeaderDiv.style.display = 'block';
+    }
+
     const opt = {
       margin: [10, 10, 10, 10] as [number, number, number, number],
       filename: `${activeSection === 'gst-purchase' ? 'GST_Purchase_Report' : 'GST_Sale_Report'}_${fromDate}_to_${toDate}.pdf`,
@@ -132,7 +138,16 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'landscape' as const }
     };
 
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set(opt).from(element).save().then(() => {
+      // Hide the print header again
+      if (printHeaderDiv) {
+        printHeaderDiv.style.display = 'none';
+      }
+    }).catch(() => {
+      if (printHeaderDiv) {
+        printHeaderDiv.style.display = 'none';
+      }
+    });
   };
 
   return (
@@ -219,16 +234,21 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
         {/* Print Header (Visible in PDF print output) */}
         <div className="pdf-print-only" style={styles.printHeader}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', marginBottom: '14px' }}>
-            <div>
-              <h1 style={{ margin: '0 0 4px 0', fontSize: '20px', color: '#1E293B', fontWeight: '800' }}>
-                {activeBusiness?.name}
-              </h1>
-              <p style={{ margin: '0', fontSize: '12px', color: '#64748B' }}>
-                {activeBusiness?.address}
-              </p>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748B' }}>
-                Phone: {activeBusiness?.phone || '-'}
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {activeBusiness?.logo && (
+                <img src={activeBusiness.logo} style={{ maxHeight: '50px', maxWidth: '120px', objectFit: 'contain' }} alt="Logo" />
+              )}
+              <div>
+                <h1 style={{ margin: '0 0 4px 0', fontSize: '20px', color: '#1E293B', fontWeight: '800' }}>
+                  {activeBusiness?.name}
+                </h1>
+                <p style={{ margin: '0', fontSize: '12px', color: '#64748B' }}>
+                  {activeBusiness?.address}
+                </p>
+                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748B' }}>
+                  Phone: {activeBusiness?.phone || '-'}
+                </p>
+              </div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ display: 'inline-block', backgroundColor: '#3B82F6', color: '#FFFFFF', padding: '4px 10px', borderRadius: '4px', fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
