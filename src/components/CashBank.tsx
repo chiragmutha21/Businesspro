@@ -413,25 +413,29 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       transactions: [initialTx]
     };
 
-    (addBankAccount(newBank as any) as Promise<any>).then((inserted) => {
-      if (inserted) {
-        setSelectedBankId(inserted.id);
-      }
-    });
-    setShowAddBankModal(false);
-
-    // Reset states
-    setBankDispName('');
-    setBankOpeningBal('');
-    setBankNumber('');
-    setBankIfsc('');
-    setBankUpi('');
-    setBankName('');
-    setBankHolderName('');
-    setBankPrintQr(false);
-    setBankPrintDetails(false);
-    setBankAcceptOnline(false);
-    alert('Bank Account linked successfully!');
+    (addBankAccount(newBank as any) as Promise<any>)
+      .then((inserted) => {
+        if (inserted) {
+          setSelectedBankId(inserted.id);
+        }
+        setShowAddBankModal(false);
+        // Reset states
+        setBankDispName('');
+        setBankOpeningBal('');
+        setBankNumber('');
+        setBankIfsc('');
+        setBankUpi('');
+        setBankName('');
+        setBankHolderName('');
+        setBankPrintQr(false);
+        setBankPrintDetails(false);
+        setBankAcceptOnline(false);
+        alert('Bank Account linked successfully!');
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('Failed to save bank account: ' + (err.message || err));
+      });
   };
 
   // Bank transaction save
