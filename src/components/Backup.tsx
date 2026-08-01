@@ -380,7 +380,7 @@ export const Backup: React.FC = () => {
           @media print {
             #backup-report-pdf {
               display: block !important;
-              position: relative !important;
+              position: absolute !important;
               left: 0 !important;
               top: 0 !important;
             }
