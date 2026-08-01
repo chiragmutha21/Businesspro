@@ -65,8 +65,18 @@ export const Backup: React.FC = () => {
   const bizProducts = products.filter(p => p.businessId === activeBusiness?.id);
   const bizTransactions = transactions.filter(t => t.businessId === activeBusiness?.id && isWithinSelectedMonth(t.date));
 
-  const salesInvoices = bizTransactions.filter(t => t.type?.toLowerCase() === 'sale');
-  const purchaseInvoices = bizTransactions.filter(t => t.type?.toLowerCase() === 'purchase');
+  // Sort Sales & Purchase Invoices in Ascending order (Starting from Invoice 01, 02...)
+  const salesInvoices = bizTransactions
+    .filter(t => t.type?.toLowerCase() === 'sale')
+    .sort((a, b) => (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+  const purchaseInvoices = bizTransactions
+    .filter(t => t.type?.toLowerCase() === 'purchase')
+    .sort((a, b) => (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+  const sortedTransactionsForJournal = [...bizTransactions].sort((a, b) => 
+    (a.invoiceNo || '').localeCompare(b.invoiceNo || '', undefined, { numeric: true, sensitivity: 'base' })
+  );
 
   const getDateRangeStr = () => {
     const formatMonth = (d: Date) => {
@@ -81,6 +91,15 @@ export const Backup: React.FC = () => {
     const element = document.getElementById('backup-report-pdf');
     if (!element) return;
 
+    // Bring element temporarily into document layout flow so that html2canvas captures it correctly
+    const originalPos = element.style.position;
+    const originalLeft = element.style.left;
+    const originalTop = element.style.top;
+
+    element.style.position = 'relative';
+    element.style.left = '0';
+    element.style.top = '0';
+
     const opt = {
       margin:       [0.4, 0.4] as [number, number],
       filename:     `backup_report_${activeMonthDate.getFullYear()}_${activeMonthDate.getMonth() + 1}.pdf`,
@@ -89,7 +108,16 @@ export const Backup: React.FC = () => {
       jsPDF:        { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
     };
 
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set(opt).from(element).save().then(() => {
+      // Revert style positions back to hidden state
+      element.style.position = originalPos;
+      element.style.left = originalLeft;
+      element.style.top = originalTop;
+    }).catch(() => {
+      element.style.position = originalPos;
+      element.style.left = originalLeft;
+      element.style.top = originalTop;
+    });
   };
 
   const handlePrintPDF = () => {
@@ -358,7 +386,7 @@ export const Backup: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {bizTransactions.map((t) => (
+              {sortedTransactionsForJournal.map((t) => (
                 <tr key={t.id}>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{formatDateDDMMYYYY(t.date)}</td>
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9' }}>{t.invoiceNo}</td>
@@ -369,7 +397,7 @@ export const Backup: React.FC = () => {
                   <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', textAlign: 'right', fontWeight: '600' }}>₹ {t.totalAmount.toFixed(2)}</td>
                 </tr>
               ))}
-              {bizTransactions.length === 0 && (
+              {sortedTransactionsForJournal.length === 0 && (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '16px' }}>No Transactions Data Found</td>
                 </tr>
@@ -397,8 +425,10 @@ export const Backup: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    {activeBusiness?.logo && (
-                      <img src={activeBusiness.logo} style={{ maxHeight: '35px', maxWidth: '100px', objectFit: 'contain' }} alt="Logo" />
+                    {activeBusiness?.logo ? (
+                      <img src={activeBusiness.logo} style={{ maxHeight: '40px', maxWidth: '100px', objectFit: 'contain' }} alt="Logo" />
+                    ) : (
+                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#0B2545' }}>M</div>
                     )}
                     <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0B2545', textTransform: 'uppercase' }}>
                       {activeBusiness?.name}
@@ -407,18 +437,27 @@ export const Backup: React.FC = () => {
                   <div style={{ fontSize: '10px', color: '#4B5563', lineHeight: '1.4' }}>
                     <div>📍 {activeBusiness?.address}</div>
                     <div>📞 {activeBusiness?.phone}</div>
-                    {activeBusiness?.gst && <div><strong>GSTIN:</strong> {activeBusiness.gst}</div>}
+                    {activeBusiness?.email && <div>✉️ {activeBusiness.email}</div>}
+                    {activeBusiness?.gst && <div style={{ marginTop: '4px' }}><strong>GSTIN:</strong> {activeBusiness.gst}</div>}
+                    {activeBusiness?.pan && <div><strong>PAN:</strong> {activeBusiness.pan}</div>}
                   </div>
                 </div>
 
                 <div style={{ backgroundColor: '#FCFBF7', border: '1px solid #F3EFE0', borderRadius: '6px', padding: '10px', fontSize: '10px', minWidth: '180px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ color: '#6B7280' }}>Invoice No:</span>
-                    <strong>{inv.invoiceNo}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6B7280' }}>Invoice Date:</span>
-                    <strong>{formatDateDDMMYYYY(inv.date)}</strong>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#8F5B1E', textTransform: 'uppercase' }}>Invoice Details</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6B7280' }}>Invoice No:</span>
+                      <strong style={{ color: '#1F2937' }}>{inv.invoiceNo}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6B7280' }}>Invoice Date:</span>
+                      <strong>{formatDateDDMMYYYY(inv.date)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6B7280' }}>State:</span>
+                      <strong>{activeBusiness?.state || 'Maharashtra'}</strong>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -435,30 +474,32 @@ export const Backup: React.FC = () => {
               </div>
 
               {/* Items Table */}
-              <table style={{ ...styles.printTable, marginBottom: '20px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#0B2545', color: '#FFFFFF' }}>
-                    <th style={{ padding: '6px' }}>SI No.</th>
-                    <th style={{ padding: '6px' }}>Description of Goods</th>
-                    <th style={{ padding: '6px' }}>HSN/SAC</th>
-                    <th style={{ padding: '6px', textAlign: 'center' }}>Quantity</th>
-                    <th style={{ padding: '6px', textAlign: 'right' }}>Rate</th>
-                    <th style={{ padding: '6px', textAlign: 'right' }}>GST</th>
-                    <th style={{ padding: '6px', textAlign: 'right' }}>Disc. %</th>
-                    <th style={{ padding: '6px', textAlign: 'right' }}>Amount</th>
+                  <tr style={{ backgroundColor: '#0B2545', color: '#FFFFFF', fontSize: '11px', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '8px 8px', textAlign: 'left' }}>SI No.</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'left' }}>Description of Goods</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'left' }}>HSN/SAC</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'center' }}>Quantity</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>Rate</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'center' }}>per</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>GST Rate</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>Disc. %</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>Amount</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody style={{ fontSize: '11px' }}>
                   {(inv.products || []).map((p: any, idx: number) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                      <td style={{ padding: '6px' }}>{idx + 1}</td>
-                      <td style={{ padding: '6px', fontWeight: '600' }}>{p.productName}</td>
-                      <td style={{ padding: '6px' }}>{p.hsn || '96081019'}</td>
-                      <td style={{ padding: '6px', textAlign: 'center' }}>{p.quantity} {p.unit || 'PCS'}</td>
-                      <td style={{ padding: '6px', textAlign: 'right' }}>{p.price.toFixed(2)}</td>
-                      <td style={{ padding: '6px', textAlign: 'right' }}>{p.gst}%</td>
-                      <td style={{ padding: '6px', textAlign: 'right' }}>{p.discountPercentage || 0}%</td>
-                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: '700' }}>{p.total.toFixed(2)}</td>
+                      <td style={{ padding: '8px' }}>{idx + 1}</td>
+                      <td style={{ padding: '8px', fontWeight: '600' }}>{p.productName}</td>
+                      <td style={{ padding: '8px' }}>{p.hsn || '96081019'}</td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>{p.quantity} {p.unit || 'PCS'}</td>
+                      <td style={{ padding: '8px', textAlign: 'right' }}>{p.price.toFixed(2)}</td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>{p.unit || 'PCS'}</td>
+                      <td style={{ padding: '8px', textAlign: 'right' }}>{p.gst}%</td>
+                      <td style={{ padding: '8px', textAlign: 'right' }}>{p.discountPercentage || 0}%</td>
+                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: '700' }}>{p.total.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -495,6 +536,31 @@ export const Backup: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '1.5px solid #000000', color: '#000000', fontSize: '12px', fontWeight: '800' }}>
                     <span>GRAND TOTAL</span>
                     <span>₹{inv.totalAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Premium Footer section / Signatory */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E5E7EB', marginTop: '20px', paddingTop: '12px', fontSize: '9px', color: '#4B5563' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', color: '#8F5B1E', textTransform: 'uppercase', fontSize: '9px' }}>Terms & Conditions</h4>
+                  <ul style={{ paddingLeft: '12px', margin: 0, lineHeight: '1.4', listStyleType: 'decimal' }}>
+                    <li>Goods once sold will not be taken back without prior approval.</li>
+                    <li>Subject to {activeBusiness?.state || 'Nashik'} jurisdiction.</li>
+                    <li>This is a computer-generated invoice and requires no physical signature.</li>
+                  </ul>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div>
+                    <span>For <strong>{activeBusiness?.name}</strong></span>
+                    {activeBusiness?.signature ? (
+                      <div style={{ marginTop: '4px' }}>
+                        <img src={activeBusiness.signature} style={{ maxHeight: '30px', objectFit: 'contain' }} alt="Signature" />
+                      </div>
+                    ) : (
+                      <div style={{ height: '30px' }} />
+                    )}
+                    <div style={{ borderTop: '1px solid #D1D5DB', width: '120px', marginTop: '4px', paddingTop: '2px' }}>Authorized Signatory</div>
                   </div>
                 </div>
               </div>
