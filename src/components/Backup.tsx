@@ -377,6 +377,14 @@ export const Backup: React.FC = () => {
 
         {/* Local Styles for page-breaking and styling tr elements */}
         <style>{`
+          @media print {
+            #backup-report-pdf {
+              display: block !important;
+              position: relative !important;
+              left: 0 !important;
+              top: 0 !important;
+            }
+          }
           #backup-report-pdf tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
