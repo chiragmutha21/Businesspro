@@ -5,6 +5,34 @@ import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
+function numberToWords(num: number): string {
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  if (num === 0) return 'Zero';
+
+  const makeWords = (n: number): string => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + a[n % 10] : '');
+    if (n < 1000) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + makeWords(n % 100) : '');
+    if (n < 100000) return makeWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + makeWords(n % 1000) : '');
+    if (n < 10000000) return makeWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 !== 0 ? ' ' + makeWords(n % 100000) : '');
+    return makeWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 !== 0 ? ' ' + makeWords(n % 10000000) : '');
+  };
+
+  const integerPart = Math.floor(num);
+  const decimalPart = Math.round((num - integerPart) * 100);
+
+  let words = makeWords(integerPart) + ' Rupees';
+  if (decimalPart > 0) {
+    words += ' and ' + makeWords(decimalPart) + ' Paise';
+  }
+  return words + ' Only';
+}
+
 export const Backup: React.FC = () => {
   const { activeBusiness, customers, products, transactions } = useApp();
   
@@ -465,6 +493,168 @@ export const Backup: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Section 5: Individual Detailed Sale Invoices - Pages 5+ (Rendered only during native browser printing to prevent html2canvas size crashes) */}
+        {!isGeneratingPDF && salesInvoices.map((inv) => {
+          const subtotal = (inv.products || []).reduce((acc: number, p: any) => acc + p.total, 0);
+          const totalWithGst = subtotal + (inv.gstAmount || 0);
+          const roundOffVal = inv.totalAmount - totalWithGst;
+
+          return (
+            <div key={inv.id} style={{ ...styles.printSection, pageBreakBefore: 'always', padding: '10px 0' }}>
+              {/* Header Badging */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                <span style={{ backgroundColor: '#0B2545', color: '#FFFFFF', padding: '6px 24px', borderRadius: '4px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px' }}>
+                  TAX INVOICE
+                </span>
+              </div>
+
+              {/* Main Company & Invoice Details Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    {activeBusiness?.logo ? (
+                      <img src={activeBusiness.logo} style={{ maxHeight: '40px', maxWidth: '100px', objectFit: 'contain' }} alt="Logo" />
+                    ) : (
+                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#0B2545' }}>M</div>
+                    )}
+                    <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0B2545', textTransform: 'uppercase' }}>
+                      {activeBusiness?.name}
+                    </h2>
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#4B5563', lineHeight: '1.4' }}>
+                    <div>📍 {activeBusiness?.address}</div>
+                    <div>📞 {activeBusiness?.phone}</div>
+                    {activeBusiness?.email && <div>✉️ {activeBusiness.email}</div>}
+                    {activeBusiness?.gst && <div style={{ marginTop: '4px' }}><strong>GSTIN:</strong> {activeBusiness.gst}</div>}
+                    {activeBusiness?.pan && <div><strong>PAN:</strong> {activeBusiness.pan}</div>}
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: '#FCFBF7', border: '1px solid #F3EFE0', borderRadius: '6px', padding: '10px', fontSize: '10px', minWidth: '180px' }}>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#8F5B1E', textTransform: 'uppercase' }}>Invoice Details</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6B7280' }}>Invoice No:</span>
+                      <strong style={{ color: '#1F2937' }}>{inv.invoiceNo}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6B7280' }}>Invoice Date:</span>
+                      <strong>{formatDateDDMMYYYY(inv.date)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6B7280' }}>State:</span>
+                      <strong>{activeBusiness?.state || 'Maharashtra'}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bill To */}
+              <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: '10px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#000000', fontWeight: '800' }}>BILL TO</h4>
+                <div style={{ fontSize: '10px', color: '#1F2937' }}>
+                  <strong>{inv.contactName}</strong>
+                  {inv.contactPhone && <div>Phone: {inv.contactPhone}</div>}
+                  {inv.contactAddress && <div>Address: {inv.contactAddress}</div>}
+                  {inv.contactGst && <div>GSTIN: {inv.contactGst}</div>}
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#0B2545', color: '#FFFFFF', fontSize: '11px', textTransform: 'uppercase' }}>
+                    <th style={{ padding: '8px 8px', textAlign: 'left' }}>SI No.</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'left' }}>Description of Goods</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'left' }}>HSN/SAC</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'center' }}>Quantity</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>Rate</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'center' }}>per</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>GST Rate</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>Disc. %</th>
+                    <th style={{ padding: '8px 8px', textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: '11px' }}>
+                  {(inv.products || []).map((p: any, idx: number) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                      <td style={{ padding: '8px' }}>{idx + 1}</td>
+                      <td style={{ padding: '8px', fontWeight: '600' }}>{p.productName}</td>
+                      <td style={{ padding: '8px' }}>{p.hsn || '96081019'}</td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>{p.quantity} {p.unit || 'PCS'}</td>
+                      <td style={{ padding: '8px', textAlign: 'right' }}>{p.price.toFixed(2)}</td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>{p.unit || 'PCS'}</td>
+                      <td style={{ padding: '8px', textAlign: 'right' }}>{p.gst}%</td>
+                      <td style={{ padding: '8px', textAlign: 'right' }}>{p.discountPercentage || 0}%</td>
+                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: '700' }}>{p.total.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '15px', marginTop: '15px' }}>
+                <div style={{ fontSize: '10px' }}>
+                  <strong>Amount in Words:</strong>
+                  <div style={{ color: '#4B5563', fontStyle: 'italic', marginTop: '2px', textTransform: 'capitalize' }}>
+                    {numberToWords(inv.totalAmount)}
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                    <span style={{ color: '#6B7280' }}>Total Amount</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                    <span style={{ color: '#6B7280' }}>CGST (₹)</span>
+                    <span>₹{(inv.gstAmount / 2).toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                    <span style={{ color: '#6B7280' }}>SGST (₹)</span>
+                    <span>₹{(inv.gstAmount / 2).toFixed(2)}</span>
+                  </div>
+                  {Math.abs(roundOffVal) >= 0.01 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F3F4F6', paddingBottom: '2px' }}>
+                      <span style={{ color: '#6B7280' }}>Round Off</span>
+                      <span>{roundOffVal > 0 ? '+' : ''}{roundOffVal.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderTop: '1.5px solid #000000', color: '#000000', fontSize: '12px', fontWeight: '800' }}>
+                    <span>GRAND TOTAL</span>
+                    <span>₹{inv.totalAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Premium Footer section / Signatory */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E5E7EB', marginTop: '20px', paddingTop: '12px', fontSize: '9px', color: '#4B5563' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', color: '#8F5B1E', textTransform: 'uppercase', fontSize: '9px' }}>Terms & Conditions</h4>
+                  <ul style={{ paddingLeft: '12px', margin: 0, lineHeight: '1.4', listStyleType: 'decimal' }}>
+                    <li>Goods once sold will not be taken back without prior approval.</li>
+                    <li>Subject to {activeBusiness?.state || 'Nashik'} jurisdiction.</li>
+                    <li>This is a computer-generated invoice and requires no physical signature.</li>
+                  </ul>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div>
+                    <span>For <strong>{activeBusiness?.name}</strong></span>
+                    {activeBusiness?.signature ? (
+                      <div style={{ marginTop: '4px' }}>
+                        <img src={activeBusiness.signature} style={{ maxHeight: '30px', objectFit: 'contain' }} alt="Signature" />
+                      </div>
+                    ) : (
+                      <div style={{ height: '30px' }} />
+                    )}
+                    <div style={{ borderTop: '1px solid #D1D5DB', width: '120px', marginTop: '4px', paddingTop: '2px' }}>Authorized Signatory</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
       </div>
 
