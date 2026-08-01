@@ -39,6 +39,7 @@ export const Backup: React.FC = () => {
   // Date picker states
   const [activeMonthDate, setActiveMonthDate] = useState<Date>(new Date());
   const [openDropdown, setOpenDropdown] = useState<'mainDatePicker' | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Helper date parsing and filtering
   const parseDateStr = (dateStr: string) => {
@@ -88,38 +89,29 @@ export const Backup: React.FC = () => {
   };
 
   const handleDownloadPDF = () => {
-    const element = document.getElementById('backup-report-pdf');
-    if (!element) return;
-
-    // Bring element temporarily into document layout flow so that html2canvas captures it correctly
-    const originalPos = element.style.position;
-    const originalLeft = element.style.left;
-    const originalTop = element.style.top;
-
-    element.style.position = 'relative';
-    element.style.left = '0';
-    element.style.top = '0';
-
-    const opt = {
-      margin:       [0.4, 0.4] as [number, number],
-      filename:     `backup_report_${activeMonthDate.getFullYear()}_${activeMonthDate.getMonth() + 1}.pdf`,
-      image:        { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
-    };
+    setIsGeneratingPDF(true);
 
     setTimeout(() => {
+      const element = document.getElementById('backup-report-pdf');
+      if (!element) {
+        setIsGeneratingPDF(false);
+        return;
+      }
+
+      const opt = {
+        margin:       [0.4, 0.4] as [number, number],
+        filename:     `backup_report_${activeMonthDate.getFullYear()}_${activeMonthDate.getMonth() + 1}.pdf`,
+        image:        { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
+      };
+
       html2pdf().set(opt).from(element).save().then(() => {
-        // Revert style positions back to hidden state
-        element.style.position = originalPos;
-        element.style.left = originalLeft;
-        element.style.top = originalTop;
+        setIsGeneratingPDF(false);
       }).catch(() => {
-        element.style.position = originalPos;
-        element.style.left = originalLeft;
-        element.style.top = originalTop;
+        setIsGeneratingPDF(false);
       });
-    }, 200);
+    }, 400);
   };
 
   const handlePrintPDF = () => {
@@ -160,6 +152,38 @@ export const Backup: React.FC = () => {
 
   return (
     <div style={styles.container} className="no-print">
+      {isGeneratingPDF && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          gap: '16px'
+        }}>
+          <style>{`
+            @keyframes backup-spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+          <div style={{
+            width: '45px',
+            height: '45px',
+            border: '4px solid #E5E7EB',
+            borderTop: '4px solid #0B2545',
+            borderRadius: '50%',
+            animation: 'backup-spin 1s linear infinite'
+          }} />
+          <span style={{ fontSize: '15px', fontWeight: '700', color: '#0B2545' }}>Generating PDF Backup... Please wait</span>
+        </div>
+      )}
       
       {/* Upper Panel */}
       <div style={styles.headerBlock}>
@@ -302,7 +326,17 @@ export const Backup: React.FC = () => {
       </div>
 
       {/* HIDDEN PRINT-ONLY LEDGER PREVIEW SECTION */}
-      <div id="backup-report-pdf" style={styles.printOnlyContainer} className="print-section print-only">
+      <div 
+        id="backup-report-pdf" 
+        style={{
+          ...styles.printOnlyContainer,
+          display: isGeneratingPDF ? 'block' : 'none',
+          position: isGeneratingPDF ? 'relative' : 'absolute',
+          left: isGeneratingPDF ? '0' : '-9999px',
+          top: isGeneratingPDF ? '0' : '-9999px',
+        }} 
+        className="print-section print-only"
+      >
         
         {/* Section 1: Parties - Page 1 */}
         <div style={styles.printSection}>
