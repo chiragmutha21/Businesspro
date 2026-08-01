@@ -1320,8 +1320,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateBankAccount = async (id: string, updates: Partial<BankAccount>) => {
     if (!user) return;
     const dbUpdates: any = {};
+    if (updates.displayName !== undefined) dbUpdates.display_name = updates.displayName;
+    if (updates.openingBalance !== undefined) dbUpdates.opening_balance = updates.openingBalance;
+    if (updates.balanceDate !== undefined) dbUpdates.balance_date = updates.balanceDate;
+    if (updates.accountNumber !== undefined) dbUpdates.account_number = updates.accountNumber;
+    if (updates.ifscCode !== undefined) dbUpdates.ifsc_code = updates.ifscCode;
+    if (updates.upiId !== undefined) dbUpdates.upi_id = updates.upiId;
+    if (updates.bankName !== undefined) dbUpdates.bank_name = updates.bankName;
+    if (updates.holderName !== undefined) dbUpdates.holder_name = updates.holderName;
+    if (updates.printQr !== undefined) dbUpdates.print_qr = updates.printQr;
+    if (updates.printDetails !== undefined) dbUpdates.print_details = updates.printDetails;
+    if (updates.acceptOnline !== undefined) dbUpdates.accept_online = updates.acceptOnline;
     if (updates.currentBalance !== undefined) dbUpdates.current_balance = updates.currentBalance;
     if (updates.transactions !== undefined) dbUpdates.transactions = updates.transactions;
+
     const { error } = await supabase.from('bank_accounts').update(dbUpdates).eq('id', id);
     if (error) throw error;
     setBankAccounts(bankAccounts.map(b => b.id === id ? { ...b, ...updates } : b));

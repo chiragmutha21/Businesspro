@@ -16,7 +16,8 @@ import {
   QrCode,
   Smartphone,
   ChevronDown,
-  Upload
+  Upload,
+  Edit
 } from 'lucide-react';
 import { formatDateDDMMYYYY } from '../utils/dateFormatter';
 
@@ -205,15 +206,41 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
   const [searchLoanQuery, setSearchLoanQuery] = useState('');
 
-
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [searchBankQuery, setSearchBankQuery] = useState('');
+  const [editingBankId, setEditingBankId] = useState<string | null>(null);
 
+  const handleStartEditBank = (bank: any) => {
+    setEditingBankId(bank.id);
+    setBankDispName(bank.displayName || '');
+    setBankOpeningBal(String(bank.openingBalance || '0'));
+    setBankAsOfDate(bank.balanceDate || '');
+    setBankNumber(bank.accountNumber || '');
+    setBankIfsc(bank.ifscCode || '');
+    setBankUpi(bank.upiId || '');
+    setBankName(bank.bankName || '');
+    setBankHolderName(bank.holderName || '');
+    setBankPrintQr(bank.printQr || false);
+    setBankPrintDetails(bank.printDetails || false);
+    setBankAcceptOnline(bank.acceptOnline || false);
+    setShowAddBankModal(true);
+  };
 
-
-
-
-
+  const handleOpenAddBankModal = () => {
+    setEditingBankId(null);
+    setBankDispName('');
+    setBankOpeningBal('');
+    setBankAsOfDate(new Date().toLocaleDateString('en-GB'));
+    setBankNumber('');
+    setBankIfsc('');
+    setBankUpi('');
+    setBankName('');
+    setBankHolderName('');
+    setBankPrintQr(false);
+    setBankPrintDetails(false);
+    setBankAcceptOnline(false);
+    setShowAddBankModal(true);
+  };
   const activeCashLogs = cashLogs.filter(l => l.businessId === activeBusiness?.id);
   const activeCheques = cheques.filter(c => c.businessId === activeBusiness?.id);
   const activeLoanAccounts = loanAccounts.filter(l => l.businessId === activeBusiness?.id);
@@ -384,6 +411,45 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
     const opBal = parseFloat(bankOpeningBal) || 0;
     if (!bankDispName) {
       alert('Account Display Name is required.');
+      return;
+    }
+
+    if (editingBankId) {
+      const updates = {
+        displayName: bankDispName,
+        openingBalance: opBal,
+        balanceDate: bankAsOfDate,
+        accountNumber: bankNumber,
+        ifscCode: bankIfsc,
+        upiId: bankUpi,
+        bankName,
+        holderName: bankHolderName,
+        printQr: bankPrintQr,
+        printDetails: bankPrintDetails,
+        acceptOnline: bankAcceptOnline,
+      };
+
+      (updateBankAccount(editingBankId, updates) as Promise<any>)
+        .then(() => {
+          setShowAddBankModal(false);
+          setEditingBankId(null);
+          // Reset states
+          setBankDispName('');
+          setBankOpeningBal('');
+          setBankNumber('');
+          setBankIfsc('');
+          setBankUpi('');
+          setBankName('');
+          setBankHolderName('');
+          setBankPrintQr(false);
+          setBankPrintDetails(false);
+          setBankAcceptOnline(false);
+          alert('Bank Account updated successfully!');
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Failed to update bank account: ' + (err.message || err));
+        });
       return;
     }
 
@@ -584,7 +650,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
               <button 
                 className="btn btn-danger" 
                 style={{ backgroundColor: '#EF4444', color: '#FFFFFF', borderRadius: '24px', padding: '10px 32px', marginTop: '24px' }}
-                onClick={() => setShowAddBankModal(true)}
+                onClick={handleOpenAddBankModal}
               >
                 + Add Bank Account
               </button>
@@ -593,7 +659,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
             <div style={styles.loanDashboard}>
               <div style={styles.sectionHeaderRow}>
                 <h2 style={styles.sectionTitle}>Banks</h2>
-                <button className="btn btn-danger" style={{ backgroundColor: '#EF4444', color: '#FFFFFF' }} onClick={() => setShowAddBankModal(true)}>
+                <button className="btn btn-danger" style={{ backgroundColor: '#EF4444', color: '#FFFFFF' }} onClick={handleOpenAddBankModal}>
                   + Add Bank
                 </button>
               </div>
@@ -652,8 +718,18 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                     <>
                       <div style={styles.ledgerHeader}>
                         <div>
-                          <h3 style={{ margin: 0, fontSize: '18px', color: '#1F2937' }}>{selectedBank.displayName}</h3>
-                          <span style={{ fontSize: '11px', color: '#9CA3AF' }}>Bank: {selectedBank.bankName || '-'}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', color: '#1E293B', fontWeight: '700' }}>{selectedBank.displayName}</h3>
+                            <button 
+                              type="button"
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6', transition: 'color 0.2s' }}
+                              onClick={() => handleStartEditBank(selectedBank)}
+                              title="Edit Bank Account Details"
+                            >
+                              <Edit size={15} />
+                            </button>
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '2px' }}>Bank: {selectedBank.bankName || '-'}</span>
                         </div>
 
                         <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
