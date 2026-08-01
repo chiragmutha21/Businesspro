@@ -200,6 +200,10 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [bankTxToAcc, setBankTxToAcc] = useState('');
   const [bankTxAdjType, setBankTxAdjType] = useState<'Increase balance' | 'Reduce balance'>('Increase balance');
   const [bankTxDescription, setBankTxDescription] = useState('');
+  const [destBankName, setDestBankName] = useState('');
+  const [destAccountNo, setDestAccountNo] = useState('');
+  const [destIfsc, setDestIfsc] = useState('');
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
 
   // Lists saved in memory
 
@@ -513,6 +517,46 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       return;
     }
 
+    const newTxAmount = (bankTxType === 'Bank to Cash' || bankTxType === 'Bank to Bank' || (bankTxType === 'Adjustment' && bankTxAdjType === 'Reduce balance')) ? -amt : amt;
+
+    if (editingTxId) {
+      const accId = bankTxFromAcc;
+      const acc = bankAccounts.find(b => b.id === accId);
+      if (!acc) return;
+
+      const originalTx = (acc.transactions || []).find((t: any) => t.id === editingTxId);
+      if (!originalTx) return;
+
+      const balanceDiff = newTxAmount - originalTx.amount;
+      const updatedTx = {
+        ...originalTx,
+        amount: newTxAmount,
+        date: bankTxDate,
+        name: bankTxType === 'Bank to Bank' ? `Transfer to ${destBankName}` : (bankTxDescription || originalTx.name),
+        description: bankTxDescription,
+        ...(bankTxType === 'Bank to Bank' ? { destBankName, destAccountNo, destIfsc } : {})
+      };
+
+      const newTransactions = (acc.transactions || []).map((t: any) => t.id === editingTxId ? updatedTx : t);
+
+      updateBankAccount(acc.id, {
+        currentBalance: acc.currentBalance + balanceDiff,
+        transactions: newTransactions
+      }).then(() => {
+        setShowBankTxModal(false);
+        setBankTxAmt('');
+        setBankTxDescription('');
+        setEditingTxId(null);
+        setDestBankName('');
+        setDestAccountNo('');
+        setDestIfsc('');
+        alert('Transaction updated successfully!');
+      }).catch((err) => {
+        alert('Failed to update transaction: ' + err.message);
+      });
+      return;
+    }
+
     if (bankTxType === 'Bank to Cash') {
       if (!bankTxFromAcc) {
         alert('Please select a valid From account.');
@@ -522,14 +566,14 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       if (acc) {
         updateBankAccount(acc.id, {
           currentBalance: acc.currentBalance - amt,
-          transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Bank to Cash', name: bankTxDescription || 'Bank to Cash Transfer', date: bankTxDate, amount: -amt }]
+          transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Bank to Cash', name: bankTxDescription || 'Withdrawal (Bank to Cash)', date: bankTxDate, amount: -amt }]
         });
       }
       addCashLog({
         type: 'Add',
         amount: amt,
         date: bankTxDate,
-        description: bankTxDescription || 'Bank to Cash Transfer'
+        description: bankTxDescription || 'Withdrawal (Bank to Cash)'
       } as any);
     } 
     else if (bankTxType === 'Cash to Bank') {
@@ -541,33 +585,43 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       if (acc) {
         updateBankAccount(acc.id, {
           currentBalance: acc.currentBalance + amt,
-          transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Cash to Bank', name: bankTxDescription || 'Cash to Bank Transfer', date: bankTxDate, amount: amt }]
+          transactions: [...(acc.transactions||[]), { id: String((acc.transactions?.length||0) + 1), type: 'Cash to Bank', name: bankTxDescription || 'Deposit (Cash to Bank)', date: bankTxDate, amount: amt }]
         });
       }
       addCashLog({
         type: 'Reduce',
         amount: amt,
         date: bankTxDate,
-        description: bankTxDescription || 'Cash to Bank Transfer'
+        description: bankTxDescription || 'Deposit (Cash to Bank)'
       } as any);
     }
     else if (bankTxType === 'Bank to Bank') {
-      if (!bankTxFromAcc || !bankTxToAcc || bankTxFromAcc === bankTxToAcc) {
-        alert('Please select two distinct bank accounts.');
+      if (!bankTxFromAcc) {
+        alert('Please select a valid From account.');
+        return;
+      }
+      if (!destBankName) {
+        alert('Please enter the destination bank name.');
         return;
       }
       const fromAcc = bankAccounts.find(b => b.id === bankTxFromAcc);
       if (fromAcc) {
         updateBankAccount(fromAcc.id, {
           currentBalance: fromAcc.currentBalance - amt,
-          transactions: [...(fromAcc.transactions||[]), { id: String((fromAcc.transactions?.length||0) + 1), type: 'Bank to Bank', name: bankTxDescription || `Transfer to ${bankAccounts.find(b => b.id === bankTxToAcc)?.displayName}`, date: bankTxDate, amount: -amt }]
-        });
-      }
-      const toAcc = bankAccounts.find(b => b.id === bankTxToAcc);
-      if (toAcc) {
-        updateBankAccount(toAcc.id, {
-          currentBalance: toAcc.currentBalance + amt,
-          transactions: [...(toAcc.transactions||[]), { id: String((toAcc.transactions?.length||0) + 1), type: 'Bank to Bank', name: bankTxDescription || `Transfer from ${fromAcc?.displayName}`, date: bankTxDate, amount: amt }]
+          transactions: [
+            ...(fromAcc.transactions||[]), 
+            { 
+              id: String((fromAcc.transactions?.length||0) + 1), 
+              type: 'Bank to Bank', 
+              name: `Transfer to ${destBankName}`, 
+              date: bankTxDate, 
+              amount: -amt,
+              destBankName,
+              destAccountNo,
+              destIfsc,
+              description: bankTxDescription
+            }
+          ]
         });
       }
     }
@@ -590,7 +644,48 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
     setShowBankTxModal(false);
     setBankTxAmt('');
     setBankTxDescription('');
+    setDestBankName('');
+    setDestAccountNo('');
+    setDestIfsc('');
     alert('Bank Transaction completed!');
+  };
+
+  const handleDeleteTransaction = (bank: BankAccount, txToDelete: any) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+    
+    // Reverse balance
+    const newBalance = bank.currentBalance - txToDelete.amount;
+    const newTransactions = (bank.transactions || []).filter((tx: any) => tx.id !== txToDelete.id);
+    
+    updateBankAccount(bank.id, {
+      currentBalance: newBalance,
+      transactions: newTransactions
+    }).then(() => {
+      alert('Transaction deleted successfully!');
+    }).catch((err) => {
+      alert('Failed to delete transaction: ' + err.message);
+    });
+  };
+
+  const handleStartEditTransaction = (bank: BankAccount, tx: any) => {
+    setEditingTxId(tx.id);
+    setBankTxFromAcc(bank.id);
+    setBankTxType(tx.type);
+    setBankTxAmt(String(Math.abs(tx.amount)));
+    setBankTxDate(tx.date || '');
+    setBankTxDescription(tx.description || tx.name || '');
+    
+    if (tx.type === 'Bank to Bank') {
+      setDestBankName(tx.destBankName || '');
+      setDestAccountNo(tx.destAccountNo || '');
+      setDestIfsc(tx.destIfsc || '');
+    } else {
+      setDestBankName('');
+      setDestAccountNo('');
+      setDestIfsc('');
+    }
+    
+    setShowBankTxModal(true);
   };
 
   const selectedBank = bankAccounts.find(b => b.id === selectedBankId) || activeBankAccounts[0];
@@ -750,10 +845,10 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
 
                             {showDepMenu && (
                               <div style={styles.depDropdown}>
-                                <button style={styles.depItem} onClick={() => { setBankTxType('Bank to Cash'); setBankTxFromAcc(selectedBank.id); setShowBankTxModal(true); setShowDepMenu(false); }}>Bank to Cash Transfer</button>
-                                <button style={styles.depItem} onClick={() => { setBankTxType('Cash to Bank'); setBankTxToAcc(selectedBank.id); setShowBankTxModal(true); setShowDepMenu(false); }}>Cash to Bank Transfer</button>
-                                <button style={styles.depItem} onClick={() => { setBankTxType('Bank to Bank'); setBankTxFromAcc(selectedBank.id); setShowBankTxModal(true); setShowDepMenu(false); }}>Bank to Bank Transfer</button>
-                                <button style={styles.depItem} onClick={() => { setBankTxType('Adjustment'); setBankTxFromAcc(selectedBank.id); setShowBankTxModal(true); setShowDepMenu(false); }}>Adjust Bank Balance</button>
+                                <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Bank to Cash'); setBankTxFromAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Withdraw</button>
+                                <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Cash to Bank'); setBankTxToAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Deposit</button>
+                                <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Bank to Bank'); setBankTxFromAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setDestBankName(''); setDestAccountNo(''); setDestIfsc(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Bank to Bank Transfer</button>
+                                <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Adjustment'); setBankTxFromAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Adjust Bank Balance</button>
                               </div>
                             )}
                           </div>
@@ -769,16 +864,44 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                               <th style={{ textAlign: 'left' }}>Name</th>
                               <th style={{ textAlign: 'center' }}>Date</th>
                               <th style={{ textAlign: 'right' }}>Amount</th>
+                              <th style={{ textAlign: 'right', width: '80px' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {selectedBank.transactions.map((tx: any) => (
                               <tr key={tx.id}>
                                 <td style={{ fontWeight: '600' }}>{tx.type}</td>
-                                <td>{tx.name}</td>
+                                <td>
+                                  <div>{tx.name}</div>
+                                  {tx.destBankName && (
+                                    <div style={{ fontSize: '10.5px', color: '#6B7280', marginTop: '2px', backgroundColor: '#F8FAFC', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>
+                                      🏦 A/C: <strong>{tx.destAccountNo || '-'}</strong> | IFSC: <strong>{tx.destIfsc || '-'}</strong>
+                                    </div>
+                                  )}
+                                </td>
                                 <td style={{ textAlign: 'center' }}>{formatDateDDMMYYYY(tx.date)}</td>
                                 <td style={{ textAlign: 'right', fontWeight: '700', color: tx.amount < 0 ? '#EF4444' : '#10B981' }}>
                                   ₹{Math.abs(tx.amount).toFixed(2)}
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  {tx.type !== 'Opening Balance' && (
+                                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                      <button 
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#3B82F6' }}
+                                        onClick={() => handleStartEditTransaction(selectedBank, tx)}
+                                        title="Edit Transaction"
+                                      >
+                                        <Edit size={14} />
+                                      </button>
+                                      <button 
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#EF4444' }}
+                                        onClick={() => handleDeleteTransaction(selectedBank, tx)}
+                                        title="Delete Transaction"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -1481,26 +1604,55 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
 
               {/* LAYOUT C: Bank to Bank */}
               {bankTxType === 'Bank to Bank' && (
-                <div style={styles.modalFormRow}>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label style={styles.fieldLabel}>From:</label>
-                    <select className="form-control" style={styles.modalSelect} value={bankTxFromAcc} onChange={(e) => setBankTxFromAcc(e.target.value)} required>
-                      <option value="">Select Source Bank</option>
-                      {activeBankAccounts.map(b => (
-                        <option key={b.id} value={b.id}>{b.displayName}</option>
-                      ))}
-                    </select>
+                <>
+                  <div style={styles.modalFormRow}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={styles.fieldLabel}>From (Source Bank):</label>
+                      <select className="form-control" style={styles.modalSelect} value={bankTxFromAcc} onChange={(e) => setBankTxFromAcc(e.target.value)} required>
+                        <option value="">Select Source Bank</option>
+                        {activeBankAccounts.map(b => (
+                          <option key={b.id} value={b.id}>{b.displayName}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={styles.fieldLabel}>To (Destination Bank Name):</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        placeholder="Enter Destination Bank Name" 
+                        style={styles.modalInput} 
+                        value={destBankName} 
+                        onChange={(e) => setDestBankName(e.target.value)} 
+                        required 
+                      />
+                    </div>
                   </div>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label style={styles.fieldLabel}>To:</label>
-                    <select className="form-control" style={styles.modalSelect} value={bankTxToAcc} onChange={(e) => setBankTxToAcc(e.target.value)} required>
-                      <option value="">Select Destination Bank</option>
-                      {bankAccounts.filter(b => b.id !== bankTxFromAcc).map(b => (
-                        <option key={b.id} value={b.id}>{b.displayName}</option>
-                      ))}
-                    </select>
+                  <div style={styles.modalFormRow}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={styles.fieldLabel}>Destination Account Number:</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        placeholder="Enter Account Number" 
+                        style={styles.modalInput} 
+                        value={destAccountNo} 
+                        onChange={(e) => setDestAccountNo(e.target.value)} 
+                      />
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={styles.fieldLabel}>Destination IFSC Code:</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        placeholder="Enter IFSC Code" 
+                        style={styles.modalInput} 
+                        value={destIfsc} 
+                        onChange={(e) => setDestIfsc(e.target.value)} 
+                      />
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* LAYOUT D: Bank Adjustment */}
