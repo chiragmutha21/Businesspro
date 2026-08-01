@@ -119,7 +119,7 @@ export const Backup: React.FC = () => {
   );
 
   return (
-    <div style={styles.container} className="no-print">
+    <div style={styles.container}>
       {isGeneratingPDF && (
         <div style={{
           position: 'fixed',
@@ -154,7 +154,7 @@ export const Backup: React.FC = () => {
       )}
       
       {/* Upper Panel */}
-      <div style={styles.headerBlock}>
+      <div style={styles.headerBlock} className="no-print">
         <div>
           <h2 style={styles.title}>Sync, Share & Backup</h2>
           <p style={styles.subtitle}>Secure your database and export offline compliance ledger backups.</p>
@@ -232,7 +232,7 @@ export const Backup: React.FC = () => {
       </div>
 
       {/* Main Card */}
-      <div className="card" style={styles.mainCard}>
+      <div className="card no-print" style={styles.mainCard}>
         <div style={styles.flexLeft}>
           <div style={styles.iconCircle}>
             <ShieldCheck size={48} color="#10B981" />
