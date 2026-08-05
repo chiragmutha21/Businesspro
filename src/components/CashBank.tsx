@@ -421,8 +421,10 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
 
     if (editingBankId) {
       const currentBank = bankAccounts.find(b => b.id === editingBankId);
-      const balanceDiff = opBal - (currentBank?.openingBalance || 0);
-      const newBalance = (currentBank?.currentBalance || 0) + balanceDiff;
+      const otherTxsSum = (currentBank?.transactions || [])
+        .filter((tx: any) => tx.type !== 'Opening Balance' && tx.id !== '1')
+        .reduce((sum: number, tx: any) => sum + tx.amount, 0);
+      const newBalance = opBal + otherTxsSum;
 
       // Update the "Opening Balance" transaction in the transactions list
       const updatedTransactions = (currentBank?.transactions || []).map((tx: any) => {
