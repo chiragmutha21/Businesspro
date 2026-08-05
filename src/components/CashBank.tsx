@@ -419,6 +419,22 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
     }
 
     if (editingBankId) {
+      const currentBank = bankAccounts.find(b => b.id === editingBankId);
+      const balanceDiff = opBal - (currentBank?.openingBalance || 0);
+      const newBalance = (currentBank?.currentBalance || 0) + balanceDiff;
+
+      // Update the "Opening Balance" transaction in the transactions list
+      const updatedTransactions = (currentBank?.transactions || []).map((tx: any) => {
+        if (tx.type === 'Opening Balance' || tx.id === '1') {
+          return {
+            ...tx,
+            amount: opBal,
+            date: bankAsOfDate
+          };
+        }
+        return tx;
+      });
+
       const updates = {
         displayName: bankDispName,
         openingBalance: opBal,
@@ -431,6 +447,8 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
         printQr: bankPrintQr,
         printDetails: bankPrintDetails,
         acceptOnline: bankAcceptOnline,
+        currentBalance: newBalance,
+        transactions: updatedTransactions,
       };
 
       (updateBankAccount(editingBankId, updates) as Promise<any>)
@@ -1468,7 +1486,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
         <div style={styles.modalOverlay}>
           <div style={styles.bankModalContent}>
             <div style={styles.modalHeader}>
-              <span style={{ fontSize: '16px', fontWeight: '700', color: '#1F2937' }}>Add Bank Account</span>
+              <span style={{ fontSize: '16px', fontWeight: '700', color: '#1F2937' }}>{editingBankId ? 'Edit Bank Account' : 'Add Bank Account'}</span>
               <X size={18} style={{ cursor: 'pointer', color: '#9CA3AF' }} onClick={() => setShowAddBankModal(false)} />
             </div>
 
