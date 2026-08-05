@@ -894,9 +894,29 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                           const d = new Date(dateStr);
                           return isNaN(d.getTime()) ? new Date(0) : d;
                         };
-                        const sortedTxs = [...(selectedBank.transactions || [])].sort((a: any, b: any) => {
+
+                        // Filter out existing opening balance transactions from the list
+                        const otherTxs = (selectedBank.transactions || []).filter(
+                          (tx: any) => tx.type !== 'Opening Balance' && tx.id !== '1'
+                        );
+
+                        // Sort other transactions chronologically
+                        const sortedOtherTxs = [...otherTxs].sort((a: any, b: any) => {
                           return parseDate(a.date).getTime() - parseDate(b.date).getTime();
                         });
+
+                        // Create the auto opening balance transaction
+                        const openingTx = {
+                          id: 'opening-bal-auto',
+                          type: 'Opening Balance',
+                          name: 'Account Opening',
+                          date: selectedBank.balanceDate || new Date().toLocaleDateString('en-GB'),
+                          amount: selectedBank.openingBalance || 0
+                        };
+
+                        // Prepend opening balance to sorted list
+                        const sortedTxs = [openingTx, ...sortedOtherTxs];
+
                         let currentRunningBal = 0;
                         const txsWithRunningBalance = sortedTxs.map((tx: any) => {
                           currentRunningBal += tx.amount;
