@@ -67,7 +67,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     updateTransaction,
     deleteTransaction,
     products,
-    customers
+    customers,
+    bankAccounts,
+    updateBankAccount
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'new-sale'>('list');
@@ -85,7 +87,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
     receivedAmount: '',
     paymentMethod: 'Cash',
     splitCashAmount: '',
-    splitOnlineAmount: ''
+    splitOnlineAmount: '',
+    showInBank: false,
+    selectedBankId: ''
   });
 
   // Local list states for sub-sections
@@ -556,7 +560,9 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         receivedAmount: t.receivedAmount || '',
         paymentMethod: t.paymentType || 'Cash',
         splitCashAmount: t.paymentType?.startsWith('Split:') ? t.paymentType.split(':')[1] : '',
-        splitOnlineAmount: t.paymentType?.startsWith('Split:') ? t.paymentType.split(':')[2] : ''
+        splitOnlineAmount: t.paymentType?.startsWith('Split:') ? t.paymentType.split(':')[2] : '',
+        showInBank: false,
+        selectedBankId: ''
       });
       setShowStatusModal(true);
     } else {
@@ -623,6 +629,38 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
         updateTransaction(statusToEdit.id, updatedData);
       } else {
         await updateSaleInvoice(statusToEdit.id, updatedData);
+      }
+
+      // Add entry to registered bank account if requested
+      if (statusForm.showInBank && statusForm.selectedBankId) {
+        const targetBank = bankAccounts.find((b: any) => b.id === statusForm.selectedBankId);
+        if (targetBank) {
+          let amountToAdd = 0;
+          if (statusForm.paymentStatus === 'Paid by Online') {
+            amountToAdd = parseFloat(statusToEdit.totalAmount) || 0;
+          } else if (statusForm.paymentStatus === 'Partially Paid' && statusForm.paymentMethod === 'Online') {
+            amountToAdd = parseFloat(statusForm.receivedAmount) || 0;
+          } else if (statusForm.paymentStatus === 'Split Payment') {
+            amountToAdd = parseFloat(statusForm.splitOnlineAmount) || 0;
+          }
+
+          if (amountToAdd > 0) {
+            const newTx = {
+              id: String((targetBank.transactions?.length || 0) + 1),
+              type: 'Receive',
+              name: `Payment Received - ${statusToEdit.contactName} (Inv: ${statusToEdit.invoiceNo || 'N/A'})`,
+              date: statusForm.paymentDate || new Date().toLocaleDateString('en-GB'),
+              amount: amountToAdd
+            };
+            const newBalance = (targetBank.currentBalance || 0) + amountToAdd;
+            const updatedTxList = [...(targetBank.transactions || []), newTx];
+            
+            await updateBankAccount(targetBank.id, {
+              currentBalance: newBalance,
+              transactions: updatedTxList
+            });
+          }
+        }
       }
 
       setShowStatusModal(false);
@@ -1386,6 +1424,53 @@ export const Transactions: React.FC<TransactionsProps> = ({ activeSection = 'tra
                       onChange={(e) => setStatusForm({ ...statusForm, ifscCode: e.target.value })}
                     />
                   </div>
+                </>
+              )}
+
+              {/* Bank Account Selection for Online Payments */}
+              {(statusForm.paymentStatus === 'Paid by Online' || 
+                statusForm.paymentStatus === 'Split Payment' || 
+                (statusForm.paymentStatus === 'Partially Paid' && statusForm.paymentMethod === 'Online')) && (
+                <>
+                  <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                    <input
+                      type="checkbox"
+                      id="showInBank"
+                      checked={statusForm.showInBank}
+                      onChange={(e) => setStatusForm({ ...statusForm, showInBank: e.target.checked })}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="showInBank" style={{ ...styles.fieldLabel, margin: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                      Show this entry in your registered bank account?
+                    </label>
+                  </div>
+
+                  {statusForm.showInBank && (
+                    <div className="form-group" style={{ marginTop: '10px' }}>
+                      <label style={styles.fieldLabel}>Select Registered Bank Account *</label>
+                      <select
+                        className="form-control"
+                        style={styles.modalInput}
+                        value={statusForm.selectedBankId}
+                        onChange={(e) => setStatusForm({ ...statusForm, selectedBankId: e.target.value })}
+                        required
+                      >
+                        <option value="">-- Choose Bank Account --</option>
+                        {(bankAccounts || [])
+                          .filter((b: any) => b.businessId === activeBusiness?.id)
+                          .map((b: any) => (
+                            <option key={b.id} value={b.id}>
+                              {b.displayName} (Bal: ₹{b.currentBalance.toFixed(2)})
+                            </option>
+                          ))}
+                      </select>
+                      {(!bankAccounts || bankAccounts.filter((b: any) => b.businessId === activeBusiness?.id).length === 0) && (
+                        <div style={{ color: 'var(--color-danger)', fontSize: '12px', marginTop: '4px' }}>
+                          No registered bank accounts found. Please add a bank account first in Cash & Bank.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
 

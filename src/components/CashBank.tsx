@@ -203,6 +203,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
   const [destBankName, setDestBankName] = useState('');
   const [destAccountNo, setDestAccountNo] = useState('');
   const [destIfsc, setDestIfsc] = useState('');
+  const [destReceivableName, setDestReceivableName] = useState('');
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
 
   // Lists saved in memory
@@ -552,7 +553,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
         date: bankTxDate,
         name: bankTxType === 'Bank to Bank' ? `Transfer to ${destBankName}` : (bankTxDescription || originalTx.name),
         description: bankTxDescription,
-        ...(bankTxType === 'Bank to Bank' ? { destBankName, destAccountNo, destIfsc } : {})
+        ...(bankTxType === 'Bank to Bank' ? { destBankName, destAccountNo, destIfsc, destReceivableName } : {})
       };
 
       const newTransactions = (acc.transactions || []).map((t: any) => t.id === editingTxId ? updatedTx : t);
@@ -568,6 +569,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
         setDestBankName('');
         setDestAccountNo('');
         setDestIfsc('');
+        setDestReceivableName('');
         alert('Transaction updated successfully!');
       }).catch((err) => {
         alert('Failed to update transaction: ' + err.message);
@@ -637,6 +639,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
               destBankName,
               destAccountNo,
               destIfsc,
+              destReceivableName,
               description: bankTxDescription
             }
           ]
@@ -665,6 +668,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
     setDestBankName('');
     setDestAccountNo('');
     setDestIfsc('');
+    setDestReceivableName('');
     alert('Bank Transaction completed!');
   };
 
@@ -697,10 +701,12 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
       setDestBankName(tx.destBankName || '');
       setDestAccountNo(tx.destAccountNo || '');
       setDestIfsc(tx.destIfsc || '');
+      setDestReceivableName(tx.destReceivableName || '');
     } else {
       setDestBankName('');
       setDestAccountNo('');
       setDestIfsc('');
+      setDestReceivableName('');
     }
     
     setShowBankTxModal(true);
@@ -865,7 +871,7 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                               <div style={styles.depDropdown}>
                                 <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Bank to Cash'); setBankTxFromAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Withdraw</button>
                                 <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Cash to Bank'); setBankTxToAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Deposit</button>
-                                <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Bank to Bank'); setBankTxFromAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setDestBankName(''); setDestAccountNo(''); setDestIfsc(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Bank to Bank Transfer</button>
+                                <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Bank to Bank'); setBankTxFromAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setDestBankName(''); setDestAccountNo(''); setDestIfsc(''); setDestReceivableName(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Bank to Bank Transfer</button>
                                 <button style={styles.depItem} onClick={() => { setEditingTxId(null); setBankTxType('Adjustment'); setBankTxFromAcc(selectedBank.id); setBankTxAmt(''); setBankTxDescription(''); setShowBankTxModal(true); setShowDepMenu(false); }}>Adjust Bank Balance</button>
                               </div>
                             )}
@@ -873,59 +879,100 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                         </div>
                       </div>
 
-                      <div style={{ marginTop: '20px' }}>
-                        <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '10px' }}>Transactions</h4>
-                        <table style={styles.ledgerTable}>
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: 'left' }}>Type</th>
-                              <th style={{ textAlign: 'left' }}>Name</th>
-                              <th style={{ textAlign: 'center' }}>Date</th>
-                              <th style={{ textAlign: 'right' }}>Amount</th>
-                              <th style={{ textAlign: 'right', width: '80px' }}>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedBank.transactions.map((tx: any) => (
-                              <tr key={tx.id}>
-                                <td style={{ fontWeight: '600' }}>{tx.type}</td>
-                                <td>
-                                  <div>{tx.name}</div>
-                                  {tx.destBankName && (
-                                    <div style={{ fontSize: '10.5px', color: '#6B7280', marginTop: '2px', backgroundColor: '#F8FAFC', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>
-                                      🏦 A/C: <strong>{tx.destAccountNo || '-'}</strong> | IFSC: <strong>{tx.destIfsc || '-'}</strong>
-                                    </div>
-                                  )}
-                                </td>
-                                <td style={{ textAlign: 'center' }}>{formatDateDDMMYYYY(tx.date)}</td>
-                                <td style={{ textAlign: 'right', fontWeight: '700', color: tx.amount < 0 ? '#EF4444' : '#10B981' }}>
-                                  ₹{Math.abs(tx.amount).toFixed(2)}
-                                </td>
-                                <td style={{ textAlign: 'right' }}>
-                                  {tx.type !== 'Opening Balance' && (
-                                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                                      <button 
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#3B82F6' }}
-                                        onClick={() => handleStartEditTransaction(selectedBank, tx)}
-                                        title="Edit Transaction"
-                                      >
-                                        <Edit size={14} />
-                                      </button>
-                                      <button 
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#EF4444' }}
-                                        onClick={() => handleDeleteTransaction(selectedBank, tx)}
-                                        title="Delete Transaction"
-                                      >
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      {(() => {
+                        const parseDate = (dateStr: string) => {
+                          if (!dateStr) return new Date(0);
+                          const parts = dateStr.split('/');
+                          if (parts.length === 3) {
+                            const day = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1;
+                            const year = parseInt(parts[2], 10);
+                            return new Date(year, month, day);
+                          }
+                          const d = new Date(dateStr);
+                          return isNaN(d.getTime()) ? new Date(0) : d;
+                        };
+                        const sortedTxs = [...(selectedBank.transactions || [])].sort((a: any, b: any) => {
+                          return parseDate(a.date).getTime() - parseDate(b.date).getTime();
+                        });
+                        let currentRunningBal = 0;
+                        const txsWithRunningBalance = sortedTxs.map((tx: any) => {
+                          currentRunningBal += tx.amount;
+                          return {
+                            ...tx,
+                            runningBalance: currentRunningBal
+                          };
+                        });
+
+                        return (
+                          <div style={{ marginTop: '20px' }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '10px' }}>Transactions</h4>
+                            <table style={styles.ledgerTable}>
+                              <thead>
+                                <tr>
+                                  <th style={{ textAlign: 'center' }}>Date</th>
+                                  <th style={{ textAlign: 'left' }}>Type</th>
+                                  <th style={{ textAlign: 'left' }}>Details</th>
+                                  <th style={{ textAlign: 'right' }}>Deposit (+)</th>
+                                  <th style={{ textAlign: 'right' }}>Withdrawal (-)</th>
+                                  <th style={{ textAlign: 'right' }}>Balance</th>
+                                  <th style={{ textAlign: 'right', width: '80px' }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {txsWithRunningBalance.map((tx: any) => {
+                                  const isDeposit = tx.amount >= 0;
+                                  return (
+                                    <tr key={tx.id}>
+                                      <td style={{ textAlign: 'center' }}>{formatDateDDMMYYYY(tx.date)}</td>
+                                      <td style={{ fontWeight: '600' }}>{tx.type}</td>
+                                      <td>
+                                        <div>{tx.name}</div>
+                                        {tx.destBankName && (
+                                          <div style={{ fontSize: '10.5px', color: '#6B7280', marginTop: '2px', backgroundColor: '#F8FAFC', padding: '4px 8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <div>🏦 Destination: <strong>{tx.destBankName}</strong></div>
+                                            {tx.destReceivableName && <div>👤 Receivable Name: <strong>{tx.destReceivableName}</strong></div>}
+                                            <div>A/C: <strong>{tx.destAccountNo || '-'}</strong> | IFSC: <strong>{tx.destIfsc || '-'}</strong></div>
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td style={{ textAlign: 'right', fontWeight: '700', color: '#10B981' }}>
+                                        {isDeposit ? `₹${tx.amount.toFixed(2)}` : '-'}
+                                      </td>
+                                      <td style={{ textAlign: 'right', fontWeight: '700', color: '#EF4444' }}>
+                                        {!isDeposit ? `₹${Math.abs(tx.amount).toFixed(2)}` : '-'}
+                                      </td>
+                                      <td style={{ textAlign: 'right', fontWeight: '700', color: '#1F2937' }}>
+                                        ₹{tx.runningBalance.toFixed(2)}
+                                      </td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        {tx.type !== 'Opening Balance' && (
+                                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                            <button 
+                                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#3B82F6' }}
+                                              onClick={() => handleStartEditTransaction(selectedBank, tx)}
+                                              title="Edit Transaction"
+                                            >
+                                              <Edit size={14} />
+                                            </button>
+                                            <button 
+                                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#EF4444' }}
+                                              onClick={() => handleDeleteTransaction(selectedBank, tx)}
+                                              title="Delete Transaction"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
                     </>
                   ) : (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#9CA3AF' }}>
@@ -1669,6 +1716,21 @@ export const CashBank: React.FC<CashBankProps> = ({ activeSection }) => {
                         onChange={(e) => setDestIfsc(e.target.value)} 
                       />
                     </div>
+                  </div>
+                  <div style={styles.modalFormRow}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label style={styles.fieldLabel}>Receivable Name (Account Holder Name) *:</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        placeholder="Enter Receivable Name" 
+                        style={styles.modalInput} 
+                        value={destReceivableName} 
+                        onChange={(e) => setDestReceivableName(e.target.value)} 
+                        required
+                      />
+                    </div>
+                    <div style={{ flex: 1 }} />
                   </div>
                 </>
               )}
