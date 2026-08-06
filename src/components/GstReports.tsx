@@ -147,20 +147,54 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
       printHeaderDiv.style.display = 'block';
     }
 
+    // Apply temporary print styles to make the table fit perfectly on PDF
+    const originalStyle = element.getAttribute('style') || '';
+    // Reduce padding, font size, and force a clean A4 width for rendering
+    element.style.width = '1120px'; // Approx width for A4 landscape at standard DPI
+    element.style.padding = '10px';
+    
+    // Also scale down table fonts and padding for compactness in PDF
+    const table = element.querySelector('.custom-table') as HTMLElement;
+    let originalTableStyle = '';
+    if (table) {
+      originalTableStyle = table.getAttribute('style') || '';
+      table.style.fontSize = '12px';
+    }
+    
+    const cells = element.querySelectorAll('.custom-table th, .custom-table td');
+    const originalCellStyles: string[] = [];
+    cells.forEach((cell, i) => {
+      originalCellStyles[i] = cell.getAttribute('style') || '';
+      const c = cell as HTMLElement;
+      c.style.padding = '8px 10px';
+      c.style.fontSize = '11px';
+    });
+
     const opt = {
       margin: [10, 10, 10, 10] as [number, number, number, number],
       filename: `${activeSection === 'gst-purchase' ? 'GST_Purchase_Report' : 'GST_Sale_Report'}_${fromDate}_to_${toDate}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'landscape' as const }
     };
 
     html2pdf().set(opt).from(element).save().then(() => {
-      // Hide the print header again
+      // Revert styles
+      element.setAttribute('style', originalStyle);
+      if (table) table.setAttribute('style', originalTableStyle);
+      cells.forEach((cell, i) => {
+        cell.setAttribute('style', originalCellStyles[i]);
+      });
       if (printHeaderDiv) {
         printHeaderDiv.style.display = 'none';
       }
     }).catch(() => {
+      // Revert styles on error
+      element.setAttribute('style', originalStyle);
+      if (table) table.setAttribute('style', originalTableStyle);
+      cells.forEach((cell, i) => {
+        cell.setAttribute('style', originalCellStyles[i]);
+      });
       if (printHeaderDiv) {
         printHeaderDiv.style.display = 'none';
       }
