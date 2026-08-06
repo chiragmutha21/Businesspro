@@ -1541,7 +1541,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               {/* Table Grid */}
-              <div style={{ marginTop: '20px', overflowX: 'auto' }}>
+              <div style={{ marginTop: '20px', overflow: 'visible' }}>
                 <table style={styles.gridTable}>
                   <thead>
                     <tr>
@@ -2068,7 +2068,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               {/* Order Grid Table */}
-              <div style={{ marginTop: '20px', overflowX: 'auto' }}>
+              <div style={{ marginTop: '20px', overflow: 'visible' }}>
                 <table style={styles.gridTable}>
                   <thead>
                     <tr>
@@ -2319,7 +2319,7 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
               </div>
 
               {/* Debit Note Grid Table */}
-              <div style={{ marginTop: '20px', overflowX: 'auto' }}>
+              <div style={{ marginTop: '20px', overflow: 'visible' }}>
                 <table style={styles.gridTable}>
                   <thead>
                     <tr>
