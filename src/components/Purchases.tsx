@@ -675,17 +675,22 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     setTotalAmount(b.totalAmount || 0);
     setBillImageUrl(b.contactAddress || '');
     setRoundOff(false);
-    const mappedItems = (b.products || []).map((p: any) => ({
-      id: generateUniqueId(),
-      name: p.productName || '',
-      qty: p.quantity || 0,
-      unit: 'NONE',
-      priceUnit: p.price || 0,
-      priceTaxMode: 'Without Tax' as const,
-      taxPercentage: 0,
-      taxAmount: 0,
-      amount: p.total || 0
-    }));
+    const mappedItems = (b.products || []).map((p: any) => {
+      const gstPct = p.gst || 0;
+      const baseVal = (p.quantity || 0) * (p.price || 0);
+      const taxAmt = gstPct > 0 ? baseVal * (gstPct / 100) : 0;
+      return {
+        id: generateUniqueId(),
+        name: p.productName || '',
+        qty: p.quantity || 0,
+        unit: p.unit || 'NONE',
+        priceUnit: p.price || 0,
+        priceTaxMode: 'Without Tax' as const,
+        taxPercentage: gstPct,
+        taxAmount: Math.round(taxAmt * 100) / 100,
+        amount: p.total || 0
+      };
+    });
     setItems(mappedItems.length > 0 ? mappedItems : [{
       id: generateUniqueId(), name: '', qty: 0, unit: 'NONE', priceUnit: 0,
       priceTaxMode: 'Without Tax' as const, taxPercentage: 0, taxAmount: 0, amount: 0
@@ -1677,6 +1682,9 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                             <option value="5">GST@5%</option>
                             <option value="12">GST@12%</option>
                             <option value="18">GST@18%</option>
+                            {item.taxPercentage && !['0', '5', '12', '18'].includes(String(item.taxPercentage)) && (
+                              <option value={item.taxPercentage}>GST@{item.taxPercentage}%</option>
+                            )}
                           </select>
                         </td>
                         <td style={styles.gridTdCalc}>
@@ -2174,6 +2182,9 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                             <option value="5">GST@5%</option>
                             <option value="12">GST@12%</option>
                             <option value="18">GST@18%</option>
+                            {item.taxPercentage && !['0', '5', '12', '18'].includes(String(item.taxPercentage)) && (
+                              <option value={item.taxPercentage}>GST@{item.taxPercentage}%</option>
+                            )}
                           </select>
                         </td>
                         <td style={styles.gridTdCalc}>₹{item.taxAmount.toFixed(2)}</td>
@@ -2422,6 +2433,9 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                             <option value="5">GST@5%</option>
                             <option value="12">GST@12%</option>
                             <option value="18">GST@18%</option>
+                            {item.taxPercentage && !['0', '5', '12', '18'].includes(String(item.taxPercentage)) && (
+                              <option value={item.taxPercentage}>GST@{item.taxPercentage}%</option>
+                            )}
                           </select>
                         </td>
                         <td style={styles.gridTdCalc}>₹{item.taxAmount.toFixed(2)}</td>

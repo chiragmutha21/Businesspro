@@ -75,17 +75,25 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
     // Map sorted transactions to invoice-level lines
     const lines = sortedTx.map((t, index) => {
       const productsList = t.products || [];
+      const taxAmount = Number(t.gstAmount) || 0;
+      const totalAmount = Number(t.totalAmount) || 0;
+      const taxableValue = totalAmount - taxAmount;
+
       const gstPercentages = Array.from(
-        new Set(productsList.map((p: any) => p.gst).filter((gst: any) => gst !== undefined && gst > 0))
+        new Set(
+          productsList
+            .map((p: any) => {
+              if (p.gst === undefined || p.gst === null) return 0;
+              const val = typeof p.gst === 'string' ? parseFloat(p.gst.replace(/[^\d.]/g, '')) : parseFloat(p.gst);
+              return isNaN(val) ? 0 : val;
+            })
+            .filter((gst: number) => gst > 0)
+        )
       );
 
       const gstPctStr = gstPercentages.length > 0
         ? gstPercentages.map(pct => `${pct}%`).join(', ')
-        : (t.gstAmount && t.totalAmount ? `${Math.round((t.gstAmount / (t.totalAmount - t.gstAmount)) * 100)}%` : '-');
-
-      const taxAmount = t.gstAmount || 0;
-      const totalAmount = t.totalAmount || 0;
-      const taxableValue = totalAmount - taxAmount;
+        : (taxAmount > 0 && taxableValue > 0 ? `${Math.round((taxAmount / taxableValue) * 100)}%` : '-');
 
       // Try to get GST number from transaction, fallback to looking up contact in customers list
       let gstNo = t.contactGst || '';
