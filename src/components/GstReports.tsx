@@ -8,7 +8,7 @@ interface GstReportsProps {
 }
 
 export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
-  const { activeBusiness, transactions } = useApp();
+  const { activeBusiness, transactions, customers } = useApp();
 
   const getStartOfMonthStr = () => {
     const d = new Date();
@@ -87,12 +87,21 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
       const totalAmount = t.totalAmount || 0;
       const taxableValue = totalAmount - taxAmount;
 
+      // Try to get GST number from transaction, fallback to looking up contact in customers list
+      let gstNo = t.contactGst || '';
+      if (!gstNo || gstNo === '-') {
+        const party = customers.find(c => c.name === t.contactName && c.businessId === activeBusiness?.id);
+        if (party && party.gst) {
+          gstNo = party.gst;
+        }
+      }
+
       return {
         srNo: index + 1,
         date: t.date,
         invoiceNo: t.invoiceNo || '-',
         partyName: t.contactName || '-',
-        gstNo: t.contactGst || '-',
+        gstNo: gstNo || '-',
         gstPct: gstPctStr,
         taxableValue: taxableValue,
         cgst: taxAmount / 2,
