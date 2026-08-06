@@ -147,40 +147,52 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
       printHeaderDiv.style.display = 'block';
     }
 
-    // Apply temporary print styles to make the table fit perfectly on PDF
+    // Apply temporary print styles to make the table fit perfectly on PDF without clipping
     const originalStyle = element.getAttribute('style') || '';
-    // Reduce padding, font size, and force a clean A4 width for rendering
-    element.style.width = '1120px'; // Approx width for A4 landscape at standard DPI
-    element.style.padding = '10px';
     
-    // Also scale down table fonts and padding for compactness in PDF
+    // Temporarily force A4 landscape width and allow overflow
+    element.style.width = '1040px';
+    element.style.overflow = 'visible';
+
+    // Disable table-wrapper overflow-x
+    const wrapper = element.querySelector('.table-wrapper') as HTMLElement;
+    let originalWrapperStyle = '';
+    if (wrapper) {
+      originalWrapperStyle = wrapper.getAttribute('style') || '';
+      wrapper.style.overflow = 'visible';
+      wrapper.style.overflowX = 'visible';
+      wrapper.style.width = '100%';
+    }
+
+    // Adjust table and table cell font size and padding to fit A4 Landscape
     const table = element.querySelector('.custom-table') as HTMLElement;
     let originalTableStyle = '';
     if (table) {
       originalTableStyle = table.getAttribute('style') || '';
-      table.style.fontSize = '12px';
+      table.style.width = '100%';
     }
-    
+
     const cells = element.querySelectorAll('.custom-table th, .custom-table td');
     const originalCellStyles: string[] = [];
     cells.forEach((cell, i) => {
       originalCellStyles[i] = cell.getAttribute('style') || '';
       const c = cell as HTMLElement;
-      c.style.padding = '8px 10px';
-      c.style.fontSize = '11px';
+      c.style.padding = '6px 8px';
+      c.style.fontSize = '9px';
     });
 
     const opt = {
       margin: [10, 10, 10, 10] as [number, number, number, number],
       filename: `${activeSection === 'gst-purchase' ? 'GST_Purchase_Report' : 'GST_Sale_Report'}_${fromDate}_to_${toDate}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
+      html2canvas: { scale: 2, useCORS: true, logging: false, width: 1040 },
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'landscape' as const }
     };
 
     html2pdf().set(opt).from(element).save().then(() => {
       // Revert styles
       element.setAttribute('style', originalStyle);
+      if (wrapper) wrapper.setAttribute('style', originalWrapperStyle);
       if (table) table.setAttribute('style', originalTableStyle);
       cells.forEach((cell, i) => {
         cell.setAttribute('style', originalCellStyles[i]);
@@ -191,6 +203,7 @@ export const GstReports: React.FC<GstReportsProps> = ({ activeSection }) => {
     }).catch(() => {
       // Revert styles on error
       element.setAttribute('style', originalStyle);
+      if (wrapper) wrapper.setAttribute('style', originalWrapperStyle);
       if (table) table.setAttribute('style', originalTableStyle);
       cells.forEach((cell, i) => {
         cell.setAttribute('style', originalCellStyles[i]);
