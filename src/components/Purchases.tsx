@@ -53,7 +53,7 @@ const parseDateStr = (dateStr: string): Date | null => {
 };
 
 export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
-  const { customers, activeBusiness, transactions, deleteTransaction, addTransaction, updateTransaction } = useApp();
+  const { customers, activeBusiness, transactions, deleteTransaction, addTransaction, updateTransaction, products } = useApp();
 
   const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -77,6 +77,8 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
   const [billImageUrl, setBillImageUrl] = useState('');
   const [uploadingBill, setUploadingBill] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeSearchRowId, setActiveSearchRowId] = useState<string | null>(null);
+  const [searchItemQuery, setSearchItemQuery] = useState<string>('');
 
   // Payment Detail Fields
   const [paymentDetails, setPaymentDetails] = useState<any>({
@@ -376,6 +378,40 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
     } else {
       setPartyPhone('');
     }
+  };
+
+  const handleSelectProduct = (rowId: string, p: any) => {
+    const updated = items.map(item => {
+      if (item.id === rowId) {
+        const qty = item.qty || 1;
+        const price = p.purchasePrice || 0;
+        const taxPct = p.gst || 0;
+        const baseVal = qty * price;
+        let taxAmt = 0;
+        let finalAmt = baseVal;
+
+        if (taxPct > 0) {
+          taxAmt = baseVal * (taxPct / 100);
+          finalAmt = baseVal + taxAmt;
+        }
+
+        return {
+          ...item,
+          name: p.name,
+          qty: qty,
+          priceUnit: price,
+          unit: p.unit || 'NONE',
+          taxPercentage: taxPct,
+          taxAmount: Math.round(taxAmt * 100) / 100,
+          amount: Math.round(finalAmt * 100) / 100
+        };
+      }
+      return item;
+    });
+    setItems(updated);
+    recalcTotal(updated);
+    setActiveSearchRowId(null);
+    setSearchItemQuery('');
   };
 
   const resetForm = () => {
@@ -1524,15 +1560,67 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     {items.map((item, idx) => (
                       <tr key={item.id}>
                         <td style={styles.gridTdIndex}>{idx + 1}</td>
-                        <td style={styles.gridTd}>
+                        <td style={{ ...styles.gridTd, position: 'relative' }}>
                           <input
                             type="text"
                             className="form-control"
                             style={styles.gridInput}
                             placeholder="Enter Item Name"
                             value={item.name}
-                            onChange={(e) => handleUpdateRow(item.id, 'name', e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleUpdateRow(item.id, 'name', val);
+                              setActiveSearchRowId(item.id);
+                              setSearchItemQuery(val);
+                            }}
+                            onFocus={() => {
+                              setActiveSearchRowId(item.id);
+                              setSearchItemQuery(item.name);
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                setActiveSearchRowId(null);
+                                setSearchItemQuery('');
+                              }, 200);
+                            }}
                           />
+                          {activeSearchRowId === item.id && (
+                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 99, maxHeight: '150px', overflowY: 'auto', textAlign: 'left' }}>
+                              {products
+                                .filter(p => p.businessId === activeBusiness?.id)
+                                .filter(p =>
+                                  !searchItemQuery ||
+                                  p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
+                                  (p.sku && p.sku.toLowerCase().includes(searchItemQuery.toLowerCase())) ||
+                                  (p.barcode && p.barcode.includes(searchItemQuery))
+                                )
+                                .map(p => (
+                                  <div
+                                    key={p.id}
+                                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', fontSize: '12px', color: '#1F2937' }}
+                                    onMouseDown={() => handleSelectProduct(item.id, p)}
+                                    onMouseEnter={(e) => {
+                                      (e.currentTarget as HTMLDivElement).style.backgroundColor = '#F3F4F6';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      (e.currentTarget as HTMLDivElement).style.backgroundColor = '#FFFFFF';
+                                    }}
+                                  >
+                                    <strong>{p.name}</strong> <span style={{ color: '#6B7280' }}>({p.sku || 'No SKU'})</span> - Purchase: ₹{p.purchasePrice || 0}
+                                  </div>
+                                ))}
+                              {products
+                                .filter(p => p.businessId === activeBusiness?.id)
+                                .filter(p =>
+                                  !searchItemQuery ||
+                                  p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
+                                  (p.sku && p.sku.toLowerCase().includes(searchItemQuery.toLowerCase())) ||
+                                  (p.barcode && p.barcode.includes(searchItemQuery))
+                                ).length === 0 && (
+                                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#9CA3AF' }}>No products match</div>
+                                )}
+                            </div>
+                          )}
                         </td>
                         <td style={styles.gridTd}>
                           <input
@@ -1554,6 +1642,9 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                             <option value="BAGS">BAGS</option>
                             <option value="BOTTLES">BOTTLES</option>
                             <option value="BOXES">BOXES</option>
+                            {item.unit && !['NONE', 'BAGS', 'BOTTLES', 'BOXES'].includes(item.unit) && (
+                              <option value={item.unit}>{item.unit.toUpperCase()}</option>
+                            )}
                           </select>
                         </td>
                         <td style={styles.gridTd}>
@@ -1993,15 +2084,67 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     {items.map((item, idx) => (
                       <tr key={item.id}>
                         <td style={styles.gridTdIndex}>{idx + 1}</td>
-                        <td style={styles.gridTd}>
+                        <td style={{ ...styles.gridTd, position: 'relative' }}>
                           <input
                             type="text"
                             className="form-control"
                             style={styles.gridInput}
                             placeholder="Enter Item Description"
                             value={item.name}
-                            onChange={(e) => handleUpdateRow(item.id, 'name', e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleUpdateRow(item.id, 'name', val);
+                              setActiveSearchRowId(item.id);
+                              setSearchItemQuery(val);
+                            }}
+                            onFocus={() => {
+                              setActiveSearchRowId(item.id);
+                              setSearchItemQuery(item.name);
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                setActiveSearchRowId(null);
+                                setSearchItemQuery('');
+                              }, 200);
+                            }}
                           />
+                          {activeSearchRowId === item.id && (
+                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 99, maxHeight: '150px', overflowY: 'auto', textAlign: 'left' }}>
+                              {products
+                                .filter(p => p.businessId === activeBusiness?.id)
+                                .filter(p =>
+                                  !searchItemQuery ||
+                                  p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
+                                  (p.sku && p.sku.toLowerCase().includes(searchItemQuery.toLowerCase())) ||
+                                  (p.barcode && p.barcode.includes(searchItemQuery))
+                                )
+                                .map(p => (
+                                  <div
+                                    key={p.id}
+                                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', fontSize: '12px', color: '#1F2937' }}
+                                    onMouseDown={() => handleSelectProduct(item.id, p)}
+                                    onMouseEnter={(e) => {
+                                      (e.currentTarget as HTMLDivElement).style.backgroundColor = '#F3F4F6';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      (e.currentTarget as HTMLDivElement).style.backgroundColor = '#FFFFFF';
+                                    }}
+                                  >
+                                    <strong>{p.name}</strong> <span style={{ color: '#6B7280' }}>({p.sku || 'No SKU'})</span> - Purchase: ₹{p.purchasePrice || 0}
+                                  </div>
+                                ))}
+                              {products
+                                .filter(p => p.businessId === activeBusiness?.id)
+                                .filter(p =>
+                                  !searchItemQuery ||
+                                  p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
+                                  (p.sku && p.sku.toLowerCase().includes(searchItemQuery.toLowerCase())) ||
+                                  (p.barcode && p.barcode.includes(searchItemQuery))
+                                ).length === 0 && (
+                                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#9CA3AF' }}>No products match</div>
+                                )}
+                            </div>
+                          )}
                         </td>
                         <td style={styles.gridTd}>
                           <input type="number" className="form-control" style={styles.gridInput} placeholder="0" value={item.qty || ''} onChange={(e) => handleUpdateRow(item.id, 'qty', e.target.value)} />
@@ -2011,6 +2154,9 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                             <option value="NONE">NONE</option>
                             <option value="BAGS">BAGS</option>
                             <option value="BOXES">BOXES</option>
+                            {item.unit && !['NONE', 'BAGS', 'BOXES'].includes(item.unit) && (
+                              <option value={item.unit}>{item.unit.toUpperCase()}</option>
+                            )}
                           </select>
                         </td>
                         <td style={styles.gridTd}>
@@ -2186,15 +2332,67 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                     {items.map((item, idx) => (
                       <tr key={item.id}>
                         <td style={styles.gridTdIndex}>{idx + 1}</td>
-                        <td style={styles.gridTd}>
+                        <td style={{ ...styles.gridTd, position: 'relative' }}>
                           <input
                             type="text"
                             className="form-control"
                             style={styles.gridInput}
                             placeholder="Enter Item Description"
                             value={item.name}
-                            onChange={(e) => handleUpdateRow(item.id, 'name', e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleUpdateRow(item.id, 'name', val);
+                              setActiveSearchRowId(item.id);
+                              setSearchItemQuery(val);
+                            }}
+                            onFocus={() => {
+                              setActiveSearchRowId(item.id);
+                              setSearchItemQuery(item.name);
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                setActiveSearchRowId(null);
+                                setSearchItemQuery('');
+                              }, 200);
+                            }}
                           />
+                          {activeSearchRowId === item.id && (
+                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 99, maxHeight: '150px', overflowY: 'auto', textAlign: 'left' }}>
+                              {products
+                                .filter(p => p.businessId === activeBusiness?.id)
+                                .filter(p =>
+                                  !searchItemQuery ||
+                                  p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
+                                  (p.sku && p.sku.toLowerCase().includes(searchItemQuery.toLowerCase())) ||
+                                  (p.barcode && p.barcode.includes(searchItemQuery))
+                                )
+                                .map(p => (
+                                  <div
+                                    key={p.id}
+                                    style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', fontSize: '12px', color: '#1F2937' }}
+                                    onMouseDown={() => handleSelectProduct(item.id, p)}
+                                    onMouseEnter={(e) => {
+                                      (e.currentTarget as HTMLDivElement).style.backgroundColor = '#F3F4F6';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      (e.currentTarget as HTMLDivElement).style.backgroundColor = '#FFFFFF';
+                                    }}
+                                  >
+                                    <strong>{p.name}</strong> <span style={{ color: '#6B7280' }}>({p.sku || 'No SKU'})</span> - Purchase: ₹{p.purchasePrice || 0}
+                                  </div>
+                                ))}
+                              {products
+                                .filter(p => p.businessId === activeBusiness?.id)
+                                .filter(p =>
+                                  !searchItemQuery ||
+                                  p.name.toLowerCase().includes(searchItemQuery.toLowerCase()) ||
+                                  (p.sku && p.sku.toLowerCase().includes(searchItemQuery.toLowerCase())) ||
+                                  (p.barcode && p.barcode.includes(searchItemQuery))
+                                ).length === 0 && (
+                                  <div style={{ padding: '8px 12px', fontSize: '11px', color: '#9CA3AF' }}>No products match</div>
+                                )}
+                            </div>
+                          )}
                         </td>
                         <td style={styles.gridTd}>
                           <input type="number" className="form-control" style={styles.gridInput} placeholder="0" value={item.qty || ''} onChange={(e) => handleUpdateRow(item.id, 'qty', e.target.value)} />
@@ -2204,6 +2402,9 @@ export const Purchases: React.FC<PurchasesProps> = ({ activeSection }) => {
                             <option value="NONE">NONE</option>
                             <option value="BAGS">BAGS</option>
                             <option value="BOXES">BOXES</option>
+                            {item.unit && !['NONE', 'BAGS', 'BOXES'].includes(item.unit) && (
+                              <option value={item.unit}>{item.unit.toUpperCase()}</option>
+                            )}
                           </select>
                         </td>
                         <td style={styles.gridTd}>
